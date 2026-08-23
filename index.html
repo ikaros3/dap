@@ -1123,6 +1123,20 @@ function viewSettings(){
   var h = '<div class="page-head"><div><div class="eyebrow">Settings</div><h1 class="page-title">설정</h1>'+
     '<p class="page-desc">학습 기록은 이 브라우저에 저장됩니다. 기기를 옮기거나 백업할 때는 진도 파일을 쓰세요.</p></div></div>';
 
+  /* ── 진도 파일 ── */
+  h += '<div class="card pad" style="margin-bottom:16px"><h3 style="font-size:calc(14.5px * var(--fs));margin-bottom:12px">진도 파일</h3>'+
+      '<p class="note">현재 기록: '+o.seen+'문항 풀이 · 오답 '+wrongIds().length+' · 북마크 '+bookmarkIds().length+' · 모의고사 '+S.exams.length+'회 · 진행 중 세션 '+liveSessions().length+'건</p>'+
+      '<p class="note" style="margin-top:6px">저장 파일: <span class="mono">'+esc(PROGRESS_FILE)+'</span>'+
+        (fileLinked() ? ' <span class="chip chip-ok">위치 연결됨</span>' : '')+'</p>'+
+      '<div class="btn-row" style="margin-top:14px">'+
+      '<button class="btn btn-primary" data-act="export">진도 저장</button>'+
+      '<button class="btn" data-act="import">진도 파일 불러오기</button>'+
+      (fileLinked() ? '<button class="btn" data-act="unlinkfile">저장 위치 바꾸기</button>' : '')+
+      '<button class="btn" data-act="wipe">전체 초기화</button></div>'+
+      '<input type="file" id="fileIn" accept=".json,application/json" style="display:none">'+
+      '<p class="note" style="margin-top:12px"><strong>진도 파일은 하나만 만들어 계속 덮어씁니다.</strong> 처음 저장할 때 위치를 한 번 정하면 이후에는 같은 파일에 그대로 덮어써집니다. 풀이 기록·오답노트·북마크·복습 일정·모의고사 이력과 <strong>풀던 위치</strong>까지 담기므로, 다른 기기에서 불러오면 멈춘 문항부터 이어집니다.</p>'+
+      '<textarea id="ioBox" style="display:none;width:100%;height:120px;margin-top:12px;font-family:var(--font-mono);font-size:calc(11px * var(--fs));border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:10px"></textarea></div>';
+
   /* ── 화면 · 폰트 ── */
   h += '<div class="card pad" style="margin-bottom:16px">'+
     '<h3 style="font-size:calc(14.5px * var(--fs));margin-bottom:4px">화면 · 폰트</h3>'+
@@ -1155,7 +1169,7 @@ function viewSettings(){
       '</div>'+
     '</div></div>';
 
-  /* ── 시험 설정 · 진도 파일 ── */
+  /* ── 시험 설정 ── */
   h += '<div class="grid2">'+
     '<div class="card pad"><h3 style="font-size:calc(14.5px * var(--fs));margin-bottom:12px">시험 설정</h3>'+
       '<div style="display:flex;gap:14px;flex-wrap:wrap">'+
@@ -1163,19 +1177,6 @@ function viewSettings(){
       '<label class="field">목표 점수('+TOTAL_SCORE+'점 만점)<input type="number" id="setTarget" min="1" max="'+TOTAL_SCORE+'" step="'+PER_Q+'" value="'+S.settings.target+'"></label>'+
       '</div><div class="btn-row" style="margin-top:14px"><button class="btn btn-primary" data-act="savesettings">저장</button></div>'+
       '<p class="note" style="margin-top:12px">목표 점수는 결과 판정선입니다. 실제 DAP 합격 기준(필기+실기 100점 중 75점, 과목별 40% 과락)을 감안해 기본값을 45점(75%)으로 두었습니다.</p></div>'+
-
-    '<div class="card pad"><h3 style="font-size:calc(14.5px * var(--fs));margin-bottom:12px">진도 파일</h3>'+
-      '<p class="note">현재 기록: '+o.seen+'문항 풀이 · 오답 '+wrongIds().length+' · 북마크 '+bookmarkIds().length+' · 모의고사 '+S.exams.length+'회 · 진행 중 세션 '+liveSessions().length+'건</p>'+
-      '<p class="note" style="margin-top:6px">저장 파일: <span class="mono">'+esc(PROGRESS_FILE)+'</span>'+
-        (fileLinked() ? ' <span class="chip chip-ok">위치 연결됨</span>' : '')+'</p>'+
-      '<div class="btn-row" style="margin-top:14px">'+
-      '<button class="btn btn-primary" data-act="export">진도 저장</button>'+
-      '<button class="btn" data-act="import">진도 파일 불러오기</button>'+
-      (fileLinked() ? '<button class="btn" data-act="unlinkfile">저장 위치 바꾸기</button>' : '')+
-      '<button class="btn" data-act="wipe">전체 초기화</button></div>'+
-      '<input type="file" id="fileIn" accept=".json,application/json" style="display:none">'+
-      '<p class="note" style="margin-top:12px"><strong>진도 파일은 하나만 만들어 계속 덮어씁니다.</strong> 처음 저장할 때 위치를 한 번 정하면 이후에는 같은 파일에 그대로 덮어써집니다. 풀이 기록·오답노트·북마크·복습 일정·모의고사 이력과 <strong>풀던 위치</strong>까지 담기므로, 다른 기기에서 불러오면 멈춘 문항부터 이어집니다.</p>'+
-      '<textarea id="ioBox" style="display:none;width:100%;height:120px;margin-top:12px;font-family:var(--font-mono);font-size:calc(11px * var(--fs));border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:10px"></textarea></div>'+
     '</div>';
 
   /* ── 문제은행 구성 ── */
