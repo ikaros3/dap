@@ -1984,6 +1984,35 @@ function syncLink(){
     return;
   }
 
+  /* ID 를 비워 두고 연결하면, 무턱대고 새로 만들지 않고 계정에 이미 있는
+     진도 Gist 를 먼저 찾는다. 기기마다 새 Gist 가 생겨 서로 다른 곳을
+     바라보는 사고를 막기 위한 것이다. */
+  syncStatus("이미 있는 Gist 를 찾는 중…");
+  ghReq("GET", "/gists?per_page=100", null, function(list){
+    var hits = [];
+    if(list && list.length){
+      for(var i=0;i<list.length;i++){
+        var g = list[i];
+        if(g && g.files && g.files[SYNC_FILE]) hits.push(g);
+      }
+    }
+    if(hits.length){
+      hits.sort(function(a,b){ return (b.updated_at||"") < (a.updated_at||"") ? -1 : 1; });
+      sync.gistId = hits[0].id; sync.last = 0; saveSync(); render();
+      toast(hits.length > 1
+        ? "진도 Gist 가 " + hits.length + "개 있습니다 · 가장 최근 것에 연결했습니다"
+        : "이미 있는 Gist 에 연결했습니다");
+      syncNow(false);
+      return;
+    }
+    syncCreate();
+  }, function(m){
+    syncStatus("실패: " + m);
+    toast("연결 실패 · " + m);
+  });
+}
+
+function syncCreate(){
   syncStatus("Gist 를 만드는 중…");
   var body = { description:"DAP 문제은행 진도", public:false, files:{} };
   body.files[SYNC_FILE] = { content: payloadText() };
@@ -2031,12 +2060,13 @@ function viewSyncCard(){
     h += '<div style="display:flex;gap:14px;flex-wrap:wrap">'+
       '<label class="field" style="flex:2 1 260px">GitHub 토큰 (gist 권한)'+
         '<input type="password" id="syncTok" placeholder="ghp_..." autocomplete="off" spellcheck="false"></label>'+
-      '<label class="field" style="flex:1 1 200px">Gist ID (비우면 새로 만듦)'+
-        '<input type="text" id="syncGist" placeholder="첫 기기는 비워 두세요" autocomplete="off" spellcheck="false"></label>'+
+      '<label class="field" style="flex:1 1 200px">Gist ID (비우면 자동으로 찾음)'+
+        '<input type="text" id="syncGist" placeholder="비워 두면 기존 것을 찾아 연결" autocomplete="off" spellcheck="false"></label>'+
       '</div>'+
       '<p class="note" id="syncMsg" style="margin-top:8px;min-height:1.2em">'+esc(syncMsg)+'</p>'+
       '<div class="btn-row" style="margin-top:12px"><button class="btn btn-primary" data-act="synclink">연결</button></div>'+
       '<p class="note" style="margin-top:12px"><strong>토큰 만들기</strong> — <span class="mono">github.com/settings/tokens</span> 에서 classic 토큰을 만들고 <span class="mono">gist</span> 권한 하나만 체크하세요. 만료일을 함께 지정하는 것을 권합니다.</p>'+
+      '<p class="note" style="margin-top:6px"><strong>Gist ID 는 비워 두어도 됩니다.</strong> 계정에 이미 만들어 둔 진도 Gist 가 있으면 그것을 찾아 연결하고, 없을 때만 새로 만듭니다. 두 기기가 서로 다른 Gist 를 보게 되는 것을 막으려면, 다른 기기에 표시된 ID 를 그대로 넣는 것이 가장 확실합니다.</p>'+
       '<p class="note" style="margin-top:6px">토큰은 이 브라우저에만 저장되며 진도 파일에는 포함되지 않습니다. 공용 PC 에서는 연결하지 마세요.</p>';
   }
   return h + '</div>';
