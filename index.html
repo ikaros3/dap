@@ -680,6 +680,7 @@ function save(){
   if(saveT) clearTimeout(saveT);
   saveT = setTimeout(function(){
     try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+    syncSchedule();
   }, 140);
 }
 
@@ -1136,6 +1137,9 @@ function viewSettings(){
       '<input type="file" id="fileIn" accept=".json,application/json" style="display:none">'+
       '<p class="note" style="margin-top:12px"><strong>진도 파일은 하나만 만들어 계속 덮어씁니다.</strong> 처음 저장할 때 위치를 한 번 정하면 이후에는 같은 파일에 그대로 덮어써집니다. 풀이 기록·오답노트·북마크·복습 일정·모의고사 이력과 <strong>풀던 위치</strong>까지 담기므로, 다른 기기에서 불러오면 멈춘 문항부터 이어집니다.</p>'+
       '<textarea id="ioBox" style="display:none;width:100%;height:120px;margin-top:12px;font-family:var(--font-mono);font-size:calc(11px * var(--fs));border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:10px"></textarea></div>';
+
+  /* ── 진도 동기화 ── */
+  h += viewSyncCard();
 
   /* ── 화면 · 폰트 ── */
   h += '<div class="card pad" style="margin-bottom:16px">'+
@@ -1619,6 +1623,9 @@ document.addEventListener("click", function(ev){
 
     case "export": exportProgress(); break;
     case "unlinkfile": unlinkFile(); break;
+    case "syncnow":    syncNow(false); break;
+    case "synclink":   syncLink(); break;
+    case "syncunlink": syncUnlink(); break;
     case "import": { var fi = $("#fileIn"); if(fi){ fi.value=""; fi.click(); } break; }
     case "wipe":
       if(confirm("모든 학습 기록을 삭제합니다. 되돌릴 수 없습니다.")){
@@ -1774,6 +1781,12 @@ document.addEventListener("input", function(ev){
   render_fs(setFontScale(parseFloat(ev.target.value)));
 });
 document.addEventListener("change", function(ev){
+  if(ev.target && ev.target.id==="syncAuto"){
+    sync.auto = !!ev.target.checked; saveSync();
+    toast(sync.auto ? "자동 동기화 켬" : "자동 동기화 끔");
+    if(!sync.auto && syncT){ clearTimeout(syncT); syncT = null; }
+    return;
+  }
   if(!ev.target || ev.target.id!=="fileIn") return;
   var f = ev.target.files && ev.target.files[0];
   if(!f) return;
@@ -1825,6 +1838,208 @@ function mergeState(cur, inc){
     if(!a || (b.ts||0) > (a.ts||0)) out.sessions[k] = b;
   });
   return out;
+}
+
+/* ═══════════ 진도 동기화 (비공개 GitHub Gist) ═══════════
+   Gist 하나를 원본으로 삼아 기기마다 가져와 병합하고 다시 올린다.
+   충돌 처리는 mergeState() 를 그대로 쓴다 — 문항별 last 타임스탬프 기준.
+
+   토큰은 S 와 분리된 키에 보관한다. S 는 진도 파일로 내보내지므로
+   여기에 토큰을 넣으면 파일을 공유할 때 같이 새어 나간다. */
+var SYNC_KEY  = "dap750:sync";
+var SYNC_FILE = PROGRESS_FILE;            /* Gist 안의 파일 이름 */
+var SYNC_WAIT = 20000;                    /* 기록이 바뀐 뒤 올리기까지 대기 */
+var syncBusy = false, syncT = null, syncMsg = "";
+
+function loadSync(){
+  try{
+    var o = JSON.parse(localStorage.getItem(SYNC_KEY) || "{}");
+    return { token:o.token||"", gistId:o.gistId||"", last:o.last||0, auto:o.auto!==false };
+  }catch(e){ return { token:"", gistId:"", last:0, auto:true }; }
+}
+var sync = loadSync();
+function saveSync(){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(sync)); }catch(e){} }
+function syncOn(){ return !!(sync.token && sync.gistId); }
+function syncStatus(m){
+  syncMsg = m || "";
+  var el = $("#syncMsg");
+  if(el) el.textContent = syncMsg;
+}
+
+function ghReq(method, path, body, ok, err){
+  var x = new XMLHttpRequest();
+  x.open(method, "https://api.github.com" + path, true);
+  x.setRequestHeader("Accept", "application/vnd.github+json");
+  x.setRequestHeader("Authorization", "Bearer " + sync.token);
+  if(body) x.setRequestHeader("Content-Type", "application/json");
+  x.onload = function(){
+    if(x.status >= 200 && x.status < 300){
+      var j = null;
+      try{ j = JSON.parse(x.responseText || "{}"); }catch(e){ err("응답을 해석하지 못했습니다"); return; }
+      ok(j);
+    }
+    else if(x.status === 401) err("토큰이 거부되었습니다 (401) · gist 권한을 확인하세요");
+    else if(x.status === 403) err("요청이 거부되었습니다 (403) · 잠시 후 다시 시도하세요");
+    else if(x.status === 404) err("Gist 를 찾을 수 없습니다 (404) · ID 와 토큰 주인을 확인하세요");
+    else err("GitHub 오류 " + x.status);
+  };
+  x.onerror = function(){ err("네트워크에 연결하지 못했습니다"); };
+  x.send(body ? JSON.stringify(body) : null);
+}
+
+/* Gist 에서 진도 본문을 읽는다. 아직 비어 있으면 null 을 넘긴다. */
+function gistRead(cb, err){
+  ghReq("GET", "/gists/" + encodeURIComponent(sync.gistId), null, function(g){
+    var f = g.files && g.files[SYNC_FILE];
+    if(!f){ cb(null); return; }
+    /* 1MB 를 넘으면 content 가 잘려 오므로 원본 URL 로 다시 받는다 */
+    if(f.truncated && f.raw_url){
+      var x = new XMLHttpRequest();
+      x.open("GET", f.raw_url, true);
+      x.onload  = function(){ cb(x.status < 300 ? x.responseText : null); };
+      x.onerror = function(){ err("Gist 원본을 내려받지 못했습니다"); };
+      x.send(null);
+      return;
+    }
+    cb(f.content || null);
+  }, err);
+}
+
+/* 진도 파일 본문 → 정규화된 상태. 형식이 아니면 null */
+function parsePayload(text){
+  try{
+    var o = JSON.parse(String(text));
+    var inc = (o && o.data && o.data.stats) ? o.data : o;
+    if(!inc || typeof inc !== "object" || !inc.stats) return null;
+    return normalize(inc);
+  }catch(e){ return null; }
+}
+
+/* 가져오기 → 병합 → 올리기. quiet 면 토스트를 띄우지 않는다. */
+function syncNow(quiet){
+  if(!syncOn()){ if(!quiet) toast("먼저 GitHub 토큰을 연결하세요"); return; }
+  if(syncBusy) return;
+  if(syncT){ clearTimeout(syncT); syncT = null; }
+  syncBusy = true;
+  syncStatus("동기화 중…");
+
+  function fail(m){
+    syncBusy = false;
+    syncStatus("실패: " + m);
+    if(!quiet) toast("동기화 실패 · " + m);
+  }
+
+  gistRead(function(text){
+    var inc = text ? parsePayload(text) : null;
+    if(text && !inc){ fail("Gist 내용이 DAP 진도 파일 형식이 아닙니다"); return; }
+
+    if(inc){
+      /* 지금 풀고 있는 세션은 화면이 튀지 않도록 로컬 것을 그대로 둔다.
+         나머지 세션과 통계·오답·북마크·모의고사 이력은 정상 병합된다. */
+      var liveKey = (session && session.key) ? session.key : null;
+      var live = liveKey ? session : null;
+      if(liveKey){ session.ts = Date.now(); S.sessions[liveKey] = session; }
+      S = mergeState(S, inc);
+      if(liveKey){ S.sessions[liveKey] = live; session = live; }
+      try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+    }
+
+    var body = { files:{} };
+    body.files[SYNC_FILE] = { content: payloadText() };
+    ghReq("PATCH", "/gists/" + encodeURIComponent(sync.gistId), body, function(){
+      syncBusy = false;
+      sync.last = Date.now(); saveSync();
+      syncStatus("");
+      if(!quiet) toast("동기화 완료 · " + Object.keys(S.stats).length + "문항 기록");
+      if(view.name === "settings" || view.name === "dash") render();
+    }, fail);
+  }, fail);
+}
+
+/* 기록이 바뀌면 잠시 뒤 한 번만 올린다 */
+function syncSchedule(){
+  if(typeof sync === "undefined" || !syncOn() || !sync.auto || syncBusy) return;
+  if(syncT) clearTimeout(syncT);
+  syncT = setTimeout(function(){ syncT = null; syncNow(true); }, SYNC_WAIT);
+}
+
+/* 탭을 덮거나 앱을 벗어나면 예약된 것을 바로 올린다 */
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState === "hidden" && syncT) syncNow(true);
+});
+
+function syncLink(){
+  var tokEl = $("#syncTok"), gidEl = $("#syncGist");
+  var tk  = (tokEl ? tokEl.value : "").trim();
+  var gid = (gidEl ? gidEl.value : "").trim();
+  if(!tk){ toast("GitHub 토큰을 입력하세요"); return; }
+  sync.token = tk;
+
+  if(gid){
+    /* Gist 주소를 통째로 붙여 넣어도 ID 만 뽑아 쓴다 */
+    var m = gid.match(/[0-9a-f]{20,}/i) || gid.match(/[0-9a-f]{7,}/i);
+    sync.gistId = m ? m[0] : gid;
+    sync.last = 0; saveSync(); render();
+    syncNow(false);
+    return;
+  }
+
+  syncStatus("Gist 를 만드는 중…");
+  var body = { description:"DAP 문제은행 진도", public:false, files:{} };
+  body.files[SYNC_FILE] = { content: payloadText() };
+  ghReq("POST", "/gists", body, function(g){
+    sync.gistId = g.id || "";
+    sync.last = Date.now(); saveSync();
+    syncStatus(""); render();
+    toast("Gist 를 새로 만들었습니다 · 다른 기기에 이 ID 를 넣으세요");
+  }, function(m){
+    syncStatus("실패: " + m);
+    toast("연결 실패 · " + m);
+  });
+}
+
+function syncUnlink(){
+  if(!confirm("이 브라우저에 저장된 토큰과 Gist 연결을 지웁니다.\n" +
+              "Gist 자체와 학습 기록은 그대로 남습니다.\n\nGist ID: " + sync.gistId)) return;
+  sync = { token:"", gistId:"", last:0, auto:true };
+  saveSync();
+  if(syncT){ clearTimeout(syncT); syncT = null; }
+  render();
+  toast("동기화 연결을 해제했습니다");
+}
+
+/* 설정 화면의 동기화 카드 */
+function viewSyncCard(){
+  var on = syncOn();
+  var h = '<div class="card pad" style="margin-bottom:16px">'+
+    '<h3 style="font-size:calc(14.5px * var(--fs));margin-bottom:4px">진도 동기화 '+
+      (on ? '<span class="chip chip-ok">연결됨</span>' : '<span class="chip">연결 안 됨</span>')+'</h3>'+
+    '<p class="note" style="margin-bottom:12px">비공개 Gist 한 곳에 진도를 모읍니다. PC와 폰에서 같은 토큰·같은 Gist ID 를 연결하면, 어느 기기에서 풀든 기록이 하나로 합쳐집니다.</p>';
+
+  if(on){
+    h += '<p class="note">Gist ID: <span class="mono">'+esc(sync.gistId)+'</span></p>'+
+      '<p class="note" style="margin-top:6px">마지막 동기화: '+(sync.last ? esc(fmtDate(sync.last)) : '없음')+'</p>'+
+      '<p class="note" id="syncMsg" style="margin-top:6px;min-height:1.2em">'+esc(syncMsg)+'</p>'+
+      '<div class="btn-row" style="margin-top:12px">'+
+        '<button class="btn btn-primary" data-act="syncnow">지금 동기화</button>'+
+        '<button class="btn" data-act="syncunlink">연결 해제</button></div>'+
+      '<label class="note" style="display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer">'+
+        '<input type="checkbox" id="syncAuto"'+(sync.auto ? ' checked' : '')+'>'+
+        '앱을 열 때, 그리고 기록이 바뀌고 '+Math.round(SYNC_WAIT/1000)+'초 뒤에 자동으로 동기화</label>'+
+      '<p class="note" style="margin-top:12px">다른 기기에서는 같은 토큰과 위 Gist ID 를 넣어 연결하세요.</p>';
+  }else{
+    h += '<div style="display:flex;gap:14px;flex-wrap:wrap">'+
+      '<label class="field" style="flex:2 1 260px">GitHub 토큰 (gist 권한)'+
+        '<input type="password" id="syncTok" placeholder="ghp_..." autocomplete="off" spellcheck="false"></label>'+
+      '<label class="field" style="flex:1 1 200px">Gist ID (비우면 새로 만듦)'+
+        '<input type="text" id="syncGist" placeholder="첫 기기는 비워 두세요" autocomplete="off" spellcheck="false"></label>'+
+      '</div>'+
+      '<p class="note" id="syncMsg" style="margin-top:8px;min-height:1.2em">'+esc(syncMsg)+'</p>'+
+      '<div class="btn-row" style="margin-top:12px"><button class="btn btn-primary" data-act="synclink">연결</button></div>'+
+      '<p class="note" style="margin-top:12px"><strong>토큰 만들기</strong> — <span class="mono">github.com/settings/tokens</span> 에서 classic 토큰을 만들고 <span class="mono">gist</span> 권한 하나만 체크하세요. 만료일을 함께 지정하는 것을 권합니다.</p>'+
+      '<p class="note" style="margin-top:6px">토큰은 이 브라우저에만 저장되며 진도 파일에는 포함되지 않습니다. 공용 PC 에서는 연결하지 마세요.</p>';
+  }
+  return h + '</div>';
 }
 
 function pick(i){
@@ -1935,6 +2150,7 @@ applyTypography();
 applyBrand();
 restoreFileHandle();
 render();
+if(syncOn() && sync.auto) syncNow(true);
 };
 </script>
 </body>
