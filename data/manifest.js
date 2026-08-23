@@ -27,13 +27,27 @@ window.DAP_MANIFEST = {
     { id: 6, name: "데이터 품질 관리 이해",    perSet: 10, score: 8.0 }
   ],
 
-  /* 읽어들일 문제은행 팩 파일 목록 (data/ 기준 상대 경로, 나열 순서대로 로딩) */
+  /* 문제은행 묶음. 학습·모의고사는 묶음 단위로 따로 진행된다.
+     풀이 기록은 문항 id 기준이라 묶음을 바꿔도 유지된다. */
+  collections: [
+    { id: "core",     name: "기본 문제은행",
+      note: "교재·강의자료·요약 자료를 근거로 직접 만든 문항" },
+    { id: "practice", name: "연습문제·모의고사",
+      note: "외부 공개 연습문제 — 개인 학습용, 배포본에는 포함되지 않음" }
+  ],
+
+  /* 읽어들일 팩 파일 목록 (data/ 기준, 나열 순서대로 로딩)
+       collection : 어느 묶음에 속하는지 (기본값 "core")
+       optional   : true 면 파일이 없어도 건너뛴다 (로컬 전용 팩) */
   files: [
-    "1.전사아키텍처이해.core.js",
-    "2.데이터요건분석.core.js",
-    "3.데이터표준화.core.js",
-    "4.데이터모델링.core.js",
-    "5.데이터베이스설계와이용.core.js",
-    "6.데이터품질관리이해.core.js"
+    { file: "1.전사아키텍처이해.core.js",      collection: "core" },
+    { file: "2.데이터요건분석.core.js",        collection: "core" },
+    { file: "3.데이터표준화.core.js",          collection: "core" },
+    { file: "4.데이터모델링.core.js",          collection: "core" },
+    { file: "5.데이터베이스설계와이용.core.js", collection: "core" },
+    { file: "6.데이터품질관리이해.core.js",     collection: "core" },
+
+    { file: "practice.연습문제.js", collection: "practice", optional: true },
+    { file: "practice.모의고사.js", collection: "practice", optional: true }
   ]
 };

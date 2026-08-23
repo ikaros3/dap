@@ -399,6 +399,8 @@ label.field{display:flex;flex-direction:column;gap:5px;font-size:calc(12.5px * v
       </div>
     </div>
 
+    <div id="bankBox"></div>
+
     <nav class="nav" id="navMain"></nav>
 
     <div class="rail-group"><span class="eyebrow">과목</span></div>
@@ -427,8 +429,10 @@ var BASE = "data/";
 var packs = [];
 
 window.DAP_BANK = {
+  _col: "core",                 /* 로더가 파일마다 바꿔 준다 */
   add: function(pack){
     if(!pack || !pack.questions || !pack.questions.length) return;
+    pack.collection = pack.collection || window.DAP_BANK._col;
     packs.push(pack);
   }
 };
@@ -474,8 +478,16 @@ function loadSeq(list, onEach, done, no){
   var i = 0;
   (function step(){
     if(i >= list.length) return done();
-    var src = list[i];
-    loadScript(src, function(){ i++; onEach(i, list.length, src); step(); }, no);
+    var it = list[i];
+    window.DAP_BANK._col = it.col;
+    loadScript(it.src,
+      function(){ i++; onEach(i, list.length, it.src); step(); },
+      function(src){
+        /* optional 팩은 없어도 넘어간다 — 로컬 전용 묶음이 배포본에서 빠져도
+           앱 전체가 멈추지 않도록 하기 위한 것이다. */
+        if(it.optional){ i++; onEach(i, list.length, it.src); step(); return; }
+        no(src);
+      });
   })();
 }
 
@@ -498,11 +510,14 @@ function startPacks(){
          "window.DAP_MANIFEST = { exam, chapters, files } 형태여야 합니다.");
     return;
   }
-  var files = M.files.map(function(f){ return BASE + f; });
+  var files = M.files.map(function(f){
+    if(typeof f === "string") return { src: BASE + f, col:"core", optional:false };
+    return { src: BASE + (f.file || f.path || ""), col: f.collection || "core", optional: !!f.optional };
+  });
   progress(0, files.length + 1, "문제은행 " + files.length + "개 파일을 읽는 중…");
   loadSeq(files,
     function(done, total, src){
-      progress(done, total + 1, src.replace(BASE, "") + " (" + done + "/" + total + ")");
+      progress(done, total + 1, String(src).replace(BASE, "") + " (" + done + "/" + total + ")");
     },
     function(){ assemble(M); },
     function(src){
@@ -510,10 +525,10 @@ function startPacks(){
     });
 }
 
-/* ---- 조립 ---- */
-function assemble(M){
-  progress(1, 1, "문항을 정리하는 중…");
-
+/* ---- 조립 ----
+   묶음(collection)마다 독립된 문제은행을 만든다. 묶음이 다르면 문항도, 모의고사
+   세트도 섞이지 않는다. manifest 에 collections 가 없으면 전체를 묶음 하나로 본다. */
+function buildBank(M, def, myPacks){
   var chapters = M.chapters.map(function(c){
     return { id:c.id, name:c.name, perSet:c.perSet, score:c.score, count:0, packs:[] };
   });
@@ -521,7 +536,7 @@ function assemble(M){
   chapters.forEach(function(c){ chMap[c.id] = c; });
 
   var seen = {}, questions = [], dupes = 0, orphans = 0;
-  packs.forEach(function(pk){
+  myPacks.forEach(function(pk){
     var ch = chMap[pk.chapter];
     if(!ch){ orphans += pk.questions.length; return; }
     var added = 0;
@@ -538,13 +553,6 @@ function assemble(M){
     ch.packs.push({ pack:(pk.pack || "?"), count:added });
   });
 
-  if(!questions.length){
-    fail("문항이 하나도 없습니다.",
-         "data/manifest.js 의 files 에 팩 파일이 나열되어 있는지, 팩 파일이 " +
-         "DAP_BANK.add({chapter, pack, questions}) 를 호출하는지 확인하세요.");
-    return;
-  }
-
   /* 과목별 정렬(no 순) · 표시 번호 재부여 · 문항 수 집계 */
   var byCh = {};
   questions.forEach(function(q){ (byCh[q.ch] = byCh[q.ch] || []).push(q); });
@@ -557,33 +565,57 @@ function assemble(M){
     ordered = ordered.concat(pool);
   });
 
-  /* 모의고사 세트 = 과목별 문항을 perSet 단위로 순서대로 잘라 묶는다.
-     문항이 늘어나면 세트 수도 자동으로 늘어난다. */
+  /* 모의고사 세트 = 과목별 문항을 perSet 단위로 순서대로 잘라 묶는다. */
   var setCount = Infinity;
   chapters.forEach(function(c){
     setCount = Math.min(setCount, c.perSet > 0 ? Math.floor(c.count / c.perSet) : 0);
   });
   if(!isFinite(setCount) || setCount < 0) setCount = 0;
   var sets = [];
-  for(var s = 0; s < setCount; s++){
+  for(var sN = 0; sN < setCount; sN++){
     var ids = [];
     chapters.forEach(function(c){
       var pool = byCh[c.id] || [];
-      pool.slice(s * c.perSet, (s + 1) * c.perSet).forEach(function(q){ ids.push(q.id); });
+      pool.slice(sN * c.perSet, (sN + 1) * c.perSet).forEach(function(q){ ids.push(q.id); });
     });
     sets.push(ids);
   }
 
-  window.DAP = {
-    exam: M.exam || { perQuestion:0.8, totalQuestions:75, totalScore:60 },
-    chapters: chapters,
-    questions: ordered,
-    sets: sets,
-    loaded: { packs:packs.length, dupes:dupes, orphans:orphans }
-  };
+  if(dupes)   console.warn("[DAP] " + def.id + ": 중복 id 문항 " + dupes + "개를 건너뛰었습니다.");
+  if(orphans) console.warn("[DAP] " + def.id + ": manifest.chapters 에 없는 과목의 문항 " + orphans + "개를 건너뛰었습니다.");
 
-  if(dupes)   console.warn("[DAP] 중복 id 문항 " + dupes + "개를 건너뛰었습니다.");
-  if(orphans) console.warn("[DAP] manifest.chapters 에 없는 과목의 문항 " + orphans + "개를 건너뛰었습니다.");
+  return {
+    id: def.id, name: def.name || def.id, note: def.note || "",
+    exam: M.exam || { perQuestion:0.8, totalQuestions:75, totalScore:60 },
+    chapters: chapters, questions: ordered, sets: sets,
+    loaded: { packs:myPacks.length, dupes:dupes, orphans:orphans }
+  };
+}
+
+function assemble(M){
+  progress(1, 1, "문항을 정리하는 중…");
+
+  var defs = (M.collections && M.collections.length)
+    ? M.collections
+    : [{ id:"core", name:"문제은행" }];
+
+  var banks = [];
+  defs.forEach(function(def){
+    var mine = packs.filter(function(p){ return (p.collection || "core") === def.id; });
+    if(!mine.length) return;                       /* 팩이 없는 묶음은 감춘다 */
+    var b = buildBank(M, def, mine);
+    if(b.questions.length) banks.push(b);
+  });
+
+  if(!banks.length){
+    fail("문항이 하나도 없습니다.",
+         "data/manifest.js 의 files 에 팩 파일이 나열되어 있는지, 팩 파일이 " +
+         "DAP_BANK.add({chapter, pack, questions}) 를 호출하는지 확인하세요.");
+    return;
+  }
+
+  window.DAP_BANKS = banks;
+  window.DAP = banks[0];         /* 앱이 시작하면서 저장된 선택으로 바꾼다 */
 
   boot();
 }
@@ -615,11 +647,29 @@ function boot(){
 window.DAP_APP_BOOT = function(){
 "use strict";
 /* ─────────── 상수 ─────────── */
-var CH = {}, CHLIST = DAP.chapters;
-CHLIST.forEach(function(c){ CH[c.id]=c; });
-var QMAP = {}; DAP.questions.forEach(function(q){ QMAP[q.id]=q; });
-var EXAM = DAP.exam;
-var PER_Q = EXAM.perQuestion, TOTAL_SCORE = EXAM.totalScore, TOTAL_Q = EXAM.totalQuestions;
+/* 문제은행 묶음 — 묶음을 바꾸면 문항·모의고사 세트·진행 중 세션이 통째로 바뀐다.
+   풀이 기록(S.stats)은 문항 id 로 관리하므로 묶음이 달라도 그대로 유지된다. */
+var BANKS = window.DAP_BANKS || [window.DAP];
+var DAP, CH, CHLIST, QMAP, EXAM, PER_Q, TOTAL_SCORE, TOTAL_Q;
+
+function bankById(id){
+  for(var i=0;i<BANKS.length;i++) if(BANKS[i].id===id) return BANKS[i];
+  return null;
+}
+function useBank(id){
+  var b = bankById(id) || BANKS[0];
+  DAP = window.DAP = b;
+  CHLIST = DAP.chapters;
+  CH = {}; CHLIST.forEach(function(c){ CH[c.id]=c; });
+  QMAP = {}; DAP.questions.forEach(function(q){ QMAP[q.id]=q; });
+  EXAM = DAP.exam;
+  PER_Q = EXAM.perQuestion; TOTAL_SCORE = EXAM.totalScore; TOTAL_Q = EXAM.totalQuestions;
+  return b.id;
+}
+useBank(BANKS[0].id);
+
+/* 세션 키는 묶음별로 분리한다. 같은 "ch1:b0" 라도 묶음이 다르면 다른 세션이다. */
+function skey(k){ return DAP.id + "/" + k; }
 /* ─────────── 폰트 목록 ───────────
    웹앱에서 시인성이 좋은 한글 본문용 글꼴만 추렸다. 첫 항목이 기본값이다. */
 var FONTS = [
@@ -644,7 +694,7 @@ var KEY = "dap750:v1";
 var S = load();
 function blank(){
   return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{},
-           settings:{ timerMin:90, target:45, theme:"auto",
+           settings:{ timerMin:90, target:45, theme:"auto", bank:"",
                       fontId:FONTS[0].id, fontStack:FONTS[0].stack, fontScale:1 } };
 }
 function normalize(o){
@@ -779,6 +829,39 @@ function go(name, opt){
   window.scrollTo(0,0);
 }
 
+/* ─────────── 문제은행 묶음 선택 ─────────── */
+function renderBankBox(){
+  var el = $("#bankBox");
+  if(!el) return;
+  if(BANKS.length < 2){ el.innerHTML = ""; return; }   /* 묶음이 하나면 감춘다 */
+  el.innerHTML =
+    '<div class="rail-group"><span class="eyebrow">문제은행</span></div>' +
+    '<div style="padding:0 14px 10px">' +
+      '<select id="bankSel" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);' +
+        'background:var(--surface-2);color:var(--ink);font:inherit;font-size:calc(12.5px * var(--fs))">' +
+        BANKS.map(function(b){
+          return '<option value="'+esc(b.id)+'"'+(b.id===DAP.id?' selected':'')+'>'+
+                 esc(b.name)+' ('+b.questions.length+')</option>';
+        }).join('') +
+      '</select>' +
+      (DAP.note ? '<p class="note" style="margin-top:6px">'+esc(DAP.note)+'</p>' : '') +
+    '</div>';
+}
+
+function switchBank(id){
+  if(id === DAP.id) return;
+  if(session){ session.idx = firstUnsolved(session); save(); session = null; }
+  useBank(id);
+  S.settings.bank = DAP.id; save();
+  applyBrand();
+  go("dash");
+  toast("문제은행: " + DAP.name + " · " + DAP.questions.length + "문항 · 모의고사 " + DAP.sets.length + "세트");
+}
+
+document.addEventListener("change", function(ev){
+  if(ev.target && ev.target.id === "bankSel") switchBank(ev.target.value);
+});
+
 /* ─────────── 레일 ─────────── */
 var NAVS = [
   { id:"dash",  ico:"◈", label:"대시보드" },
@@ -797,6 +880,7 @@ function renderRail(){
     return '<button class="nav-item" data-go="'+n.id+'" aria-current="'+(view.name===n.id)+'">'+
       '<span class="nav-ico">'+n.ico+'</span><span>'+n.label+'</span>'+extra+'</button>';
   }).join("");
+  renderBankBox();
   $("#navChap").innerHTML = CHLIST.map(function(c){
     var s = chStat(c.id);
     return '<button class="chap-row" data-go="chapter" data-ch="'+c.id+'" aria-current="'+(view.name==="chapter"&&view.ch===c.id)+'">'+
@@ -1217,20 +1301,24 @@ function firstUnsolved(s){
   return Math.min(s.idx, s.ids.length-1);
 }
 function liveSessions(){
-  return Object.keys(S.sessions).map(function(k){ return S.sessions[k]; })
+  var pre = DAP.id + "/";
+  return Object.keys(S.sessions)
+    .filter(function(k){ return k.indexOf(pre) === 0; })
+    .map(function(k){ return S.sessions[k]; })
     .filter(function(s){ return s && s.ids && s.ids.length && !s.submitted && solvedCount(s) < s.ids.length; })
     .sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
 }
 function savedSession(key){
-  var s = S.sessions[key];
+  var s = S.sessions[skey(key)];
   if(!s || !s.ids || !s.ids.length || s.submitted) return null;
   return solvedCount(s) < s.ids.length ? s : null;
 }
 function touch(){ if(session){ session.ts = Date.now(); S.sessions[session.key] = session; } save(); }
 
 function startSession(cfg){
-  var key = cfg.key || ("adhoc:"+Date.now());
-  var prev = cfg.fresh ? null : savedSession(key);
+  var raw = cfg.key || ("adhoc:"+Date.now());
+  var key = skey(raw);
+  var prev = cfg.fresh ? null : savedSession(raw);
   if(prev){
     session = prev;
     session.title = cfg.title || session.title;
@@ -2175,6 +2263,7 @@ window.addEventListener("beforeunload", function(){
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
 });
 
+if(S.settings.bank && bankById(S.settings.bank)) useBank(S.settings.bank);
 applyTheme();
 applyTypography();
 applyBrand();
