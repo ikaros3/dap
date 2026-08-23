@@ -544,7 +544,13 @@ function buildBank(M, def, myPacks){
   chapters.forEach(function(c){ chMap[c.id] = c; });
 
   var seen = {}, questions = [], dupes = 0, orphans = 0;
+  var fixedSets = [];          /* 팩이 직접 지정한 세트 */
   myPacks.forEach(function(pk){
+    if(pk.sets && pk.sets.length){
+      pk.sets.forEach(function(st){
+        if(st && st.ids && st.ids.length) fixedSets.push({ title:st.title || "", ids:st.ids.slice() });
+      });
+    }
     var ch = chMap[pk.chapter];
     if(!ch){ orphans += pk.questions.length; return; }
     var added = 0;
@@ -572,6 +578,26 @@ function buildBank(M, def, myPacks){
     c.count = pool.length;
     ordered = ordered.concat(pool);
   });
+
+  /* 팩이 세트를 직접 지정했으면 그대로 쓴다. 원본 모의고사처럼 과목 비율이
+     시험과 다른 자료를 원래 구성 그대로 보존하기 위한 것이다. */
+  if(fixedSets.length){
+    var have = {};
+    questions.forEach(function(q){ have[q.id] = true; });
+    var kept = fixedSets.map(function(st){
+      return { title:st.title, ids:st.ids.filter(function(id){ return have[id]; }) };
+    }).filter(function(st){ return st.ids.length; });
+    if(kept.length){
+      return {
+        id: def.id, name: def.name || def.id, note: def.note || "",
+        exam: M.exam || { perQuestion:0.8, totalQuestions:75, totalScore:60 },
+        chapters: chapters, questions: ordered,
+        sets: kept.map(function(st){ return st.ids; }),
+        setTitles: kept.map(function(st){ return st.title; }),
+        loaded: { packs:myPacks.length, dupes:dupes, orphans:orphans }
+      };
+    }
+  }
 
   /* 모의고사 세트 = 과목별 문항을 perSet 단위로 순서대로 잘라 묶는다. */
   var setCount = Infinity;
@@ -1313,8 +1339,9 @@ function viewExams(){
   DAP.sets.forEach(function(ids, i){
     var prev = S.exams.filter(function(e){ return e.setNo===i+1; }).slice(-1)[0];
     h += '<button class="launch-card" data-act="startset" data-set="'+i+'">'+
-      '<span class="launch-t"><span class="mono" style="color:var(--accent)">SET '+String(i+1).padStart(2,"0")+'</span></span>'+
-      '<span class="launch-d">'+ids[0]+' 외 '+(ids.length-1)+'문항</span>'+
+      '<span class="launch-t"><span class="mono" style="color:var(--accent)">'+
+        esc((DAP.setTitles && DAP.setTitles[i]) || ('SET '+String(i+1).padStart(2,"0")))+'</span></span>'+
+      '<span class="launch-d">'+ids.length+'문항</span>'+
       '<span style="margin-top:6px">'+(prev
         ? '<span class="chip mono">최근 '+prev.score.toFixed(1)+'점 · '+prev.correct+'/'+prev.count+'</span>'
         : '<span class="chip">미응시</span>')+'</span></button>';
@@ -1854,7 +1881,8 @@ document.addEventListener("click", function(ev){
     }
     case "startset": {
       var n = +t.getAttribute("data-set");
-      startSession({ key:"set"+n, mode:"exam", title:"모의고사 SET "+String(n+1).padStart(2,"0"),
+      startSession({ key:"set"+n, mode:"exam",
+                     title:(DAP.setTitles && DAP.setTitles[n]) || ("모의고사 SET "+String(n+1).padStart(2,"0")),
                      ids:DAP.sets[n].slice(), limitSec:S.settings.timerMin*60, setNo:n+1 });
       break;
     }

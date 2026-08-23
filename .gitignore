@@ -3,3 +3,5 @@ data_source/
 
 # 외부 출처 연습문제 팩은 개인 학습용 — 공개 저장소·배포본에 포함하지 않는다
 data/practice.*.js
+!data/practice.enc.js
+practice.plain.json
