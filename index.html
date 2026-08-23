@@ -428,12 +428,20 @@ label.field{display:flex;flex-direction:column;gap:5px;font-size:calc(12.5px * v
 var BASE = "data/";
 var packs = [];
 
+var blobs = [];
 window.DAP_BANK = {
   _col: "core",                 /* 로더가 파일마다 바꿔 준다 */
   add: function(pack){
     if(!pack || !pack.questions || !pack.questions.length) return;
     pack.collection = pack.collection || window.DAP_BANK._col;
     packs.push(pack);
+  },
+  /* 암호화된 팩. 내용은 잠긴 채로 두고, 앱에서 암호를 받아 풀 때 문항이 된다.
+     { collection, salt, iv, data } — data 는 AES-GCM 암호문(base64) */
+  addEncrypted: function(blob){
+    if(!blob || !blob.data) return;
+    blob.collection = blob.collection || window.DAP_BANK._col;
+    blobs.push(blob);
   }
 };
 
@@ -601,13 +609,25 @@ function assemble(M){
 
   var banks = [];
   defs.forEach(function(def){
-    var mine = packs.filter(function(p){ return (p.collection || "core") === def.id; });
-    if(!mine.length) return;                       /* 팩이 없는 묶음은 감춘다 */
-    var b = buildBank(M, def, mine);
-    if(b.questions.length) banks.push(b);
+    var mine  = packs.filter(function(p){ return (p.collection || "core") === def.id; });
+    var mineE = blobs.filter(function(p){ return (p.collection || "core") === def.id; });
+    if(mine.length){
+      var b = buildBank(M, def, mine);
+      if(b.questions.length){ banks.push(b); return; }
+    }
+    if(mineE.length){
+      /* 잠긴 묶음 — 앱에서 암호를 넣으면 그때 문항이 채워진다 */
+      banks.push({
+        id: def.id, name: def.name || def.id, note: def.note || "",
+        exam: M.exam || { perQuestion:0.8, totalQuestions:75, totalScore:60 },
+        chapters: [], questions: [], sets: [],
+        locked: true, blobs: mineE,
+        loaded: { packs:0, dupes:0, orphans:0 }
+      });
+    }
   });
 
-  if(!banks.length){
+  if(!banks.filter(function(b){ return b.questions.length || b.locked; }).length){
     fail("문항이 하나도 없습니다.",
          "data/manifest.js 의 files 에 팩 파일이 나열되어 있는지, 팩 파일이 " +
          "DAP_BANK.add({chapter, pack, questions}) 를 호출하는지 확인하세요.");
@@ -615,6 +635,8 @@ function assemble(M){
   }
 
   window.DAP_BANKS = banks;
+  window.DAP_BUILD = buildBank;      /* 잠긴 묶음을 나중에 조립할 때 쓴다 */
+  window.DAP_MF    = M;
   window.DAP = banks[0];         /* 앱이 시작하면서 저장된 선택으로 바꾼다 */
 
   boot();
@@ -840,8 +862,8 @@ function renderBankBox(){
       '<select id="bankSel" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);' +
         'background:var(--surface-2);color:var(--ink);font:inherit;font-size:calc(12.5px * var(--fs))">' +
         BANKS.map(function(b){
-          return '<option value="'+esc(b.id)+'"'+(b.id===DAP.id?' selected':'')+'>'+
-                 esc(b.name)+' ('+b.questions.length+')</option>';
+          var label = b.locked ? esc(b.name)+' 🔒' : esc(b.name)+' ('+b.questions.length+')';
+          return '<option value="'+esc(b.id)+'"'+(b.id===DAP.id?' selected':'')+'>'+label+'</option>';
         }).join('') +
       '</select>' +
       (DAP.note ? '<p class="note" style="margin-top:6px">'+esc(DAP.note)+'</p>' : '') +
@@ -859,8 +881,220 @@ function switchBank(id){
 }
 
 document.addEventListener("change", function(ev){
-  if(ev.target && ev.target.id === "bankSel") switchBank(ev.target.value);
+  if(ev.target && ev.target.id === "bankSel") openBank(ev.target.value);
 });
+
+
+/* ═══════════ 잠긴 문제은행 묶음 ═══════════
+   외부에서 가져온 문항은 평문으로 배포하지 않는다. AES-GCM 으로 암호화한
+   파일만 저장소에 올리고, 앱에서 암호를 받아 그때 풀어서 쓴다.
+   암호는 앱에서 직접 정한다 — 소스 어디에도 적혀 있지 않다.
+
+   주의: WebCrypto 는 보안 컨텍스트에서만 동작한다. https 로 연 배포본과
+   localhost 에서는 되고, file:// 로 연 로컬 파일에서는 되지 않는다. */
+var LOCK_KEY = "dap750:lock";     /* 기억해 둔 암호 (묶음 id 별) */
+var PBKDF2_ROUNDS = 200000;
+
+function cryptoOK(){
+  return !!(window.crypto && window.crypto.subtle && window.isSecureContext);
+}
+function b64enc(buf){
+  var b = new Uint8Array(buf), s = "";
+  for(var i=0;i<b.length;i++) s += String.fromCharCode(b[i]);
+  return btoa(s);
+}
+function b64dec(str){
+  var s = atob(str), b = new Uint8Array(s.length);
+  for(var i=0;i<s.length;i++) b[i] = s.charCodeAt(i);
+  return b;
+}
+function loadLocks(){
+  try{ return JSON.parse(localStorage.getItem(LOCK_KEY) || "{}"); }catch(e){ return {}; }
+}
+function saveLocks(o){ try{ localStorage.setItem(LOCK_KEY, JSON.stringify(o)); }catch(e){} }
+
+/* 암호 → 키 */
+function deriveKey(pw, salt){
+  var enc = new TextEncoder();
+  return crypto.subtle.importKey("raw", enc.encode(pw), "PBKDF2", false, ["deriveKey"])
+    .then(function(base){
+      return crypto.subtle.deriveKey(
+        { name:"PBKDF2", salt:salt, iterations:PBKDF2_ROUNDS, hash:"SHA-256" },
+        base, { name:"AES-GCM", length:256 }, false, ["encrypt","decrypt"]);
+    });
+}
+
+function encryptPacks(packsArr, pw){
+  var salt = crypto.getRandomValues(new Uint8Array(16));
+  var iv   = crypto.getRandomValues(new Uint8Array(12));
+  return deriveKey(pw, salt).then(function(key){
+    var body = new TextEncoder().encode(JSON.stringify(packsArr));
+    return crypto.subtle.encrypt({ name:"AES-GCM", iv:iv }, key, body);
+  }).then(function(ct){
+    return { salt:b64enc(salt), iv:b64enc(iv), data:b64enc(ct) };
+  });
+}
+
+function decryptBlob(blob, pw){
+  return deriveKey(pw, b64dec(blob.salt)).then(function(key){
+    return crypto.subtle.decrypt({ name:"AES-GCM", iv:b64dec(blob.iv) }, key, b64dec(blob.data));
+  }).then(function(pt){
+    return JSON.parse(new TextDecoder().decode(pt));
+  });
+}
+
+/* 잠긴 묶음을 풀어 실제 문제은행으로 바꾼다 */
+function unlockBank(bank, pw, ok, err){
+  if(!cryptoOK()){
+    err("이 브라우저에서는 복호화를 쓸 수 없습니다. https 주소로 열어 주세요.");
+    return;
+  }
+  var got = [];
+  var i = 0;
+  (function step(){
+    if(i >= bank.blobs.length){
+      var built = window.DAP_BUILD(window.DAP_MF,
+        { id:bank.id, name:bank.name, note:bank.note }, got);
+      if(!built.questions.length){ err("복호화는 됐지만 문항이 없습니다."); return; }
+      built.wasLocked = true;
+      for(var k=0;k<BANKS.length;k++) if(BANKS[k].id === bank.id) BANKS[k] = built;
+      ok(built);
+      return;
+    }
+    decryptBlob(bank.blobs[i], pw).then(function(arr){
+      (Array.isArray(arr) ? arr : [arr]).forEach(function(p){ got.push(p); });
+      i++; step();
+    }, function(){ err("암호가 맞지 않습니다."); });
+  })();
+}
+
+/* 묶음을 고를 때 잠겨 있으면 암호를 받는다 */
+function openBank(id){
+  var b = bankById(id);
+  if(!b) return;
+  if(!b.locked){ switchBank(id); return; }
+
+  var locks = loadLocks();
+  var pw = locks[id];
+  if(pw){
+    unlockBank(b, pw, function(){ switchBank(id); },
+      function(m){ delete locks[id]; saveLocks(locks); toast(m + " 다시 입력하세요."); askPw(b); });
+    return;
+  }
+  askPw(b);
+}
+
+function askPw(b){
+  var pw = prompt(b.name + " 묶음은 암호로 잠겨 있습니다.\n암호를 입력하세요.");
+  if(pw === null){ renderBankBox(); return; }   /* 취소 — 선택 상자를 원래대로 */
+  if(!pw){ toast("암호를 입력하세요"); renderBankBox(); return; }
+  toast("여는 중…");
+  unlockBank(b, pw, function(){
+    var locks = loadLocks(); locks[b.id] = pw; saveLocks(locks);
+    switchBank(b.id);
+  }, function(m){
+    toast(m);
+    renderBankBox();
+  });
+}
+
+/* 평문 팩 → 암호화 파일 만들기 (설정 화면) */
+function makeEncryptedPack(){
+  if(!cryptoOK()){
+    toast("https 주소로 열어야 암호화를 쓸 수 있습니다");
+    return;
+  }
+  var fi = $("#packIn");
+  if(fi){ fi.value = ""; fi.click(); }
+}
+
+function handlePackFile(file){
+  var r = new FileReader();
+  r.onerror = function(){ toast("파일을 읽지 못했습니다"); };
+  r.onload = function(){
+    var arr;
+    try{
+      arr = JSON.parse(String(r.result));
+      if(!Array.isArray(arr)) arr = [arr];
+      var n = 0;
+      arr.forEach(function(p){
+        if(!p || !p.questions || !p.questions.length) throw 0;
+        n += p.questions.length;
+      });
+      if(!n) throw 0;
+      var colId = ($("#packCol") && $("#packCol").value) || "practice";
+      var pw  = prompt("이 팩을 잠글 암호를 정하세요.\n12자 이상을 권합니다. 잊으면 되살릴 수 없습니다.");
+      if(!pw) { toast("취소했습니다"); return; }
+      var pw2 = prompt("확인을 위해 한 번 더 입력하세요.");
+      if(pw !== pw2){ toast("두 번 입력한 암호가 다릅니다"); return; }
+
+      toast("암호화하는 중…");
+      encryptPacks(arr, pw).then(function(blob){
+        var js = "/*! 암호화된 문제은행 팩 — 평문이 아니므로 그대로 커밋해도 된다.\n" +
+                 " *  묶음: " + colId + " · 문항 " + n + "개 · AES-GCM / PBKDF2-SHA256 " +
+                 PBKDF2_ROUNDS + "회\n */\n" +
+                 "DAP_BANK.addEncrypted(" + JSON.stringify({
+                   collection: colId, salt: blob.salt, iv: blob.iv, data: blob.data
+                 }) + ");\n";
+        var bl = new Blob([js], { type:"application/javascript;charset=utf-8" });
+        var url = URL.createObjectURL(bl);
+        var a = document.createElement("a");
+        a.href = url; a.download = colId + ".enc.js"; a.style.display = "none";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+        var locks = loadLocks(); locks[colId] = pw; saveLocks(locks);
+        toast(colId + ".enc.js 를 저장했습니다 · data/ 에 넣고 manifest 에 추가하세요");
+      }, function(){ toast("암호화에 실패했습니다"); });
+    }catch(e){ toast("팩 형식이 아닙니다 · [{chapter,pack,questions:[…]}] 이어야 합니다"); }
+  };
+  r.readAsText(file);
+}
+
+function forgetPw(id){
+  var locks = loadLocks();
+  if(!locks[id]){ toast("기억된 암호가 없습니다"); return; }
+  delete locks[id]; saveLocks(locks);
+  toast("기억된 암호를 지웠습니다 · 다음에 다시 물어봅니다");
+  render();
+}
+
+/* 설정 화면 카드 */
+function viewLockCard(){
+  var locked = BANKS.filter(function(b){ return b.locked || b.wasLocked; });
+  var locks = loadLocks();
+  var h = '<div class="card pad" style="margin-bottom:16px">'+
+    '<h3 style="font-size:calc(14.5px * var(--fs));margin-bottom:4px">잠긴 문제은행</h3>'+
+    '<p class="note" style="margin-bottom:12px">외부에서 가져온 문항은 암호로 잠가 둡니다. 저장소와 배포본에는 암호문만 올라가므로, 주소를 알아도 내용을 볼 수 없습니다. <strong>암호는 여기서 직접 정하며 소스 어디에도 적히지 않습니다.</strong></p>';
+
+  if(!cryptoOK()){
+    h += '<p class="note" style="color:var(--bad)">지금 주소에서는 암호화를 쓸 수 없습니다. https 로 열린 배포본에서 사용하세요.</p>';
+  }
+
+  if(locked.length){
+    h += '<div class="tblwrap"><table class="tbl"><thead><tr><th>묶음</th><th>상태</th><th>암호 기억</th><th></th></tr></thead><tbody>';
+    locked.forEach(function(b){
+      h += '<tr><td>'+esc(b.name)+'</td>'+
+        '<td>'+(b.locked ? '<span class="chip">잠김</span>' : '<span class="chip chip-ok">열림</span>')+'</td>'+
+        '<td>'+(locks[b.id] ? '기억함' : '–')+'</td>'+
+        '<td>'+(locks[b.id] ? '<button class="btn btn-sm" data-act="forgetpw" data-id="'+esc(b.id)+'">암호 잊기</button>' : '')+'</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }else{
+    h += '<p class="note">잠긴 묶음이 아직 없습니다.</p>';
+  }
+
+  h += '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">'+
+    '<div class="eyebrow" style="margin-bottom:8px">암호화 팩 만들기</div>'+
+    '<p class="note">평문 팩 JSON 파일을 고르면 암호를 물어본 뒤 <span class="mono">&lt;묶음&gt;.enc.js</span> 로 저장합니다. 그 파일을 <span class="mono">data/</span> 에 넣고 manifest 의 files 에 추가하면 됩니다.</p>'+
+    '<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px">'+
+      '<label class="field" style="flex:0 1 220px">묶음 id'+
+        '<input type="text" id="packCol" value="practice" autocomplete="off" spellcheck="false"></label>'+
+      '<button class="btn btn-primary" data-act="makepack">평문 팩 고르기</button>'+
+    '</div>'+
+    '<input type="file" id="packIn" accept=".json,application/json" style="display:none">'+
+    '</div></div>';
+  return h;
+}
 
 /* ─────────── 레일 ─────────── */
 var NAVS = [
@@ -1224,6 +1458,9 @@ function viewSettings(){
 
   /* ── 진도 동기화 ── */
   h += viewSyncCard();
+
+  /* ── 잠긴 문제은행 ── */
+  h += viewLockCard();
 
   /* ── 화면 · 폰트 ── */
   h += '<div class="card pad" style="margin-bottom:16px">'+
@@ -1711,6 +1948,8 @@ document.addEventListener("click", function(ev){
 
     case "export": exportProgress(); break;
     case "unlinkfile": unlinkFile(); break;
+    case "makepack":   makeEncryptedPack(); break;
+    case "forgetpw":   forgetPw(t.getAttribute("data-id")); break;
     case "syncnow":    syncNow(false); break;
     case "synclink":   syncLink(); break;
     case "syncunlink": syncUnlink(); break;
@@ -1869,6 +2108,11 @@ document.addEventListener("input", function(ev){
   render_fs(setFontScale(parseFloat(ev.target.value)));
 });
 document.addEventListener("change", function(ev){
+  if(ev.target && ev.target.id==="packIn"){
+    var pf = ev.target.files && ev.target.files[0];
+    if(pf) handlePackFile(pf);
+    return;
+  }
   if(ev.target && ev.target.id==="syncAuto"){
     sync.auto = !!ev.target.checked; saveSync();
     toast(sync.auto ? "자동 동기화 켬" : "자동 동기화 끔");
