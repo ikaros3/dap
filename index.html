@@ -1653,9 +1653,20 @@ function startSession(cfg){
   S.sessions[key] = session; save();
   go("quiz");
 }
-function resumeSession(key){
-  var s = savedSession(key); if(!s) return;
+/* 어느 키가 순차 학습 세션인가. 옛 세션에는 seq 표시가 없어서 키로 되짚는다. */
+function isSeqKey(fullKey){
+  var raw = fullKey.indexOf("/") >= 0 ? fullKey.slice(fullKey.indexOf("/")+1) : fullKey;
+  return /^ch\d+:(all|unseen|b\d+)$/.test(raw);
+}
+/* 대시보드 이어풀기 목록은 세션 객체의 key 를 그대로 넘긴다. 이미 묶음 접두사가
+   붙은 완성된 키이므로 skey() 를 다시 씌우면 안 된다 — core/core/ch1:b25 가 되어
+   찾지 못하고, 버튼이 아무 반응도 하지 않는다. */
+function resumeSession(fullKey){
+  var s = S.sessions[fullKey];
+  if(!s || !s.ids || !s.ids.length || s.submitted) return;
+  if(solvedCount(s) >= s.ids.length) return;
   session = s;
+  if(session.seq === undefined) session.seq = isSeqKey(fullKey);
   hydrate(session);
   session.idx = firstUnsolved(session);
   session.start = Date.now() - (session.spent||0)*1000;
@@ -2038,9 +2049,19 @@ document.addEventListener("click", function(ev){
     case "syncunlink": syncUnlink(); break;
     case "import": { var fi = $("#fileIn"); if(fi){ fi.value=""; fi.click(); } break; }
     case "wipe":
-      if(confirm("모든 학습 기록을 삭제합니다. 되돌릴 수 없습니다.")){
-        S = blank(); session = null; try{ localStorage.removeItem(KEY); }catch(e){}
-        go("dash"); toast("초기화했습니다");
+      if(!confirm("모든 학습 기록을 삭제합니다. 되돌릴 수 없습니다.")) break;
+      /* 동기화 중이면 이 기기만 지워 봐야 소용이 없다. 무엇이 사라지는지 밝히고 묻는다. */
+      if(syncOn()){
+        if(!confirm("동기화된 Gist 의 기록도 함께 비웁니다.\n" +
+                    "같은 Gist 를 보는 다른 기기(PC·폰)의 기록도 사라집니다.\n\n" +
+                    "Gist ID: " + sync.gistId + "\n\n" +
+                    "[취소] 를 누르면 아무것도 지우지 않습니다.")){
+          toast("초기화를 취소했습니다");
+          break;
+        }
+        wipeAll(true);
+      }else{
+        wipeAll(false);
       }
       break;
   }
@@ -2268,6 +2289,9 @@ var SYNC_KEY  = "dap750:sync";
 var SYNC_FILE = PROGRESS_FILE;            /* Gist 안의 파일 이름 */
 var SYNC_WAIT = 20000;                    /* 기록이 바뀐 뒤 올리기까지 대기 */
 var syncBusy = false, syncT = null, syncMsg = "";
+/* 초기화가 일어나면 올라간다. 이미 시작된 동기화는 자기 세대가 낡았으면 손을 뗀다.
+   그러지 않으면 초기화 직전에 읽어 둔 옛 기록이 병합되어 그대로 되살아난다. */
+var wipeGen = 0;
 
 function loadSync(){
   try{
@@ -2347,7 +2371,9 @@ function syncNow(quiet){
     if(!quiet) toast("동기화 실패 · " + m);
   }
 
+  var gen = wipeGen;
   gistRead(function(text){
+    if(gen !== wipeGen){ syncBusy = false; syncStatus(""); return; }   /* 그 사이 초기화됨 */
     var inc = text ? parsePayload(text) : null;
     if(text && !inc){ fail("Gist 내용이 DAP 진도 파일 형식이 아닙니다"); return; }
 
@@ -2449,6 +2475,29 @@ function syncCreate(){
   }, function(m){
     syncStatus("실패: " + m);
     toast("연결 실패 · " + m);
+  });
+}
+
+/* 전체 초기화. 동기화가 연결된 상태에서 로컬만 지우면 다음 동기화 때 Gist 에 남은
+   기록이 병합되어 그대로 돌아온다. 그래서 Gist 까지 함께 비운다.
+   병합이 아니라 통째로 덮어써야 한다 — mergeState 를 타면 되살아난다. */
+function wipeAll(pushEmpty){
+  wipeGen++;
+  if(syncT){ clearTimeout(syncT); syncT = null; }
+  S = blank(); session = null;
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  go("dash");
+  if(!pushEmpty){ toast("초기화했습니다"); return; }
+  syncStatus("Gist 를 비우는 중…");
+  var body = { files:{} };
+  body.files[SYNC_FILE] = { content: payloadText() };
+  ghReq("PATCH", "/gists/" + encodeURIComponent(sync.gistId), body, function(){
+    sync.last = Date.now(); saveSync(); syncStatus("");
+    toast("초기화했습니다 · Gist 도 비웠습니다"); render();
+  }, function(m){
+    syncStatus("실패: " + m);
+    toast("이 기기는 초기화했지만 Gist 를 비우지 못했습니다 · " + m);
+    render();
   });
 }
 
