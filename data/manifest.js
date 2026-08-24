@@ -47,6 +47,7 @@ window.DAP_MANIFEST = {
     { file: "3.데이터표준화.core.js",          collection: "core" },
     { file: "3.데이터표준화.extra.js",         collection: "core" },
     { file: "4.데이터모델링.core.js",          collection: "core" },
+    { file: "4.데이터모델링.extra.js",         collection: "core" },
     { file: "5.데이터베이스설계와이용.core.js", collection: "core" },
     { file: "6.데이터품질관리이해.core.js",     collection: "core" },
 
