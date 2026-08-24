@@ -741,7 +741,7 @@ var KEY = "dap750:v1";
 /* ─────────── 저장소 ─────────── */
 var S = load();
 function blank(){
-  return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{},
+  return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{}, epoch:0,
            settings:{ timerMin:90, target:45, theme:"auto", bank:"",
                       fontId:FONTS[0].id, fontStack:FONTS[0].stack, fontScale:1 } };
 }
@@ -2248,8 +2248,34 @@ document.addEventListener("change", function(ev){
   };
   r.readAsText(f);
 });
+/* 전체 초기화는 "지웠다"는 사실 자체를 실어 보내야 한다. 병합은 합집합이라
+   한쪽에서 지운 것을 다른 쪽에 남은 기록이 그대로 되살리기 때문이다.
+   epoch = 마지막 전체 초기화 시각. 더 최근에 초기화한 쪽이 이기고,
+   그 시각보다 오래된 기록은 양쪽에서 버린다. 초기화 뒤에 푼 것은 살아남는다. */
+function applyEpoch(o, epoch){
+  if(!epoch) return o;
+  Object.keys(o.stats).forEach(function(id){
+    if((o.stats[id].last||0) < epoch) delete o.stats[id];
+  });
+  Object.keys(o.wrong).forEach(function(id){ if(!o.stats[id]) delete o.wrong[id]; });
+  o.exams = o.exams.filter(function(e){ return e && (e.ts||0) >= epoch; });
+  Object.keys(o.sessions).forEach(function(k){
+    if((o.sessions[k].ts||0) < epoch) delete o.sessions[k];
+  });
+  /* 북마크에는 시각이 없어 초기화 이전 것을 가려낼 수 없다. 통째로 지운다. */
+  o.bookmarks = {};
+  o.epoch = epoch;
+  return o;
+}
+function clone(o){ return normalize(JSON.parse(JSON.stringify(o))); }
+
 function mergeState(cur, inc){
-  var out = normalize(JSON.parse(JSON.stringify(cur)));
+  var out = clone(cur);
+  /* 어느 한쪽이 더 최근에 초기화했다면, 그 시각 이전 기록은 양쪽에서 걷어낸 뒤 병합한다 */
+  var epoch = Math.max(out.epoch||0, inc.epoch||0);
+  if(epoch > (out.epoch||0)) applyEpoch(out, epoch);
+  if(epoch > (inc.epoch||0)) inc = applyEpoch(clone(inc), epoch);
+  out.epoch = epoch;
   /* 문항 통계: 시도 횟수가 많은 쪽을 채택하고, 복습 일정은 더 최근 기록을 따른다 */
   Object.keys(inc.stats).forEach(function(id){
     var a = out.stats[id], b = inc.stats[id];
@@ -2485,7 +2511,10 @@ function wipeAll(pushEmpty){
   wipeGen++;
   if(syncT){ clearTimeout(syncT); syncT = null; }
   S = blank(); session = null;
-  try{ localStorage.removeItem(KEY); }catch(e){}
+  /* 초기화 시각을 남겨야 다른 기기가 "지워졌다"는 것을 알 수 있다.
+     이 표시가 없으면 폰에 남은 기록이 병합으로 되살아나 초기화가 무효가 된다. */
+  S.epoch = Date.now();
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
   go("dash");
   if(!pushEmpty){ toast("초기화했습니다"); return; }
   syncStatus("Gist 를 비우는 중…");
