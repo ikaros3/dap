@@ -2339,6 +2339,10 @@ var syncBusy = false, syncT = null, syncMsg = "";
 /* 초기화가 일어나면 올라간다. 이미 시작된 동기화는 자기 세대가 낡았으면 손을 뗀다.
    그러지 않으면 초기화 직전에 읽어 둔 옛 기록이 병합되어 그대로 되살아난다. */
 var wipeGen = 0;
+/* 기록이 바뀔 때마다 오른다. 올리기를 시작한 시점과 응답이 온 시점을 견주어,
+   그 사이에 푼 문항이 있으면 dirty 를 내려놓지 않는다. 내려놓으면 그 답은
+   영영 올라가지 않고, 다른 기기가 앞설 때 pull 로 사라진다. */
+var changeSeq = 0;
 
 /* base   = 이 기기가 마지막으로 받아오거나 올린 판 번호
    baseBy = 그 판을 쓴 기기
@@ -2358,10 +2362,14 @@ function loadSync(){
                       base:0, baseBy:"", dirty:false, wid:newWid() }; }
 }
 var sync = loadSync();
+/* 새로 만든 기기 식별자는 곧바로 저장해 둔다. 저장되지 않으면 새로고침마다 바뀌어
+   덮어쓰기 감지(baseBy 비교)가 헛돈다. */
+try{ var _sv=JSON.parse(localStorage.getItem(SYNC_KEY)||"{}"); if(!_sv.wid){ _sv.wid=sync.wid; localStorage.setItem(SYNC_KEY, JSON.stringify(_sv)); } }catch(e){}
 function saveSync(){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(sync)); }catch(e){} }
 /* 이 기기에서 기록이 바뀌었다는 표시. 이것이 없으면 동기화가 이쪽을 "받아온 그대로"로
    보고 통째로 덮어써 버린다. save() 안에서 곧바로(디바운스 이전에) 세운다. */
 function markDirty(){
+  changeSeq++;
   if(typeof sync === "undefined" || sync.dirty) return;
   sync.dirty = true; saveSync();
 }
@@ -2424,7 +2432,9 @@ function parsePayload(text){
 /* 가져오기 → 병합 → 올리기. quiet 면 토스트를 띄우지 않는다. */
 function syncNow(quiet){
   if(!syncOn()){ if(!quiet) toast("먼저 GitHub 토큰을 연결하세요"); return; }
-  if(syncBusy) return;
+  /* 이미 돌고 있으면 버리지 말고 뒤로 미룬다. 그냥 돌아서면 그때 밀린 변경이
+     다음 조작이 있을 때까지 올라가지 못한다. */
+  if(syncBusy){ syncSchedule(); return; }
   if(syncT){ clearTimeout(syncT); syncT = null; }
   syncBusy = true;
   syncStatus("동기화 중…");
@@ -2436,6 +2446,7 @@ function syncNow(quiet){
   }
 
   var gen = wipeGen;
+  var seq0 = changeSeq;                 /* 읽기를 시작한 시점 */
   gistRead(function(text){
     if(gen !== wipeGen){ syncBusy = false; syncStatus(""); return; }   /* 그 사이 초기화됨 */
     var inc = text ? parsePayload(text) : null;
@@ -2449,6 +2460,9 @@ function syncNow(quiet){
     /* 어느 경로로 합칠지 정한다. 판 번호(rev)로 이 기기가 최신판 위에서
        작업했는지 알 수 있으므로, 평상시에는 병합하지 않고 최신 것을 그대로 쓴다.
        병합은 양쪽이 실제로 갈라졌을 때만 — 그때만 삭제가 흐려질 수 있다. */
+    /* 읽는 동안 이 기기에서 문항을 풀었다면 그것도 바뀐 것으로 친다.
+       그러지 않으면 pull 로 통째로 덮어써 그 답이 사라진다. */
+    var dirtyNow = sync.dirty || changeSeq !== seq0;
     var mode;
     if(!inc){
       mode = "first";                       /* Gist 가 비어 있다 · 이 기기 것이 원본이 된다 */
@@ -2458,19 +2472,24 @@ function syncNow(quiet){
          git 이라면 non-fast-forward 로 거부됐을 자리다. */
       S = mergeState(S, inc); mode = "recover";
     }else if((inc.rev||0) === sync.base){
-      mode = sync.dirty ? "push" : "same";  /* 이 기기가 최신판 위에 있다 */
-    }else if(!sync.dirty){
+      mode = dirtyNow ? "push" : "same";    /* 이 기기가 최신판 위에 있다 */
+    }else if(!dirtyNow){
       S = inc; mode = "pull";               /* 저쪽이 앞섰고 이쪽은 바뀐 것이 없다 · 통째로 받는다 */
     }else{
       S = mergeState(S, inc); mode = "merge";  /* 갈라졌다 */
     }
     if(liveKey){ S.sessions[liveKey] = live; session = live; }
 
-    function done(msg){
+    function done(msg, seqAt){
       syncBusy = false;
       sync.base = S.rev || 0; sync.baseBy = S.by || "";
-      sync.dirty = false; sync.last = Date.now(); saveSync();
+      /* 올릴 내용을 만든 뒤에 또 바뀌었다면 아직 올리지 못한 것이 남아 있다.
+         dirty 를 그대로 두고 다시 예약한다. */
+      sync.dirty = (changeSeq !== seqAt);
+      sync.last = Date.now(); saveSync();
+      if(sync.dirty) syncSchedule();
       try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+      applyTypography();   /* 받아온 글꼴·글자 크기를 지금 화면에 반영 */
       syncStatus("");
       if(!quiet) toast(msg);
       if(view.name !== "quiz") render();   /* 받아온 진도를 지금 화면에 바로 반영 */
@@ -2479,7 +2498,7 @@ function syncNow(quiet){
     /* 올릴 것이 없으면 GitHub 를 건드리지 않는다 */
     if(mode === "same" || mode === "pull"){
       done(mode === "pull" ? "받아왔습니다 · " + Object.keys(S.stats).length + "문항 기록"
-                           : "이미 최신입니다");
+                           : "이미 최신입니다", changeSeq);
       return;
     }
 
@@ -2487,17 +2506,18 @@ function syncNow(quiet){
     S.by  = sync.wid;
     var body = { files:{} };
     body.files[SYNC_FILE] = { content: payloadText() };
+    var seq1 = changeSeq;               /* 올릴 내용을 만든 시점 */
     ghReq("PATCH", "/gists/" + encodeURIComponent(sync.gistId), body, function(){
       done((mode === "recover" ? "덮어써진 기록을 되살렸습니다 · "
             : mode === "merge" ? "합쳤습니다 · " : "올렸습니다 · ") +
-           Object.keys(S.stats).length + "문항 기록");
+           Object.keys(S.stats).length + "문항 기록", seq1);
     }, fail);
   }, fail);
 }
 
 /* 기록이 바뀌면 잠시 뒤 한 번만 올린다 */
 function syncSchedule(){
-  if(typeof sync === "undefined" || !syncOn() || !sync.auto || syncBusy) return;
+  if(typeof sync === "undefined" || !syncOn() || !sync.auto) return;
   if(syncT) clearTimeout(syncT);
   syncT = setTimeout(function(){ syncT = null; syncNow(true); }, SYNC_WAIT);
 }
