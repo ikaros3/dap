@@ -772,6 +772,23 @@ function load(){
     return normalize(JSON.parse(raw));
   }catch(e){ return blank(); }
 }
+/* 묶음 기능 이전에 저장된 세션은 키에 묶음 접두사가 없어 지금 코드로는 찾지 못한다.
+   기본 묶음 것으로 보고 이름만 옮긴다. 풀이 기록(S.stats)은 문항 id 기준이라
+   영향이 없고, 여기서 되살아나는 것은 "몇 번까지 풀었는가" 하는 위치뿐이다. */
+(function migrateSessionKeys(){
+  var pre = BANKS[0].id + "/", moved = 0;
+  Object.keys(S.sessions).forEach(function(k){
+    if(k.indexOf("/") >= 0) return;
+    var old = S.sessions[k];
+    delete S.sessions[k];
+    if(!old || !old.ids || !old.ids.length) return;
+    var nk = pre + k, cur = S.sessions[nk];
+    if(!cur || (old.ts||0) > (cur.ts||0)){ old.key = nk; S.sessions[nk] = old; }
+    moved++;
+  });
+  if(moved) try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+})();
+
 var saveT=null;
 function save(){
   if(session && session.key){ session.ts = Date.now(); S.sessions[session.key] = session; }
@@ -848,9 +865,12 @@ function weakSections(limit){
 }
 
 /* ─────────── 채점 기록 ─────────── */
-function record(qid, correct){
+/* pick = 마지막에 고른 보기 번호. 문항 id 로 관리되므로 묶음·기기와 무관하게 남고
+   Gist 로 동기화된다. 정오답은 pick 과 q.a 를 비교하면 나오므로 따로 두지 않는다. */
+function record(qid, correct, pick){
   var s = S.stats[qid] || (S.stats[qid] = { right:0, wrong:0, box:0, due:0, last:0 });
   s.last = Date.now();
+  if(pick !== undefined && pick !== null) s.pick = pick;
   if(correct){
     s.right++;
     s.box = Math.min(6, (s.box||0) + 1);
@@ -1559,10 +1579,33 @@ function solvedCount(s){
   var done = s.mode==="exam" ? s.ans : s.revealed;
   return s.ids.filter(function(id){ return done[id]!==undefined; }).length;
 }
+/* 순차 학습 세션(과목 전체·블록)은 세션 안의 응답이 아니라 전체 풀이 기록(S.stats)
+   을 기준으로 위치를 잡는다. S.stats 는 문항 id 로 관리되고 Gist 로 동기화되므로,
+   어느 기기에서 어느 버튼으로 들어와도 마지막에 푼 다음 문항에서 이어진다.
+   오답노트·복습 큐·모의고사처럼 이미 푼 문항을 일부러 다시 푸는 세션은 제외한다. */
 function firstUnsolved(s){
   var done = s.mode==="exam" ? s.ans : s.revealed;
-  for(var i=0;i<s.ids.length;i++) if(done[s.ids[i]]===undefined) return i;
+  var seq  = !!s.seq;
+  for(var i=0;i<s.ids.length;i++){
+    var id = s.ids[i];
+    if(done[id]===undefined && !(seq && st(id))) return i;
+  }
   return Math.min(s.idx, s.ids.length-1);
+}
+/* 이미 푼 문항의 선택지를 세션에 채워 넣는다. 다른 기기에서 고른 보기도
+   S.stats.pick 으로 동기화되므로 그대로 보인다.
+   순차 학습 세션에만 적용한다 — 오답노트·복습 큐·모의고사는 다시 풀려고
+   들어가는 곳이라 답을 미리 채워 넣으면 안 된다. */
+function hydrate(s){
+  if(!s || !s.seq || s.mode==="exam") return 0;
+  var n = 0;
+  s.ids.forEach(function(id){
+    if(s.ans[id] !== undefined) return;
+    var t = S.stats[id];
+    if(!t || t.pick === undefined || t.pick === null) return;
+    s.ans[id] = t.pick; s.revealed[id] = true; n++;
+  });
+  return n;
 }
 function liveSessions(){
   var pre = DAP.id + "/";
@@ -1586,6 +1629,8 @@ function startSession(cfg){
   if(prev){
     session = prev;
     session.title = cfg.title || session.title;
+    session.seq = !!cfg.seq;
+    hydrate(session);
     session.idx = firstUnsolved(session);
     session.start = Date.now() - (session.spent||0)*1000;
     touch(); go("quiz");
@@ -1595,14 +1640,23 @@ function startSession(cfg){
   session = {
     key: key, mode: cfg.mode, title: cfg.title, ids: cfg.ids, idx: 0,
     ans: {}, revealed: {}, flags: {}, start: Date.now(), ts: Date.now(),
-    limitSec: cfg.limitSec || 0, setNo: cfg.setNo || 0, submitted: false, spent: 0
+    limitSec: cfg.limitSec || 0, setNo: cfg.setNo || 0, submitted: false, spent: 0,
+    seq: !!cfg.seq
   };
+  /* 세션이 없어도(다른 기기에서 풀었거나 다른 버튼으로 풀었어도) 기록이 있으면
+     그 다음 문항에서 시작한다. [처음부터 다시]는 fresh 로 이 처리를 건너뛴다. */
+  if(session.seq && !cfg.fresh){
+    hydrate(session);
+    session.idx = firstUnsolved(session);
+    if(session.idx > 0) toast("이어서 풀기 · "+(session.idx+1)+"번 문항부터");
+  }
   S.sessions[key] = session; save();
   go("quiz");
 }
 function resumeSession(key){
   var s = savedSession(key); if(!s) return;
   session = s;
+  hydrate(session);
   session.idx = firstUnsolved(session);
   session.start = Date.now() - (session.spent||0)*1000;
   touch(); go("quiz");
@@ -1725,7 +1779,7 @@ function submitExam(){
     var ok = picked === q.a;
     byCh[q.ch].count++;
     if(ok){ byCh[q.ch].correct++; correct++; }
-    record(id, ok);
+    record(id, ok, picked);
   });
   var dur = Math.round((Date.now()-session.start)/1000);
   var rec = {
@@ -1869,13 +1923,14 @@ document.addEventListener("click", function(ev){
       if(!ids.length){ toast("해당 조건의 문항이 없습니다"); break; }
       var lbl = { all:"전체", unseen:"안 푼 문항", wrong:"오답", rand25:"무작위 25문항" }[range];
       startSession({ key:"ch"+ch+":"+range, fresh:!!t.getAttribute("data-fresh"),
+                     seq: range==="all" || range==="unseen",
                      mode:"study", title:ch+". "+CH[ch].name+" · "+lbl, ids:ids });
       break;
     }
     case "startblock": {
       var ch2 = +t.getAttribute("data-ch"), from = +t.getAttribute("data-from");
       var qs = DAP.questions.filter(function(q){ return q.ch===ch2; }).slice(from, from+25);
-      startSession({ key:"ch"+ch2+":b"+from, mode:"study",
+      startSession({ key:"ch"+ch2+":b"+from, mode:"study", seq:true,
                      title:ch2+". "+CH[ch2].name+" · 블록 "+(from/25+1), ids:qs.map(function(q){return q.id;}) });
       break;
     }
@@ -2183,6 +2238,9 @@ function mergeState(cur, inc){
       right: Math.max(a.right||0, b.right||0),
       wrong: Math.max(a.wrong||0, b.wrong||0),
       box: newer.box, due: newer.due,
+      /* 고른 보기는 더 최근 쪽을 따르되, 한쪽에만 있으면 그것을 살린다 */
+      pick: (newer.pick !== undefined ? newer.pick
+             : (a.pick !== undefined ? a.pick : b.pick)),
       last: Math.max(a.last||0, b.last||0)
     };
   });
@@ -2311,7 +2369,7 @@ function syncNow(quiet){
       sync.last = Date.now(); saveSync();
       syncStatus("");
       if(!quiet) toast("동기화 완료 · " + Object.keys(S.stats).length + "문항 기록");
-      if(view.name === "settings" || view.name === "dash") render();
+      if(view.name !== "quiz") render();   /* 받아온 진도를 지금 화면에 바로 반영 */
     }, fail);
   }, fail);
 }
@@ -2323,9 +2381,16 @@ function syncSchedule(){
   syncT = setTimeout(function(){ syncT = null; syncNow(true); }, SYNC_WAIT);
 }
 
-/* 탭을 덮거나 앱을 벗어나면 예약된 것을 바로 올린다 */
+/* 탭을 덮으면 예약된 것을 바로 올리고, 돌아오면 다른 기기에서 푼 것을 받아온다.
+   폰의 탭은 며칠씩 열려 있는 채로 남으므로, 돌아왔을 때 한 번 받아오지 않으면
+   화면이 옛 진도를 그대로 보여 준다. 진행 중인 세션은 syncNow 가 지켜 준다. */
+var SYNC_GAP = 60000;                     /* 돌아왔을 때 다시 받아올 최소 간격 */
 document.addEventListener("visibilitychange", function(){
-  if(document.visibilityState === "hidden" && syncT) syncNow(true);
+  if(document.visibilityState === "hidden"){
+    if(syncT) syncNow(true);
+    return;
+  }
+  if(syncOn() && sync.auto && !syncBusy && Date.now() - (sync.last||0) > SYNC_GAP) syncNow(true);
 });
 
 function syncLink(){
@@ -2443,7 +2508,7 @@ function reveal(){
   var q = QMAP[session.ids[session.idx]];
   if(session.ans[q.id]===undefined || session.revealed[q.id]) return;
   session.revealed[q.id] = true;
-  record(q.id, session.ans[q.id]===q.a);
+  record(q.id, session.ans[q.id]===q.a, session.ans[q.id]);
   save(); render();
 }
 function nextQ(){
