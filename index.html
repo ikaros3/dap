@@ -1749,7 +1749,7 @@ function viewQuiz(){
       if(i===q.a) cls += " correct";
       else if(i===picked) cls += " wrong";
     }else if(picked===i) cls += " sel";
-    h += '<button class="'+cls+'" data-act="pick" data-i="'+i+'"'+(revealed?" disabled":"")+'>'+
+    h += '<button class="'+cls+'" data-act="pick" data-i="'+i+'" data-q="'+esc(q.id)+'"'+(revealed?" disabled":"")+'>'+
       '<span class="opt-n">'+(i+1)+'</span><span class="opt-txt">'+esc(txt)+'</span></button>';
   });
   h += '</div>';
@@ -2007,7 +2007,7 @@ document.addEventListener("click", function(ev){
     case "dosearch": go("search", { kw: $("#q").value }); break;
 
     /* 퀴즈 */
-    case "pick": pick(+t.getAttribute("data-i")); break;
+    case "pick": pick(+t.getAttribute("data-i"), t.getAttribute("data-q")); break;
     case "reveal": reveal(); break;
     case "next": nextQ(); break;
     case "prev": if(session.idx>0){ session.idx--; save(); render(); } break;
@@ -2129,8 +2129,12 @@ function restoreFileHandle(){
   });
 }
 
+/* 직렬화만 한다. 예전에는 여기서 session.idx 를 firstUnsolved 로 옮겼는데,
+   동기화는 퀴즈를 푸는 도중에도 돌기 때문에 화면은 그대로인 채 위치만 바뀌어
+   다음 클릭이 엉뚱한 문항에 기록되는 사고가 났다. 위치는 세션에 들어갈 때
+   startSession/resumeSession 이 이미 정한다. */
 function payloadText(){
-  if(session && session.key){ session.idx = firstUnsolved(session); S.sessions[session.key] = session; }
+  if(session && session.key){ S.sessions[session.key] = session; }
   return JSON.stringify({
     app:"dap750", ver:2, savedAt:Date.now(), savedAtText:fmtDate(Date.now()),
     summary:{ solved:overall().seen, wrong:wrongIds().length,
@@ -2649,9 +2653,14 @@ function viewSyncCard(){
   return h + '</div>';
 }
 
-function pick(i){
-  var q = QMAP[session.ids[session.idx]];
+/* qid = 화면에 그려져 있던 문항. 지금 위치와 다르면 기록하지 않고 화면을 다시 맞춘다.
+   답이 엉뚱한 문항에 들어가는 것은 조용히 오답을 만들므로 안전장치를 둔다. */
+function pick(i, qid){
   if(!session) return;
+  var cur = session.ids[session.idx];
+  if(qid && qid !== cur){ render(); return; }
+  var q = QMAP[cur];
+  if(!q) return;
   if(session.mode==="study" && session.revealed[q.id]) return;
   session.ans[q.id] = i; save();
   if(session.mode==="study") reveal(); else render();
