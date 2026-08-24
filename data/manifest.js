@@ -49,7 +49,9 @@ window.DAP_MANIFEST = {
     { file: "4.데이터모델링.core.js",          collection: "core" },
     { file: "4.데이터모델링.extra.js",         collection: "core" },
     { file: "5.데이터베이스설계와이용.core.js", collection: "core" },
+    { file: "5.데이터베이스설계와이용.extra.js", collection: "core" },
     { file: "6.데이터품질관리이해.core.js",     collection: "core" },
+    { file: "6.데이터품질관리이해.extra.js",    collection: "core" },
 
     { file: "practice.e1.js",  collection: "practice", optional: true },   /* 평문 — 로컬에서만 */
     { file: "practice.enc.js", collection: "practice", optional: true }    /* 암호문 — 배포용 */
