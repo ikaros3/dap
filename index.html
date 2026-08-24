@@ -741,7 +741,7 @@ var KEY = "dap750:v1";
 /* ─────────── 저장소 ─────────── */
 var S = load();
 function blank(){
-  return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{}, epoch:0,
+  return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{}, epoch:0, rev:0,
            settings:{ timerMin:90, target:45, theme:"auto", bank:"",
                       fontId:FONTS[0].id, fontStack:FONTS[0].stack, fontScale:1 } };
 }
@@ -793,6 +793,7 @@ var saveT=null;
 function save(){
   if(session && session.key){ session.ts = Date.now(); S.sessions[session.key] = session; }
   if(saveT) clearTimeout(saveT);
+  markDirty();
   saveT = setTimeout(function(){
     try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
     syncSchedule();
@@ -2276,6 +2277,9 @@ function mergeState(cur, inc){
   if(epoch > (out.epoch||0)) applyEpoch(out, epoch);
   if(epoch > (inc.epoch||0)) inc = applyEpoch(clone(inc), epoch);
   out.epoch = epoch;
+  /* 병합 전 이쪽이 각 문항을 마지막으로 푼 시각. 오답노트를 정리할 때 쓴다. */
+  var mineLast = {};
+  Object.keys(out.stats).forEach(function(id){ mineLast[id] = out.stats[id].last||0; });
   /* 문항 통계: 시도 횟수가 많은 쪽을 채택하고, 복습 일정은 더 최근 기록을 따른다 */
   Object.keys(inc.stats).forEach(function(id){
     var a = out.stats[id], b = inc.stats[id];
@@ -2291,8 +2295,16 @@ function mergeState(cur, inc){
       last: Math.max(a.last||0, b.last||0)
     };
   });
+  /* 북마크는 시각이 없어 해제를 알 수 없다. 갈라졌을 때는 합집합으로 둔다.
+     평상시(빠른 감기)에는 최신판을 그대로 쓰므로 해제도 정상 전달된다. */
   Object.keys(inc.bookmarks).forEach(function(id){ out.bookmarks[id] = true; });
-  Object.keys(inc.wrong).forEach(function(id){ if(!(id in out.wrong)) out.wrong[id] = inc.wrong[id]; });
+  /* 오답노트: 한쪽에서 지운 것을 무턱대고 되살리지 않는다. 이쪽이 그 문항을
+     더 최근에 풀었다면 오답에서 빠진 것이 이쪽의 최신 판단이므로 그대로 둔다. */
+  Object.keys(inc.wrong).forEach(function(id){
+    if(id in out.wrong) return;
+    if((mineLast[id]||0) > ((inc.stats[id] && inc.stats[id].last)||0)) return;
+    out.wrong[id] = inc.wrong[id];
+  });
   /* 모의고사 이력: id 기준 중복 제거 후 최신순 */
   var seen = {}, all = out.exams.concat(inc.exams);
   out.exams = all.filter(function(e){ if(!e||!e.id||seen[e.id]) return false; seen[e.id]=1; return true; })
@@ -2319,14 +2331,25 @@ var syncBusy = false, syncT = null, syncMsg = "";
    그러지 않으면 초기화 직전에 읽어 둔 옛 기록이 병합되어 그대로 되살아난다. */
 var wipeGen = 0;
 
+/* base  = 이 기기가 마지막으로 받아오거나 올린 판 번호
+   dirty = 그 뒤로 이 기기에서 기록이 바뀌었는가
+   둘 다 토큰과 같은 키에 둔다. S 에 넣으면 진도 파일로 내보낼 때 따라 나가
+   다른 기기에서 불러왔을 때 남의 판 번호를 자기 것으로 착각한다. */
 function loadSync(){
   try{
     var o = JSON.parse(localStorage.getItem(SYNC_KEY) || "{}");
-    return { token:o.token||"", gistId:o.gistId||"", last:o.last||0, auto:o.auto!==false };
-  }catch(e){ return { token:"", gistId:"", last:0, auto:true }; }
+    return { token:o.token||"", gistId:o.gistId||"", last:o.last||0, auto:o.auto!==false,
+             base:o.base||0, dirty:!!o.dirty };
+  }catch(e){ return { token:"", gistId:"", last:0, auto:true, base:0, dirty:false }; }
 }
 var sync = loadSync();
 function saveSync(){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(sync)); }catch(e){} }
+/* 이 기기에서 기록이 바뀌었다는 표시. 이것이 없으면 동기화가 이쪽을 "받아온 그대로"로
+   보고 통째로 덮어써 버린다. save() 안에서 곧바로(디바운스 이전에) 세운다. */
+function markDirty(){
+  if(typeof sync === "undefined" || sync.dirty) return;
+  sync.dirty = true; saveSync();
+}
 function syncOn(){ return !!(sync.token && sync.gistId); }
 function syncStatus(m){
   syncMsg = m || "";
@@ -2403,25 +2426,48 @@ function syncNow(quiet){
     var inc = text ? parsePayload(text) : null;
     if(text && !inc){ fail("Gist 내용이 DAP 진도 파일 형식이 아닙니다"); return; }
 
-    if(inc){
-      /* 지금 풀고 있는 세션은 화면이 튀지 않도록 로컬 것을 그대로 둔다.
-         나머지 세션과 통계·오답·북마크·모의고사 이력은 정상 병합된다. */
-      var liveKey = (session && session.key) ? session.key : null;
-      var live = liveKey ? session : null;
-      if(liveKey){ session.ts = Date.now(); S.sessions[liveKey] = session; }
-      S = mergeState(S, inc);
-      if(liveKey){ S.sessions[liveKey] = live; session = live; }
+    /* 지금 풀고 있는 세션은 화면이 튀지 않도록 로컬 것을 그대로 둔다. */
+    var liveKey = (session && session.key) ? session.key : null;
+    var live = liveKey ? session : null;
+    if(liveKey){ session.ts = Date.now(); S.sessions[liveKey] = session; }
+
+    /* 어느 경로로 합칠지 정한다. 판 번호(rev)로 이 기기가 최신판 위에서
+       작업했는지 알 수 있으므로, 평상시에는 병합하지 않고 최신 것을 그대로 쓴다.
+       병합은 양쪽이 실제로 갈라졌을 때만 — 그때만 삭제가 흐려질 수 있다. */
+    var mode;
+    if(!inc){
+      mode = "first";                       /* Gist 가 비어 있다 · 이 기기 것이 원본이 된다 */
+    }else if((inc.rev||0) === sync.base){
+      mode = sync.dirty ? "push" : "same";  /* 이 기기가 최신판 위에 있다 */
+    }else if(!sync.dirty){
+      S = inc; mode = "pull";               /* 저쪽이 앞섰고 이쪽은 바뀐 것이 없다 · 통째로 받는다 */
+    }else{
+      S = mergeState(S, inc); mode = "merge";  /* 갈라졌다 */
+    }
+    if(liveKey){ S.sessions[liveKey] = live; session = live; }
+
+    function done(msg){
+      syncBusy = false;
+      sync.base = S.rev || 0; sync.dirty = false; sync.last = Date.now(); saveSync();
       try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+      syncStatus("");
+      if(!quiet) toast(msg);
+      if(view.name !== "quiz") render();   /* 받아온 진도를 지금 화면에 바로 반영 */
     }
 
+    /* 올릴 것이 없으면 GitHub 를 건드리지 않는다 */
+    if(mode === "same" || mode === "pull"){
+      done(mode === "pull" ? "받아왔습니다 · " + Object.keys(S.stats).length + "문항 기록"
+                           : "이미 최신입니다");
+      return;
+    }
+
+    S.rev = Math.max(S.rev||0, sync.base||0, inc ? (inc.rev||0) : 0) + 1;
     var body = { files:{} };
     body.files[SYNC_FILE] = { content: payloadText() };
     ghReq("PATCH", "/gists/" + encodeURIComponent(sync.gistId), body, function(){
-      syncBusy = false;
-      sync.last = Date.now(); saveSync();
-      syncStatus("");
-      if(!quiet) toast("동기화 완료 · " + Object.keys(S.stats).length + "문항 기록");
-      if(view.name !== "quiz") render();   /* 받아온 진도를 지금 화면에 바로 반영 */
+      done((mode === "merge" ? "합쳤습니다 · " : "올렸습니다 · ") +
+           Object.keys(S.stats).length + "문항 기록");
     }, fail);
   }, fail);
 }
@@ -2456,7 +2502,9 @@ function syncLink(){
     /* Gist 주소를 통째로 붙여 넣어도 ID 만 뽑아 쓴다 */
     var m = gid.match(/[0-9a-f]{20,}/i) || gid.match(/[0-9a-f]{7,}/i);
     sync.gistId = m ? m[0] : gid;
-    sync.last = 0; saveSync(); render();
+    /* 처음 연결할 때는 이 기기가 어느 판 위에 있는지 알 수 없다. dirty 로 두어
+       첫 동기화가 병합을 타게 한다 — 이쪽 기록을 통째로 버리는 일이 없도록. */
+    sync.last = 0; sync.base = 0; sync.dirty = true; saveSync(); render();
     syncNow(false);
     return;
   }
@@ -2475,7 +2523,8 @@ function syncLink(){
     }
     if(hits.length){
       hits.sort(function(a,b){ return (b.updated_at||"") < (a.updated_at||"") ? -1 : 1; });
-      sync.gistId = hits[0].id; sync.last = 0; saveSync(); render();
+      sync.gistId = hits[0].id;
+      sync.last = 0; sync.base = 0; sync.dirty = true; saveSync(); render();
       toast(hits.length > 1
         ? "진도 Gist 가 " + hits.length + "개 있습니다 · 가장 최근 것에 연결했습니다"
         : "이미 있는 Gist 에 연결했습니다");
@@ -2514,16 +2563,21 @@ function wipeAll(pushEmpty){
   /* 초기화 시각을 남겨야 다른 기기가 "지워졌다"는 것을 알 수 있다.
      이 표시가 없으면 폰에 남은 기록이 병합으로 되살아나 초기화가 무효가 된다. */
   S.epoch = Date.now();
+  /* 다음 판으로 올린다. 판 번호가 그대로면 다른 기기가 "내가 최신"이라고 판단해
+     자기 기록을 도로 올려 보낸다. */
+  S.rev = (sync.base||0) + 1;
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
   go("dash");
-  if(!pushEmpty){ toast("초기화했습니다"); return; }
+  if(!pushEmpty){ sync.dirty = true; saveSync(); toast("초기화했습니다"); return; }
   syncStatus("Gist 를 비우는 중…");
   var body = { files:{} };
   body.files[SYNC_FILE] = { content: payloadText() };
   ghReq("PATCH", "/gists/" + encodeURIComponent(sync.gistId), body, function(){
+    sync.base = S.rev; sync.dirty = false;
     sync.last = Date.now(); saveSync(); syncStatus("");
     toast("초기화했습니다 · Gist 도 비웠습니다"); render();
   }, function(m){
+    sync.dirty = true; saveSync();
     syncStatus("실패: " + m);
     toast("이 기기는 초기화했지만 Gist 를 비우지 못했습니다 · " + m);
     render();
@@ -2533,7 +2587,7 @@ function wipeAll(pushEmpty){
 function syncUnlink(){
   if(!confirm("이 브라우저에 저장된 토큰과 Gist 연결을 지웁니다.\n" +
               "Gist 자체와 학습 기록은 그대로 남습니다.\n\nGist ID: " + sync.gistId)) return;
-  sync = { token:"", gistId:"", last:0, auto:true };
+  sync = { token:"", gistId:"", last:0, auto:true, base:0, dirty:true };
   saveSync();
   if(syncT){ clearTimeout(syncT); syncT = null; }
   render();
