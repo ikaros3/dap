@@ -742,13 +742,18 @@ var KEY = "dap750:v1";
 var S = load();
 function blank(){
   return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{}, epoch:0, rev:0, by:"",
-           settings:{ timerMin:90, target:45, theme:"auto", bank:"",
+           /* target = 필기 60점 만점 중 목표 점수. 합격은 필기+실기(40점) 합산 75점이므로
+              실기에서 23점을 얻는다고 보면 필기 52점이 목표가 된다. */
+           settings:{ timerMin:90, target:52, theme:"auto", bank:"",
                       fontId:FONTS[0].id, fontStack:FONTS[0].stack, fontScale:1 } };
 }
 function normalize(o){
   var b = blank();
   for(var k in b) if(!(k in o) || o[k]===null) o[k]=b[k];
   for(var k2 in b.settings) if(!(k2 in o.settings)) o.settings[k2]=b.settings[k2];
+  /* 목표 점수 기본값을 45 → 52 로 올렸다. 옛 기본값을 그대로 쓰고 있던 기기만
+     한 번 옮긴다. 직접 정한 값은 건드리지 않는다. */
+  if(!o.settings.tgt2){ if(o.settings.target === 45) o.settings.target = 52; o.settings.tgt2 = 1; }
   /* v1 → v2 이관: 단일 session 슬롯을 키별 sessions 맵으로 */
   if(o.session && o.session.ids && !Object.keys(o.sessions).length){
     var key = o.session.key || "legacy";
