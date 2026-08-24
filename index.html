@@ -741,7 +741,7 @@ var KEY = "dap750:v1";
 /* ─────────── 저장소 ─────────── */
 var S = load();
 function blank(){
-  return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{}, epoch:0, rev:0,
+  return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{}, epoch:0, rev:0, by:"",
            settings:{ timerMin:90, target:45, theme:"auto", bank:"",
                       fontId:FONTS[0].id, fontStack:FONTS[0].stack, fontScale:1 } };
 }
@@ -2331,16 +2331,22 @@ var syncBusy = false, syncT = null, syncMsg = "";
    그러지 않으면 초기화 직전에 읽어 둔 옛 기록이 병합되어 그대로 되살아난다. */
 var wipeGen = 0;
 
-/* base  = 이 기기가 마지막으로 받아오거나 올린 판 번호
-   dirty = 그 뒤로 이 기기에서 기록이 바뀌었는가
-   둘 다 토큰과 같은 키에 둔다. S 에 넣으면 진도 파일로 내보낼 때 따라 나가
+/* base   = 이 기기가 마지막으로 받아오거나 올린 판 번호
+   baseBy = 그 판을 쓴 기기
+   dirty  = 그 뒤로 이 기기에서 기록이 바뀌었는가
+   wid    = 이 기기의 식별자. 판 번호가 같아도 쓴 기기가 다르면 서로 다른 판이다.
+            Gist API 에는 조건부 쓰기가 없어 두 기기가 같은 판 위에서 동시에 올리면
+            나중 것이 앞 것을 덮는다. 그 사고를 뒤늦게라도 알아채는 표식이다.
+   모두 토큰과 같은 키에 둔다. S 에 넣으면 진도 파일로 내보낼 때 따라 나가
    다른 기기에서 불러왔을 때 남의 판 번호를 자기 것으로 착각한다. */
+function newWid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
 function loadSync(){
   try{
     var o = JSON.parse(localStorage.getItem(SYNC_KEY) || "{}");
     return { token:o.token||"", gistId:o.gistId||"", last:o.last||0, auto:o.auto!==false,
-             base:o.base||0, dirty:!!o.dirty };
-  }catch(e){ return { token:"", gistId:"", last:0, auto:true, base:0, dirty:false }; }
+             base:o.base||0, baseBy:o.baseBy||"", dirty:!!o.dirty, wid:o.wid||newWid() };
+  }catch(e){ return { token:"", gistId:"", last:0, auto:true,
+                      base:0, baseBy:"", dirty:false, wid:newWid() }; }
 }
 var sync = loadSync();
 function saveSync(){ try{ localStorage.setItem(SYNC_KEY, JSON.stringify(sync)); }catch(e){} }
@@ -2437,6 +2443,11 @@ function syncNow(quiet){
     var mode;
     if(!inc){
       mode = "first";                       /* Gist 가 비어 있다 · 이 기기 것이 원본이 된다 */
+    }else if((inc.rev||0) === sync.base && (inc.by||"") !== sync.baseBy){
+      /* 판 번호는 같은데 쓴 기기가 다르다 — 두 기기가 같은 판 위에서 동시에 올려
+         내 것이 덮였다는 뜻이다. 내 기록은 아직 이쪽에 있으니 합쳐서 되돌린다.
+         git 이라면 non-fast-forward 로 거부됐을 자리다. */
+      S = mergeState(S, inc); mode = "recover";
     }else if((inc.rev||0) === sync.base){
       mode = sync.dirty ? "push" : "same";  /* 이 기기가 최신판 위에 있다 */
     }else if(!sync.dirty){
@@ -2448,7 +2459,8 @@ function syncNow(quiet){
 
     function done(msg){
       syncBusy = false;
-      sync.base = S.rev || 0; sync.dirty = false; sync.last = Date.now(); saveSync();
+      sync.base = S.rev || 0; sync.baseBy = S.by || "";
+      sync.dirty = false; sync.last = Date.now(); saveSync();
       try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
       syncStatus("");
       if(!quiet) toast(msg);
@@ -2463,10 +2475,12 @@ function syncNow(quiet){
     }
 
     S.rev = Math.max(S.rev||0, sync.base||0, inc ? (inc.rev||0) : 0) + 1;
+    S.by  = sync.wid;
     var body = { files:{} };
     body.files[SYNC_FILE] = { content: payloadText() };
     ghReq("PATCH", "/gists/" + encodeURIComponent(sync.gistId), body, function(){
-      done((mode === "merge" ? "합쳤습니다 · " : "올렸습니다 · ") +
+      done((mode === "recover" ? "덮어써진 기록을 되살렸습니다 · "
+            : mode === "merge" ? "합쳤습니다 · " : "올렸습니다 · ") +
            Object.keys(S.stats).length + "문항 기록");
     }, fail);
   }, fail);
@@ -2504,7 +2518,7 @@ function syncLink(){
     sync.gistId = m ? m[0] : gid;
     /* 처음 연결할 때는 이 기기가 어느 판 위에 있는지 알 수 없다. dirty 로 두어
        첫 동기화가 병합을 타게 한다 — 이쪽 기록을 통째로 버리는 일이 없도록. */
-    sync.last = 0; sync.base = 0; sync.dirty = true; saveSync(); render();
+    sync.last = 0; sync.base = 0; sync.baseBy = ""; sync.dirty = true; saveSync(); render();
     syncNow(false);
     return;
   }
@@ -2524,7 +2538,7 @@ function syncLink(){
     if(hits.length){
       hits.sort(function(a,b){ return (b.updated_at||"") < (a.updated_at||"") ? -1 : 1; });
       sync.gistId = hits[0].id;
-      sync.last = 0; sync.base = 0; sync.dirty = true; saveSync(); render();
+      sync.last = 0; sync.base = 0; sync.baseBy = ""; sync.dirty = true; saveSync(); render();
       toast(hits.length > 1
         ? "진도 Gist 가 " + hits.length + "개 있습니다 · 가장 최근 것에 연결했습니다"
         : "이미 있는 Gist 에 연결했습니다");
@@ -2566,6 +2580,7 @@ function wipeAll(pushEmpty){
   /* 다음 판으로 올린다. 판 번호가 그대로면 다른 기기가 "내가 최신"이라고 판단해
      자기 기록을 도로 올려 보낸다. */
   S.rev = (sync.base||0) + 1;
+  S.by  = sync.wid;
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
   go("dash");
   if(!pushEmpty){ sync.dirty = true; saveSync(); toast("초기화했습니다"); return; }
@@ -2573,7 +2588,7 @@ function wipeAll(pushEmpty){
   var body = { files:{} };
   body.files[SYNC_FILE] = { content: payloadText() };
   ghReq("PATCH", "/gists/" + encodeURIComponent(sync.gistId), body, function(){
-    sync.base = S.rev; sync.dirty = false;
+    sync.base = S.rev; sync.baseBy = S.by; sync.dirty = false;
     sync.last = Date.now(); saveSync(); syncStatus("");
     toast("초기화했습니다 · Gist 도 비웠습니다"); render();
   }, function(m){
@@ -2587,7 +2602,7 @@ function wipeAll(pushEmpty){
 function syncUnlink(){
   if(!confirm("이 브라우저에 저장된 토큰과 Gist 연결을 지웁니다.\n" +
               "Gist 자체와 학습 기록은 그대로 남습니다.\n\nGist ID: " + sync.gistId)) return;
-  sync = { token:"", gistId:"", last:0, auto:true, base:0, dirty:true };
+  sync = { token:"", gistId:"", last:0, auto:true, base:0, baseBy:"", dirty:true, wid:sync.wid||newWid() };
   saveSync();
   if(syncT){ clearTimeout(syncT); syncT = null; }
   render();
