@@ -43,6 +43,7 @@ window.DAP_MANIFEST = {
     { file: "1.전사아키텍처이해.core.js",      collection: "core" },
     { file: "1.전사아키텍처이해.extra.js",     collection: "core" },
     { file: "2.데이터요건분석.core.js",        collection: "core" },
+    { file: "2.데이터요건분석.extra.js",       collection: "core" },
     { file: "3.데이터표준화.core.js",          collection: "core" },
     { file: "4.데이터모델링.core.js",          collection: "core" },
     { file: "5.데이터베이스설계와이용.core.js", collection: "core" },
