@@ -242,6 +242,10 @@ a{color:var(--accent)}
 .explain{margin:0 14px 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);padding:13px 15px;display:flex;flex-direction:column;gap:7px}
 .explain-h{display:flex;align-items:center;gap:8px}
 .explain-b{font-size:calc(13.5px * var(--fs));color:var(--ink-2);line-height:1.65}
+/* 원천 자료 — 해설 아래에 옅게. 원문을 찾아볼 수 있도록 문서명과 장·절을 함께 적는다 */
+.explain-s{font-size:calc(12px * var(--fs));color:var(--muted);line-height:1.55;
+  padding-top:7px;border-top:1px dashed var(--line);display:flex;gap:6px;align-items:baseline}
+.explain-s b{font-weight:600;color:var(--ink-2);white-space:nowrap}
 .qfoot{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap}
 .qfoot .spacer{flex:1}
 .kbd{font-family:var(--font-mono);font-size:calc(10.5px * var(--fs));border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted);background:var(--surface)}
@@ -560,7 +564,10 @@ function buildBank(M, def, myPacks){
       seen[q.id] = true;
       questions.push({
         id:q.id, ch:ch.id, no:(q.no || 0),
-        q:q.q, c:q.c, a:q.a, e:(q.e || ""), s:(q.s || (ch.id + "장"))
+        q:q.q, c:q.c, a:q.a, e:(q.e || ""), s:(q.s || (ch.id + "장")),
+        /* 원천 자료. 문항에 r 이 있으면 그것을, 없으면 팩의 source 를 쓴다.
+           해설과 함께 보여 주어 원문을 찾아볼 수 있게 한다. */
+        r:(q.r || pk.source || "")
       });
       added++;
     });
@@ -810,6 +817,12 @@ function esc(s){ return String(s).replace(/[&<>"']/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function $(s,r){ return (r||document).querySelector(s); }
 function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+/* 해설 밑에 붙는 원천 자료 한 줄. 원문을 찾아볼 수 있게 문서명과 장·절을 함께 적는다.
+   문서명(q.r)이 없는 옛 문항은 장·절만 보여 준다. */
+function srcLine(q){
+  var where = [q.r, q.s].filter(function(x){ return x; }).join(" · ");
+  return where ? '<div class="explain-s"><b>원천</b><span>'+esc(where)+'</span></div>' : "";
+}
 function pct(a,b){ return b? Math.round(a/b*100) : 0; }
 function fmtTime(sec){
   sec = Math.max(0, Math.round(sec));
@@ -1419,7 +1432,7 @@ function reviewCard(id, showRemove){
     '<div class="rev-a">'+ q.c.map(function(c,i){
         return '<div'+(i===q.a?' class="tag-ok"':'')+'>'+(i===q.a?'✔ ':'　 ')+esc(c)+'</div>'; }).join("") +'</div>'+
     '<div class="explain" style="margin:4px 0 0"><div class="explain-h"><span class="eyebrow">해설</span></div>'+
-    '<div class="explain-b">'+esc(q.e)+'</div></div>'+
+    '<div class="explain-b">'+esc(q.e)+'</div>'+srcLine(q)+'</div>'+
     '</div></div>';
 }
 
@@ -1758,8 +1771,8 @@ function viewQuiz(){
     var ok = picked===q.a;
     h += '<div class="explain"><div class="explain-h">'+
       (ok? '<span class="chip chip-ok">정답</span>' : '<span class="chip chip-bad">오답</span>')+
-      '<span class="eyebrow">해설 · '+esc(q.s)+'</span></div>'+
-      '<div class="explain-b">'+esc(q.e)+'</div></div>';
+      '<span class="eyebrow">해설</span></div>'+
+      '<div class="explain-b">'+esc(q.e)+'</div>'+srcLine(q)+'</div>';
   }
 
   h += '<div class="qfoot">'+
@@ -1871,7 +1884,7 @@ function viewResult(){
             var mk = i===q.a ? '<span class="tag-ok">✔ 정답</span> ' : (i===picked? '<span class="tag-bad">✕ 내 답</span> ':'　　　　 ');
             return '<div>'+mk+esc(c)+'</div>'; }).join("")+'</div>'+
           '<div class="explain" style="margin:4px 0 0"><div class="explain-h"><span class="eyebrow">해설</span></div>'+
-          '<div class="explain-b">'+esc(q.e)+'</div></div></div></div>';
+          '<div class="explain-b">'+esc(q.e)+'</div>'+srcLine(q)+'</div></div></div>';
       }).join("")+'</div>'
       : '<div class="empty"><b>만점입니다</b>틀린 문항이 없습니다.</div>')+
     '</div>';

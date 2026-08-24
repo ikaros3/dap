@@ -8,6 +8,7 @@
 DAP_BANK.add({
   chapter: 1,
   pack: "extra",
+  source: "DA 준전문가 가이드 과목1 · 요약본 「I. 전사아키텍처 이해」",
   questions: [
     {
       "id": "C1X-101", "ch": 1, "no": 101,

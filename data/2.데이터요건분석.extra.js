@@ -9,6 +9,7 @@
 DAP_BANK.add({
   chapter: 2,
   pack: "extra",
+  source: "DA 준전문가 가이드 과목2 · 요약본 「II. 데이터 요건 분석」",
   questions: [
     {
       "id": "C2X-101", "ch": 2, "no": 101,

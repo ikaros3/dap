@@ -47,6 +47,12 @@ packs.forEach(({ file, collection, pack }) => {
   if (only && pack.chapter !== only) return;
   console.log('\n■ ' + file + '  [' + collection + ']  ' + qs.length + '문항');
 
+  /* 원천 자료는 해설과 함께 화면에 나온다. 팩의 source 나 문항의 r 중
+     하나는 있어야 "어느 문서를 펴 봐야 하는가"를 답해 줄 수 있다.
+     외부 출처 묶음(practice)은 원본이 하나뿐이라 예외로 둔다. */
+  if (collection === 'core' && !pack.source && qs.some(q => !q.r))
+    fail(file + ' — 팩에 source 가 없고 r 이 없는 문항이 있음');
+
   const nos = new Set();
   let odd = 0;                      /* s 표기가 관례와 다른 문항 수 */
   const selfRef = [];               /* 해설이 자기 정답 번호를 짚는 문항 */
