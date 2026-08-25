@@ -17,14 +17,18 @@ window.DAP_MANIFEST = {
   /* 시험 배점 규칙 — 모의고사 1세트(75문항 / 60점) 구성 */
   exam: { perQuestion: 0.8, totalQuestions: 75, totalScore: 60 },
 
-  /* 과목 정의. perSet = 모의고사 1세트에 출제되는 문항 수, score = 그 배점 */
+  /* 과목 정의.
+       perSet    = 모의고사 1세트에 출제되는 문항 수, score = 그 배점
+       blockSize = 학습용 [문항 블록] 하나의 문항 수. 시험 출제 단위(perSet)의
+                   정수배로 둔다. 과목 4는 출제 단위가 25라 블록도 25다.
+                   생략하면 perSet 의 2배를 쓴다. */
   chapters: [
-    { id: 1, name: "전사아키텍처 이해",      perSet: 10, score: 8.0 },
-    { id: 2, name: "데이터 요건 분석",        perSet: 10, score: 8.0 },
-    { id: 3, name: "데이터 표준화",           perSet: 10, score: 8.0 },
-    { id: 4, name: "데이터 모델링",           perSet: 25, score: 20.0 },
-    { id: 5, name: "데이터베이스 설계와 이용", perSet: 10, score: 8.0 },
-    { id: 6, name: "데이터 품질 관리 이해",    perSet: 10, score: 8.0 }
+    { id: 1, name: "전사아키텍처 이해",      perSet: 10, score: 8.0,  blockSize: 20 },
+    { id: 2, name: "데이터 요건 분석",        perSet: 10, score: 8.0,  blockSize: 20 },
+    { id: 3, name: "데이터 표준화",           perSet: 10, score: 8.0,  blockSize: 20 },
+    { id: 4, name: "데이터 모델링",           perSet: 25, score: 20.0, blockSize: 25 },
+    { id: 5, name: "데이터베이스 설계와 이용", perSet: 10, score: 8.0,  blockSize: 20 },
+    { id: 6, name: "데이터 품질 관리 이해",    perSet: 10, score: 8.0,  blockSize: 20 }
   ],
 
   /* 문제은행 묶음. 학습·모의고사는 묶음 단위로 따로 진행된다.

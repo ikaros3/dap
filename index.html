@@ -542,7 +542,9 @@ function startPacks(){
    세트도 섞이지 않는다. manifest 에 collections 가 없으면 전체를 묶음 하나로 본다. */
 function buildBank(M, def, myPacks){
   var chapters = M.chapters.map(function(c){
-    return { id:c.id, name:c.name, perSet:c.perSet, score:c.score, count:0, packs:[] };
+    return { id:c.id, name:c.name, perSet:c.perSet, score:c.score,
+             blockSize: c.blockSize > 0 ? c.blockSize : c.perSet * 2,
+             count:0, packs:[] };
   });
   var chMap = {};
   chapters.forEach(function(c){ chMap[c.id] = c; });
@@ -800,6 +802,23 @@ function load(){
   });
   if(moved) try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
 })();
+/* 블록 크기를 바꾸면 예전 경계로 만들어진 블록 세션(ch1:b25 처럼)은 지금 화면의
+   어느 블록과도 맞지 않는다. 이어풀기 목록에 유령으로 남으므로 지운다.
+   풀이 기록(S.stats)은 문항 id 기준이라 그대로 남고, 사라지는 것은 "그 블록의
+   몇 번째까지 풀었는가" 하는 위치뿐이다. */
+(function migrateBlockSessions(){
+  var dropped = 0;
+  Object.keys(S.sessions).forEach(function(k){
+    var raw = k.indexOf("/") >= 0 ? k.slice(k.indexOf("/")+1) : k;
+    var m = /^ch(\d+):b(\d+)$/.exec(raw);
+    if(!m) return;
+    var c = CH[+m[1]];
+    var bs = c ? (c.blockSize > 0 ? c.blockSize : c.perSet * 2) : 20;
+    if(+m[2] % bs === 0) return;
+    delete S.sessions[k]; dropped++;
+  });
+  if(dropped) try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+})();
 
 var saveT=null;
 function save(){
@@ -843,6 +862,16 @@ function shuffle(a, seed){
   function rnd(){ s = (s*1664525 + 1013904223) % 4294967296; return s/4294967296; }
   for(var i=arr.length-1;i>0;i--){ var j = Math.floor(rnd()*(i+1)); var t=arr[i]; arr[i]=arr[j]; arr[j]=t; }
   return arr;
+}
+
+/* 학습용 [문항 블록] 하나의 문항 수. manifest 의 blockSize 를 쓰고, 없으면
+   시험 출제 단위(perSet)의 2배로 본다. 시험 단위의 정수배여야 블록을 그대로
+   모의고사 감각으로 풀 수 있다. */
+function blockSize(ch){
+  var c = CH[ch];
+  if(c && c.blockSize > 0) return c.blockSize;
+  if(c && c.perSet > 0) return c.perSet * 2;
+  return 20;
 }
 
 /* ─────────── 통계 파생 ─────────── */
@@ -1312,7 +1341,7 @@ function sparkline(){
 
 /* ─────────── 뷰: 과목 ─────────── */
 function viewChapter(ch){
-  var c = CH[ch], s = chStat(ch);
+  var c = CH[ch], s = chStat(ch), bs = blockSize(ch);
   var qs = DAP.questions.filter(function(q){ return q.ch===ch; });
   var h = '<div class="page-head"><div><div class="eyebrow">과목 '+ch+' · 모의고사 '+c.perSet+'문항 / '+c.score+'점</div>'+
     '<h1 class="page-title">'+esc(c.name)+'</h1>'+
@@ -1340,18 +1369,18 @@ function viewChapter(ch){
     (saved? '' : '<button class="btn btn-primary" data-act="startch" data-ch="'+ch+'" data-range="all">전체 '+c.count+'문항 풀기</button>')+
     '<button class="btn" data-act="startch" data-ch="'+ch+'" data-range="unseen">안 푼 문항만</button>'+
     '<button class="btn" data-act="startch" data-ch="'+ch+'" data-range="wrong">이 과목 오답만</button>'+
-    '<button class="btn" data-act="startch" data-ch="'+ch+'" data-range="rand25">무작위 25문항</button>'+
+    '<button class="btn" data-act="startch" data-ch="'+ch+'" data-range="rand25">무작위 '+bs+'문항</button>'+
     '</div>'+
     '<p class="note" style="margin-top:10px">풀던 도중에 나가도 진도는 자동 저장됩니다. 같은 버튼으로 다시 들어오면 마지막에 푼 다음 문항부터 이어집니다.</p>'+
     '</div>';
 
-  /* 블록 목록 */
-  h += '<div class="card"><div class="sec-head"><span class="sec-title">문항 블록</span><span class="eyebrow">25문항 단위</span></div><div class="tblwrap"><table class="tbl"><thead><tr><th>블록</th><th>범위</th><th style="text-align:right">푼 문항</th><th style="text-align:right">정답률</th><th></th></tr></thead><tbody>';
-  for(var i=0;i<qs.length;i+=25){
-    var blk = qs.slice(i, i+25);
+  /* 블록 목록 — 블록 크기는 과목마다 다르다 (시험 출제 단위의 정수배) */
+  h += '<div class="card"><div class="sec-head"><span class="sec-title">문항 블록</span><span class="eyebrow">'+bs+'문항 단위</span></div><div class="tblwrap"><table class="tbl"><thead><tr><th>블록</th><th>범위</th><th style="text-align:right">푼 문항</th><th style="text-align:right">정답률</th><th></th></tr></thead><tbody>';
+  for(var i=0;i<qs.length;i+=bs){
+    var blk = qs.slice(i, i+bs);
     var seen=0, ok=0, tr=0;
     blk.forEach(function(q){ var t=st(q.id); if(t){ seen++; ok+=t.right; tr+=t.right+t.wrong; } });
-    h += '<tr><td class="mono">'+String(Math.floor(i/25)+1).padStart(2,"0")+'</td>'+
+    h += '<tr><td class="mono">'+String(Math.floor(i/bs)+1).padStart(2,"0")+'</td>'+
       '<td class="mono" style="font-size:calc(12px * var(--fs));color:var(--muted)">'+blk[0].id+' – '+blk[blk.length-1].id+'</td>'+
       '<td class="num">'+seen+'/'+blk.length+'</td><td class="num">'+(tr?pct(ok,tr)+"%":"–")+'</td>'+
       '<td class="num"><button class="btn btn-sm" data-act="startblock" data-ch="'+ch+'" data-from="'+i+'">풀기</button></td></tr>';
@@ -1710,7 +1739,7 @@ function chapterIds(ch, range){
   var qs = DAP.questions.filter(function(q){ return q.ch===ch; });
   if(range==="unseen") qs = qs.filter(function(q){ return !st(q.id); });
   if(range==="wrong")  qs = qs.filter(function(q){ return S.wrong[q.id]; });
-  if(range==="rand25") qs = shuffle(qs).slice(0,25);
+  if(range==="rand25") qs = shuffle(qs).slice(0, blockSize(ch));
   return qs.map(function(q){ return q.id; });
 }
 function randomExamIds(){
@@ -1951,7 +1980,7 @@ document.addEventListener("click", function(ev){
       var ch = +t.getAttribute("data-ch"), range = t.getAttribute("data-range");
       var ids = chapterIds(ch, range);
       if(!ids.length){ toast("해당 조건의 문항이 없습니다"); break; }
-      var lbl = { all:"전체", unseen:"안 푼 문항", wrong:"오답", rand25:"무작위 25문항" }[range];
+      var lbl = { all:"전체", unseen:"안 푼 문항", wrong:"오답", rand25:"무작위 "+blockSize(ch)+"문항" }[range];
       startSession({ key:"ch"+ch+":"+range, fresh:!!t.getAttribute("data-fresh"),
                      seq: range==="all" || range==="unseen",
                      mode:"study", title:ch+". "+CH[ch].name+" · "+lbl, ids:ids });
@@ -1959,9 +1988,10 @@ document.addEventListener("click", function(ev){
     }
     case "startblock": {
       var ch2 = +t.getAttribute("data-ch"), from = +t.getAttribute("data-from");
-      var qs = DAP.questions.filter(function(q){ return q.ch===ch2; }).slice(from, from+25);
+      var bs2 = blockSize(ch2);
+      var qs = DAP.questions.filter(function(q){ return q.ch===ch2; }).slice(from, from+bs2);
       startSession({ key:"ch"+ch2+":b"+from, mode:"study", seq:true,
-                     title:ch2+". "+CH[ch2].name+" · 블록 "+(from/25+1), ids:qs.map(function(q){return q.id;}) });
+                     title:ch2+". "+CH[ch2].name+" · 블록 "+(Math.floor(from/bs2)+1), ids:qs.map(function(q){return q.id;}) });
       break;
     }
     case "startset": {
