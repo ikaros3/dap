@@ -9,6 +9,7 @@ process.chdir(ROOT);
 const SUITES = [
   ['구문 검사',                'test/syntax.js'],
   ['문제은행 빌드',            'test/bank-build.js'],
+  ['로더 단독 실행',            'test/loader-scope.js'],
   ['문항 팩 형식',             'test/pack-format.js'],
   ['세션 이어풀기',            'test/session-resume.js'],
   ['답이 기록되는 문항',       'test/quiz-answer-target.js'],

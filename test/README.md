@@ -17,6 +17,7 @@ node test/pack-format.js 3  # 과목 3 팩만
 |---|---|
 | `syntax.js` | 인라인 스크립트 구문. 편집 중 백슬래시가 사라졌는지도 함께 본다 |
 | `bank-build.js` | 과목별 문항 수, 모의고사 세트 수, 문항 id 중복 |
+| `loader-scope.js` | 로더 script 를 혼자 돌려 앱 스코프 함수를 부르지 않는지 |
 | `pack-format.js` | 보기 4개·정답 인덱스·출처 표기·정답 쏠림·문두 중복 |
 | `session-resume.js` | 이어풀기 키 처리, `isSeqKey`, 이전 답 복원 |
 | `quiz-answer-target.js` | 답이 화면에 있는 문항에 기록되는가 |
