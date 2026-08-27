@@ -53,6 +53,11 @@ packs.forEach(({ file, collection, pack }) => {
   if (collection === 'core' && !pack.source && qs.some(q => !q.r))
     fail(file + ' — 팩에 source 가 없고 r 이 없는 문항이 있음');
 
+  /* 참고 파일은 원천의 짝이다. 원천이 "무엇을 근거로 했나"라면 이쪽은
+     "data_source/ 의 어느 파일을 여나"에 답한다. 같은 이유로 하나는 있어야 한다. */
+  if (collection === 'core' && !pack.sourceFiles && qs.some(q => !q.rf))
+    fail(file + ' — 팩에 sourceFiles 가 없고 rf 가 없는 문항이 있음');
+
   const nos = new Set();
   let odd = 0;                      /* s 표기가 관례와 다른 문항 수 */
   const selfRef = [];               /* 해설이 자기 정답 번호를 짚는 문항 */

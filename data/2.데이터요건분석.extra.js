@@ -10,6 +10,10 @@ DAP_BANK.add({
   chapter: 2,
   pack: "extra",
   source: "DA 준전문가 가이드 과목2 · 요약본 「II. 데이터 요건 분석」",
+  sourceFiles: [
+    "[데이터 전문가 포럼] 데이터아키텍처 준전문가 가이드(2020.08.29.).hwpx",
+    "II. 데이터 요건 분석.hwpx"
+  ],
   questions: [
     {
       "id": "C2X-101", "ch": 2, "no": 101,

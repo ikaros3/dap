@@ -9,6 +9,10 @@ DAP_BANK.add({
   chapter: 1,
   pack: "extra",
   source: "DA 준전문가 가이드 과목1 · 요약본 「I. 전사아키텍처 이해」",
+  sourceFiles: [
+    "[데이터 전문가 포럼] 데이터아키텍처 준전문가 가이드(2020.08.29.).hwpx",
+    "I. 전사아키텍처 이해.hwpx"
+  ],
   questions: [
     {
       "id": "C1X-101", "ch": 1, "no": 101,
