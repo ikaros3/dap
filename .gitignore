@@ -5,3 +5,6 @@ data_source/
 data/practice.*.js
 !data/practice.enc.js
 practice.plain.json
+
+# 원천에서 뽑은 본문 캐시 (tools/source-check.js --extract). 원문과 같은 저작물이다.
+tools/.source-text/
