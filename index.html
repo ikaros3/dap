@@ -248,8 +248,12 @@ a{color:var(--accent)}
 .explain-s b{font-weight:600;color:var(--ink-2);white-space:nowrap}
 /* 원천 바로 아래 오는 참고 파일 줄 — 같은 묶음으로 읽히도록 구분선을 한 번만 긋는다 */
 .explain-s + .explain-s{border-top:0;padding-top:2px}
-/* 파일명은 띄어쓰기 없는 긴 토막이 섞여 있어 어디서든 접히게 둔다 */
-.explain-s.file span{overflow-wrap:anywhere}
+/* 참고 파일은 한 줄에 하나씩. 파일명은 띄어쓰기 없는 긴 토막이 섞여 있어 어디서든 접히게 둔다 */
+.explain-s.file ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.explain-s.file li{overflow-wrap:anywhere}
+/* 자료 종류(요약본·강의자료…) — 제목이 비슷한 다른 문서를 가려 준다 */
+.explain-s.file i{font-style:normal;font-size:calc(10.5px * var(--fs));color:var(--ink-2);
+  border:1px solid var(--line);border-radius:4px;padding:0 4px;margin-left:4px;white-space:nowrap}
 .qfoot{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--surface-2);flex-wrap:wrap}
 .qfoot .spacer{flex:1}
 .kbd{font-family:var(--font-mono);font-size:calc(10.5px * var(--fs));border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted);background:var(--surface)}
@@ -855,9 +859,26 @@ function srcLine(q){
   var where = [q.r, q.s].filter(function(x){ return x; }).join(" · ");
   var out = where ? '<div class="explain-s"><b>원천</b><span>'+esc(where)+'</span></div>' : "";
   /* 원천 아래에 실제로 참고한 파일 이름을 덧붙인다. 원천이 "무엇을 근거로 했나"라면
-     이쪽은 "어느 파일을 열면 되나"에 답한다. 옛 팩처럼 파일이 없으면 생략한다. */
-  if(q.f) out += '<div class="explain-s file"><b>참고 파일</b><span>'+esc(q.f)+'</span></div>';
+     이쪽은 "어느 파일을 열면 되나"에 답한다. 옛 팩처럼 파일이 없으면 생략한다.
+     파일마다 어떤 자료인지 함께 적는다. 「V. 데이터베이스 설계와 이용.hwpx」와
+     「5과목. 데이터베이스 설계와 이용.pdf」처럼 제목만으로는 같은 문서로 보이지만
+     각각 요약본과 강의자료인 경우가 있다. */
+  if(q.f){
+    var items = q.f.split(" · ").filter(function(x){ return x; }).map(function(name){
+      var kind = srcKind(name);
+      return '<li>'+esc(name)+(kind? ' <i>'+esc(kind)+'</i>' : '')+'</li>';
+    }).join("");
+    out += '<div class="explain-s file"><b>참고 파일</b><ul>'+items+'</ul></div>';
+  }
   return out;
+}
+/* 파일 이름만 보고 어떤 자료인지 가려낸다. data_source/README.md 의 A~D 묶음이다. */
+function srcKind(name){
+  if(/^\[데이터 전문가 포럼\]/.test(name)) return "교재";
+  if(/^[IVX]+\. /.test(name))              return "요약본";
+  if(/^\d과목\./.test(name))               return "강의자료";
+  if(/\.docx?$/.test(name))                return "워드 요약";
+  return "";
 }
 function pct(a,b){ return b? Math.round(a/b*100) : 0; }
 function fmtTime(sec){
