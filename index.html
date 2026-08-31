@@ -2861,13 +2861,27 @@ window.addEventListener("beforeunload", function(){
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
 });
 
-if(S.settings.bank && bankById(S.settings.bank)) useBank(S.settings.bank);
+/* 저장해 둔 묶음으로 되돌린다. 잠긴 묶음이면 기억해 둔 암호로 조용히 연다.
+   복호화는 비동기라, 먼저 그리면 0문항·0과목인 빈 화면이 보였다가 새로고침을
+   해야 제대로 나온다. 그래서 여는 일이 끝난 뒤에 첫 화면을 그린다. */
+function bootBank(done){
+  var id = S.settings.bank, b = id && bankById(id);
+  if(!b){ done(); return; }
+  if(!b.locked){ useBank(id); done(); return; }
+  var locks = loadLocks(), pw = locks[id];
+  if(!pw || !cryptoOK()){ useBank(id); done(); return; }
+  unlockBank(b, pw, function(){ useBank(id); done(); },
+    function(){ delete locks[id]; saveLocks(locks); useBank(id); done(); });
+}
+
 applyTheme();
 applyTypography();
-applyBrand();
-restoreFileHandle();
-render();
-if(syncOn() && sync.auto) syncNow(true);
+bootBank(function(){
+  applyBrand();
+  restoreFileHandle();
+  render();
+  if(syncOn() && sync.auto) syncNow(true);
+});
 };
 </script>
 </body>
