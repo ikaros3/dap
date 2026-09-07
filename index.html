@@ -2047,10 +2047,23 @@ function viewResult(){
   var ids = examIds(e).filter(function(id){ return QMAP[id]; });
   var missed = ids.filter(function(id){ return e.answers[id]!==QMAP[id].a; });
 
-  /* 전체 문항 격자 — 어떤 번호를 틀렸는지 한눈에 보고, 눌러서 문항별로 확인한다 */
-  var sel = (view.rq===undefined || view.rq===null) ? null : Math.min(Math.max(view.rq,0), ids.length-1);
+  /* 문항별 검토 — 풀이 화면과 같은 배치다. 문제와 해설이 먼저 오고 번호 격자가 아래에 온다.
+     기본은 1번을 펼친 상태이고, 접으면(view.rq=null) 격자만 남는다. */
+  var sel = view.rq===null ? null : Math.min(Math.max(view.rq||0, 0), ids.length-1);
   h += '<div class="card" style="margin-bottom:16px"><div class="sec-head"><span class="sec-title">문항별 검토</span>'+
-    '<span class="eyebrow">정답 / 오답 · 눌러서 해설</span></div><div class="navgrid">';
+    '<span class="eyebrow">정답 / 오답 · <span class="kbd">←</span> <span class="kbd">→</span> 이동</span></div>';
+  if(sel===null){
+    h += '<div class="note" style="padding:14px 16px 0">번호를 누르면 그 문항의 보기·내가 고른 답·해설을 볼 수 있습니다. '+
+         '테두리가 점선인 것은 답을 고르지 않은 문항입니다.</div>';
+  }else{
+    h += '<div style="padding:14px 16px 0">'+ revBlock(ids[sel], e.answers[ids[sel]], (sel+1)+"번") +
+      '<div class="btn-row" style="margin-top:2px">'+
+      '<button class="btn btn-sm" data-act="rvjump" data-i="'+(sel-1)+'"'+(sel===0?" disabled":"")+'>← 이전 문항</button>'+
+      '<button class="btn btn-sm" data-act="rvjump" data-i="'+(sel+1)+'"'+(sel===ids.length-1?" disabled":"")+'>다음 문항 →</button>'+
+      '<span class="spacer" style="flex:1"></span>'+
+      '<button class="btn btn-sm" data-act="rvclose">접기</button></div></div>';
+  }
+  h += '<div class="navgrid">';
   ids.forEach(function(id,i){
     var picked = e.answers[id], cls = "navdot";
     cls += (picked===QMAP[id].a) ? " ok" : " no";
@@ -2058,19 +2071,7 @@ function viewResult(){
     if(i===sel) cls += " cur";
     h += '<button class="'+cls+'" data-act="rvjump" data-i="'+i+'" title="'+esc(id)+'">'+(i+1)+'</button>';
   });
-  h += '</div>';
-  if(sel===null){
-    h += '<div class="note" style="padding:0 16px 14px">번호를 누르면 그 문항의 보기·내가 고른 답·해설을 볼 수 있습니다. '+
-         '테두리가 점선인 것은 답을 고르지 않은 문항입니다.</div>';
-  }else{
-    h += '<div style="padding:0 16px 14px">'+ revBlock(ids[sel], e.answers[ids[sel]], (sel+1)+"번") +
-      '<div class="btn-row" style="margin-top:2px">'+
-      '<button class="btn btn-sm" data-act="rvjump" data-i="'+(sel-1)+'"'+(sel===0?" disabled":"")+'>← 이전 문항</button>'+
-      '<button class="btn btn-sm" data-act="rvjump" data-i="'+(sel+1)+'"'+(sel===ids.length-1?" disabled":"")+'>다음 문항 →</button>'+
-      '<span class="spacer" style="flex:1"></span>'+
-      '<button class="btn btn-sm" data-act="rvclose">접기</button></div></div>';
-  }
-  h += '</div>';
+  h += '</div></div>';
 
   h += '<div class="card"><div class="sec-head"><span class="sec-title">틀린 문항 해설</span>'+
     '<span class="eyebrow">'+missed.length+'문항</span></div>'+
@@ -2930,6 +2931,20 @@ function nextQ(){
 
 document.addEventListener("keydown", function(e){
   if(e.target.tagName==="INPUT" || e.target.tagName==="TEXTAREA" || e.target.tagName==="SELECT") return;
+  /* 리포트의 문항별 검토도 풀이 화면처럼 좌우 화살표로 넘긴다 */
+  if(view.name==="result"){
+    if(e.key!=="ArrowLeft" && e.key!=="ArrowRight") return;
+    var ex = S.exams.filter(function(x){ return x.id===view.examId; })[0];
+    if(!ex) return;
+    var n = examIds(ex).filter(function(id){ return QMAP[id]; }).length;
+    if(!n) return;
+    e.preventDefault();
+    /* 접혀 있으면 먼저 편다. 펼쳐진 상태(undefined 는 1번)에서는 한 칸 옮긴다. */
+    if(view.rq===null) view.rq = 0;
+    else view.rq = Math.min(n-1, Math.max(0, (view.rq||0) + (e.key==="ArrowRight" ? 1 : -1)));
+    render();
+    return;
+  }
   if(view.name!=="quiz" || !session) return;
   var q = QMAP[session.ids[session.idx]];
   if(e.key>="1" && e.key<="4"){ e.preventDefault(); pick(+e.key-1); return; }
