@@ -195,6 +195,8 @@ a{color:var(--accent)}
 :root[data-theme="dark"] .btn-primary{color:#06231F}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn-primary{color:#06231F}}
 .btn-primary:hover{background:color-mix(in srgb,var(--accent) 88%,var(--ink));border-color:color-mix(in srgb,var(--accent) 88%,var(--ink))}
+.btn-danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 30%,transparent)}
+.btn-danger:hover{background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 52%,transparent)}
 .btn-sm{padding:5px 11px;font-size:calc(12.5px * var(--fs))}
 .btn-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
@@ -267,6 +269,7 @@ a{color:var(--accent)}
 .navdot.no{background:var(--bad-soft);border-color:color-mix(in srgb,var(--bad) 34%,transparent);color:var(--bad)}
 .navdot.cur{outline:2px solid var(--accent);outline-offset:1px}
 .navdot.flag{border-color:var(--key);border-width:2px}
+.navdot.skip{border-style:dashed;color:var(--muted)}
 
 /* result */
 .score-hero{display:flex;align-items:center;gap:26px;flex-wrap:wrap;padding:22px 22px}
@@ -969,6 +972,45 @@ function record(qid, correct, pick){
   save();
 }
 
+/* ─────────── 응시 기록 되돌리기 ─────────── */
+/* 잘못된 응시를 지울 때 그 응시가 문항 통계에 남긴 자국까지 걷어낸다.
+   right/wrong 카운트는 정확히 1씩 빼면 되지만, 복습 상자(box)·다음 복습일(due)·
+   마지막 선택(pick)은 덮어쓰기라 이전 값이 남아 있지 않다. 그래서 이 응시가
+   그 문항을 마지막으로 건드린 경우에만 손대고(그 뒤에 다시 푼 기록이 있으면
+   그쪽이 주인이므로 그대로 둔다), 남은 이력으로 다시 세운다. */
+function rollbackExam(e){
+  var ids = examIds(e).filter(function(id){ return QMAP[id]; });
+  var out = { touched:0, cleared:0, unwrong:0 };
+  ids.forEach(function(id){
+    var t = S.stats[id]; if(!t) return;
+    var wasCorrect = e.answers[id] === QMAP[id].a;   /* 미응답은 오답으로 기록됐다 */
+    if(wasCorrect) t.right = Math.max(0, (t.right||0) - 1);
+    else           t.wrong = Math.max(0, (t.wrong||0) - 1);
+    out.touched++;
+
+    /* 이 응시가 유일한 이력이었다면 문항을 안 푼 상태로 되돌린다 */
+    if(!t.right && !t.wrong){
+      delete S.stats[id];
+      if(S.wrong[id]){ delete S.wrong[id]; out.unwrong++; }
+      out.cleared++;
+      return;
+    }
+    /* 다른 데서도 틀린 적이 있는 문항은 오답노트에 그대로 둔다 */
+    if(!t.wrong && S.wrong[id]){ delete S.wrong[id]; out.unwrong++; }
+
+    /* 채점 시각과 기록 시각이 같으면 이 응시가 마지막으로 건드린 문항이다 */
+    if(Math.abs((t.last||0) - e.ts) < 60000){
+      delete t.pick;
+      t.box = t.wrong ? 0 : Math.min(6, t.right);
+      t.due = Date.now() + BOX_DAYS[Math.min(t.box, BOX_DAYS.length-1)] * 864e5;
+      /* last 는 화면에 쓰이지 않고 동기화 병합의 순서 기준이다.
+         이 되돌리기가 가장 최근 판단이므로 지금 시각으로 올려 둔다. */
+      t.last = Date.now();
+    }
+  });
+  return out;
+}
+
 /* ─────────── 라우팅 ─────────── */
 var view = { name:"dash" }, session = null, timerH = null;
 
@@ -1258,7 +1300,7 @@ function renderRail(){
 /* ─────────── 뷰: 대시보드 ─────────── */
 function viewDash(){
   var o = overall(), wn = wrongIds().length, dq = dueIds().length;
-  var last = S.exams.slice(-1)[0];
+  var last = examsAsc().slice(-1)[0];
   var h = "";
   h += '<div class="page-head"><div>'+
        '<div class="eyebrow">Data Architecture Professional</div>'+
@@ -1332,14 +1374,15 @@ function viewDash(){
   if(S.exams.length){
     h += '<div class="card" style="margin-top:16px"><div class="sec-head"><span class="sec-title">최근 응시 이력</span>'+
          '<span class="eyebrow">최근 12회</span></div>'+ sparkline() +
-         '<div class="tblwrap"><table class="tbl"><thead><tr><th>일시</th><th>구분</th><th style="text-align:right">점수</th><th style="text-align:right">정답</th><th style="text-align:right">소요</th><th>판정</th><th></th></tr></thead><tbody>';
-    S.exams.slice().reverse().slice(0,12).forEach(function(e){
+         '<div class="tblwrap"><table class="tbl"><thead><tr><th>일시</th><th>구분</th><th style="text-align:right">점수</th><th style="text-align:right">정답</th><th style="text-align:right">소요</th><th>판정</th><th></th><th></th></tr></thead><tbody>';
+    examsRecent(12).forEach(function(e){
       h += '<tr><td class="mono" style="font-size:calc(12px * var(--fs))">'+fmtDate(e.ts)+'</td><td>'+esc(e.title)+'</td>'+
         '<td class="num"><strong>'+e.score.toFixed(1)+'</strong></td>'+
         '<td class="num">'+e.correct+'/'+e.count+'</td>'+
         '<td class="num">'+fmtTime(e.dur)+'</td>'+
         '<td>'+verdictChip(e)+'</td>'+
-        '<td class="num"><button class="btn btn-sm" data-act="openexam" data-id="'+e.id+'">리포트</button></td></tr>';
+        '<td class="num"><button class="btn btn-sm" data-act="openexam" data-id="'+e.id+'">리포트</button></td>'+
+        '<td class="num"><button class="btn btn-sm btn-danger" data-act="delexam" data-id="'+e.id+'" title="이 응시 기록을 삭제">삭제</button></td></tr>';
     });
     h += '</tbody></table></div></div>';
   }
@@ -1358,7 +1401,7 @@ function verdictChip(e){
   return e.score >= target ? '<span class="chip chip-ok">합격권</span>' : '<span class="chip">미달</span>';
 }
 function sparkline(){
-  var rows = S.exams.slice(-12);
+  var rows = examsAsc().slice(-12);
   if(rows.length<2) return "";
   var w=100, hh=34, max=60;
   var pts = rows.map(function(e,i){
@@ -1374,6 +1417,17 @@ function sparkline(){
     '<polyline points="'+pts.join(" ")+'" fill="none" stroke="var(--accent)" stroke-width="1.1" vector-effect="non-scaling-stroke"/>'+
     '<circle cx="'+lx[0]+'" cy="'+lx[1]+'" r="1.6" fill="var(--accent)"/></svg>'+
     '<div class="eyebrow" style="display:flex;justify-content:space-between;padding-top:2px"><span>점수 추이 (60점 만점)</span><span>목표선 '+S.settings.target+'점</span></div></div>';
+}
+
+/* 응시 기록은 저장 순서가 아니라 실제 응시 시각 순으로 본다 */
+function examsAsc(){ return S.exams.slice().sort(function(a,b){ return a.ts-b.ts; }); }
+function examsRecent(n){ return examsAsc().reverse().slice(0, n||S.exams.length); }
+/* 리포트에서 문항 번호를 매기려면 출제 순서가 필요하다.
+   예전 기록에는 ids 가 없으므로 세트 구성 → 응답 키 순으로 되짚는다. */
+function examIds(e){
+  if(e.ids && e.ids.length) return e.ids;
+  if(e.setNo && DAP.sets[e.setNo-1]) return DAP.sets[e.setNo-1];
+  return Object.keys(e.answers||{});
 }
 
 /* ─────────── 뷰: 과목 ─────────── */
@@ -1442,7 +1496,7 @@ function viewExams(){
 
   h += '<div class="launch">';
   DAP.sets.forEach(function(ids, i){
-    var prev = S.exams.filter(function(e){ return e.setNo===i+1; }).slice(-1)[0];
+    var prev = examsAsc().filter(function(e){ return e.setNo===i+1; }).slice(-1)[0];
     h += '<button class="launch-card" data-act="startset" data-set="'+i+'">'+
       '<span class="launch-t"><span class="mono" style="color:var(--accent)">'+
         esc((DAP.setTitles && DAP.setTitles[i]) || ('SET '+String(i+1).padStart(2,"0")))+'</span></span>'+
@@ -1882,6 +1936,7 @@ function submitExam(){
     id: "E"+Date.now(), ts: Date.now(), title: session.title, setNo: session.setNo,
     count: session.ids.length, correct: correct,
     score: Math.round(correct*PER_Q*10)/10, dur: dur, byCh: byCh,
+    ids: session.ids.slice(),
     answers: session.ans
   };
   S.exams.push(rec);
@@ -1890,6 +1945,27 @@ function submitExam(){
   endSession();
   save();
   go("result", { examId: rec.id });
+}
+
+/* 리포트에서 문항 하나를 보여준다. picked 가 없으면 미응답. */
+function revBlock(id, picked, no){
+  var q = QMAP[id];
+  if(!q) return "";
+  var ok = picked===q.a;
+  return '<div class="rev"><div class="rev-h">'+
+    (no? '<span class="chip chip-accent mono">'+esc(no)+'</span>' : '')+
+    '<span class="chip mono">'+q.id+'</span>'+
+    '<span class="chip">'+q.ch+'. '+esc(CH[q.ch].name)+'</span>'+(q.s? '<span class="chip">'+esc(q.s)+'</span>' : '')+
+    '<span class="'+(ok?"chip chip-ok":"chip chip-bad")+'">'+(ok?"정답":(picked===undefined?"미응답":"오답"))+'</span>'+
+    '<span style="flex:1"></span><button class="btn btn-sm" data-act="solveone" data-id="'+q.id+'">다시 풀기</button></div>'+
+    '<div class="rev-b"><div class="rev-q">'+esc(q.q)+'</div>'+
+    '<div class="rev-a">'+q.c.map(function(c,i){
+      var mk = i===q.a ? '<span class="tag-ok">✔ 정답</span> ' : (i===picked? '<span class="tag-bad">✕ 내 답</span> ':'　　　　 ');
+      return '<div>'+mk+esc(c)+'</div>'; }).join("")+'</div>'+
+    (picked===undefined? '<div class="note">답을 고르지 않은 문항입니다.</div>'
+     : (ok? '' : '<div class="note">내가 고른 답 '+(picked+1)+'번 · 정답 '+(q.a+1)+'번</div>'))+
+    '<div class="explain" style="margin:4px 0 0"><div class="explain-h"><span class="eyebrow">해설</span></div>'+
+    '<div class="explain-b">'+esc(q.e)+'</div>'+srcLine(q)+'</div></div></div>';
 }
 
 function viewResult(){
@@ -1929,28 +2005,38 @@ function viewResult(){
   });
   h += '</tbody></table></div></div>';
 
-  var wrongs = Object.keys(e.answers||{}).filter(function(id){ return e.answers[id]!==QMAP[id].a; })
-    .concat(e.answers? [] : []);
-  var missed = [];
-  CHLIST.forEach(function(){});
-  (function(){
-    var ids = DAP.sets[e.setNo-1] || Object.keys(e.answers||{});
-    ids.forEach(function(id){ if(QMAP[id] && e.answers[id]!==QMAP[id].a) missed.push(id); });
-  })();
+  var ids = examIds(e).filter(function(id){ return QMAP[id]; });
+  var missed = ids.filter(function(id){ return e.answers[id]!==QMAP[id].a; });
+
+  /* 전체 문항 격자 — 어떤 번호를 틀렸는지 한눈에 보고, 눌러서 문항별로 확인한다 */
+  var sel = (view.rq===undefined || view.rq===null) ? null : Math.min(Math.max(view.rq,0), ids.length-1);
+  h += '<div class="card" style="margin-bottom:16px"><div class="sec-head"><span class="sec-title">문항별 검토</span>'+
+    '<span class="eyebrow">정답 / 오답 · 눌러서 해설</span></div><div class="navgrid">';
+  ids.forEach(function(id,i){
+    var picked = e.answers[id], cls = "navdot";
+    cls += (picked===QMAP[id].a) ? " ok" : " no";
+    if(picked===undefined) cls += " skip";
+    if(i===sel) cls += " cur";
+    h += '<button class="'+cls+'" data-act="rvjump" data-i="'+i+'" title="'+esc(id)+'">'+(i+1)+'</button>';
+  });
+  h += '</div>';
+  if(sel===null){
+    h += '<div class="note" style="padding:0 16px 14px">번호를 누르면 그 문항의 보기·내가 고른 답·해설을 볼 수 있습니다. '+
+         '테두리가 점선인 것은 답을 고르지 않은 문항입니다.</div>';
+  }else{
+    h += '<div style="padding:0 16px 14px">'+ revBlock(ids[sel], e.answers[ids[sel]], (sel+1)+"번") +
+      '<div class="btn-row" style="margin-top:2px">'+
+      '<button class="btn btn-sm" data-act="rvjump" data-i="'+(sel-1)+'"'+(sel===0?" disabled":"")+'>← 이전 문항</button>'+
+      '<button class="btn btn-sm" data-act="rvjump" data-i="'+(sel+1)+'"'+(sel===ids.length-1?" disabled":"")+'>다음 문항 →</button>'+
+      '<span class="spacer" style="flex:1"></span>'+
+      '<button class="btn btn-sm" data-act="rvclose">접기</button></div></div>';
+  }
+  h += '</div>';
 
   h += '<div class="card"><div class="sec-head"><span class="sec-title">틀린 문항 해설</span>'+
     '<span class="eyebrow">'+missed.length+'문항</span></div>'+
     (missed.length? '<div style="padding:14px 16px">'+missed.map(function(id){
-        var q = QMAP[id], picked = e.answers[id];
-        return '<div class="rev"><div class="rev-h"><span class="chip mono">'+q.id+'</span>'+
-          '<span class="chip">'+q.ch+'. '+esc(CH[q.ch].name)+'</span><span class="chip">'+esc(q.s)+'</span>'+
-          '<span style="flex:1"></span><button class="btn btn-sm" data-act="solveone" data-id="'+q.id+'">다시 풀기</button></div>'+
-          '<div class="rev-b"><div class="rev-q">'+esc(q.q)+'</div>'+
-          '<div class="rev-a">'+q.c.map(function(c,i){
-            var mk = i===q.a ? '<span class="tag-ok">✔ 정답</span> ' : (i===picked? '<span class="tag-bad">✕ 내 답</span> ':'　　　　 ');
-            return '<div>'+mk+esc(c)+'</div>'; }).join("")+'</div>'+
-          '<div class="explain" style="margin:4px 0 0"><div class="explain-h"><span class="eyebrow">해설</span></div>'+
-          '<div class="explain-b">'+esc(q.e)+'</div>'+srcLine(q)+'</div></div></div>';
+        return revBlock(id, e.answers[id], (ids.indexOf(id)+1)+"번");
       }).join("")+'</div>'
       : '<div class="empty"><b>만점입니다</b>틀린 문항이 없습니다.</div>')+
     '</div>';
@@ -2074,6 +2160,25 @@ document.addEventListener("click", function(ev){
       break;
     }
     case "openexam": go("result", { examId: t.getAttribute("data-id") }); break;
+    case "rvjump": view.rq = +t.getAttribute("data-i"); render(); break;
+    case "rvclose": view.rq = null; render(); break;
+    case "delexam": {
+      var xid = t.getAttribute("data-id");
+      var ex = S.exams.filter(function(x){ return x.id===xid; })[0];
+      if(!ex) break;
+      var nl = String.fromCharCode(10);
+      if(!confirm(ex.title+" ("+fmtDate(ex.ts)+") 응시 기록을 삭제할까요?"+nl+
+                  "이 응시가 정답률·오답노트·복습 큐에 남긴 기록도 함께 되돌립니다."+nl+
+                  "다른 응시에서도 틀린 문항은 오답노트에 그대로 남습니다.")) break;
+      var undo = rollbackExam(ex);
+      S.exams = S.exams.filter(function(x){ return x.id!==xid; });
+      save();
+      if(view.name==="result" && view.examId===xid) go("dash"); else render();
+      toast("응시 기록 삭제 · "+undo.touched+"문항 통계 되돌림"+
+            (undo.cleared? " · "+undo.cleared+"문항 미풀이로 복원" : "")+
+            (undo.unwrong? " · 오답노트 "+undo.unwrong+"문항 해제" : ""));
+      break;
+    }
     case "wfilter": go("wrong", { filter:+t.getAttribute("data-ch") }); break;
     case "unwrong": delete S.wrong[t.getAttribute("data-id")]; save(); render(); break;
     case "clearwrong":
