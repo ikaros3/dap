@@ -270,6 +270,8 @@ a{color:var(--accent)}
 .navdot.cur{outline:2px solid var(--accent);outline-offset:1px}
 .navdot.flag{border-color:var(--key);border-width:2px}
 .navdot.skip{border-style:dashed;color:var(--muted)}
+.navdot.mark{position:relative}
+.navdot.mark::after{content:"★";position:absolute;top:-4px;right:-2px;font-size:calc(9px * var(--fs));line-height:1;color:var(--key)}
 
 /* result */
 .score-hero{display:flex;align-items:center;gap:26px;flex-wrap:wrap;padding:22px 22px}
@@ -1996,7 +1998,9 @@ function revBlock(id, picked, no){
     '<span class="chip mono">'+q.id+'</span>'+
     '<span class="chip">'+q.ch+'. '+esc(CH[q.ch].name)+'</span>'+(q.s? '<span class="chip">'+esc(q.s)+'</span>' : '')+
     '<span class="'+(ok?"chip chip-ok":"chip chip-bad")+'">'+(ok?"정답":(picked===undefined?"미응답":"오답"))+'</span>'+
-    '<span style="flex:1"></span><button class="btn btn-sm" data-act="solveone" data-id="'+q.id+'">다시 풀기</button></div>'+
+    (S.bookmarks[q.id]? '<span class="chip chip-key">★ 즐겨찾기</span>' : '')+
+    '<span style="flex:1"></span><button class="btn btn-sm" data-act="solveone" data-id="'+q.id+'">다시 풀기</button>'+
+    '<button class="btn btn-sm" data-act="togglemark" data-id="'+q.id+'" title="즐겨찾기">'+(S.bookmarks[q.id]?"★":"☆")+'</button></div>'+
     '<div class="rev-b"><div class="rev-q">'+esc(q.q)+'</div>'+
     '<div class="rev-a">'+q.c.map(function(c,i){
       var mk = i===q.a ? '<span class="tag-ok">✔ 정답</span> ' : (i===picked? '<span class="tag-bad">✕ 내 답</span> ':'　　　　 ');
@@ -2069,6 +2073,7 @@ function viewResult(){
     cls += (picked===QMAP[id].a) ? " ok" : " no";
     if(picked===undefined) cls += " skip";
     if(i===sel) cls += " cur";
+    if(S.bookmarks[id]) cls += " mark";
     h += '<button class="'+cls+'" data-act="rvjump" data-i="'+i+'" title="'+esc(id)+'">'+(i+1)+'</button>';
   });
   h += '</div></div>';
