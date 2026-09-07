@@ -840,6 +840,38 @@ function load(){
   if(dropped) try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
 })();
 
+/* 응시 이력은 묶음마다 따로 봐야 한다. 세트 번호도 문항도 묶음이 다르면 남의
+   것이고, 리포트를 열어도 지금 묶음의 QMAP 에 없는 문항이라 아무것도 못 그린다.
+   문항 id 는 은행 전체에서 유일하므로 어느 묶음의 문항인지로 가려낼 수 있다. */
+var BANK_OF_Q = null;
+function bankOfQuestion(id){
+  if(!BANK_OF_Q){
+    BANK_OF_Q = {};
+    BANKS.forEach(function(b){
+      (b.questions||[]).forEach(function(q){ if(!(q.id in BANK_OF_Q)) BANK_OF_Q[q.id] = b.id; });
+    });
+  }
+  return BANK_OF_Q[id];
+}
+/* 묶음 기능 이전 기록에는 bank 가 없다. 문항 id 로 되짚어 한 번만 적어 둔다.
+   잠긴 묶음의 것은 아직 가려낼 수 없으므로 건드리지 않고, 묶음을 열 때 다시 부른다. */
+function stampExamBanks(){
+  var n = 0;
+  S.exams.forEach(function(e){
+    if(e.bank) return;
+    /* examIds 는 세트 구성을 "지금 묶음"에서 찾으므로 여기서는 쓸 수 없다.
+       응답 키는 그 응시가 실제로 낸 문항이라 묶음과 무관하게 믿을 수 있다. */
+    var ids = (e.ids && e.ids.length) ? e.ids : Object.keys(e.answers||{});
+    for(var i=0;i<ids.length;i++){
+      var b = bankOfQuestion(ids[i]);
+      if(b){ e.bank = b; n++; return; }
+    }
+  });
+  if(n) try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  return n;
+}
+stampExamBanks();
+
 var saveT=null;
 function save(){
   if(session && session.key){ session.ts = Date.now(); S.sessions[session.key] = session; }
@@ -1131,6 +1163,7 @@ function unlockBank(bank, pw, ok, err){
       if(!built.questions.length){ err("복호화는 됐지만 문항이 없습니다."); return; }
       built.wasLocked = true;
       for(var k=0;k<BANKS.length;k++) if(BANKS[k].id === bank.id) BANKS[k] = built;
+      BANK_OF_Q = null; stampExamBanks();   /* 이제 이 묶음의 응시 기록을 가려낼 수 있다 */
       ok(built);
       return;
     }
@@ -1300,7 +1333,7 @@ function renderRail(){
 /* ─────────── 뷰: 대시보드 ─────────── */
 function viewDash(){
   var o = overall(), wn = wrongIds().length, dq = dueIds().length;
-  var last = examsAsc().slice(-1)[0];
+  var mine = examsAsc(), last = mine.slice(-1)[0];
   var h = "";
   h += '<div class="page-head"><div>'+
        '<div class="eyebrow">Data Architecture Professional</div>'+
@@ -1313,7 +1346,7 @@ function viewDash(){
     tile("누적 정답률", o.acc+'<small>%</small>', o.ok+" / "+o.tries+" 시도")+
     tile("오답노트", wn, wn? "복습이 필요한 문항" : "미해결 오답 없음")+
     tile("복습 예정", dq, dq? "지금 복습할 문항" : "예정된 복습 없음")+
-    tile("모의고사", S.exams.length, last? "최근 "+last.score.toFixed(1)+"점" : "응시 이력 없음")+
+    tile("모의고사", mine.length, last? "최근 "+last.score.toFixed(1)+"점" : "응시 이력 없음")+
   '</div>';
 
   /* 이어하기 — 진행 중인 세션을 모두 나열 */
@@ -1371,7 +1404,7 @@ function viewDash(){
   h += '</div>';
 
   /* 최근 응시 */
-  if(S.exams.length){
+  if(mine.length){
     h += '<div class="card" style="margin-top:16px"><div class="sec-head"><span class="sec-title">최근 응시 이력</span>'+
          '<span class="eyebrow">최근 12회</span></div>'+ sparkline() +
          '<div class="tblwrap"><table class="tbl"><thead><tr><th>일시</th><th>구분</th><th style="text-align:right">점수</th><th style="text-align:right">정답</th><th style="text-align:right">소요</th><th>판정</th><th></th><th></th></tr></thead><tbody>';
@@ -1419,14 +1452,20 @@ function sparkline(){
     '<div class="eyebrow" style="display:flex;justify-content:space-between;padding-top:2px"><span>점수 추이 (60점 만점)</span><span>목표선 '+S.settings.target+'점</span></div></div>';
 }
 
-/* 응시 기록은 저장 순서가 아니라 실제 응시 시각 순으로 본다 */
-function examsAsc(){ return S.exams.slice().sort(function(a,b){ return a.ts-b.ts; }); }
-function examsRecent(n){ return examsAsc().reverse().slice(0, n||S.exams.length); }
+/* 아직 가려내지 못한 예전 기록은 기본 묶음 것으로 본다. 묶음 기능이 생기기
+   전에는 묶음이 하나뿐이었다. 잠긴 묶음을 열면 stampExamBanks 가 제자리를 찾아 준다. */
+function examBank(e){ return e.bank || BANKS[0].id; }
+/* 응시 기록은 지금 묶음 것만, 저장 순서가 아니라 실제 응시 시각 순으로 본다 */
+function examsAsc(){
+  return S.exams.filter(function(e){ return examBank(e)===DAP.id; })
+                .sort(function(a,b){ return a.ts-b.ts; });
+}
+function examsRecent(n){ var a = examsAsc().reverse(); return n ? a.slice(0,n) : a; }
 /* 리포트에서 문항 번호를 매기려면 출제 순서가 필요하다.
    예전 기록에는 ids 가 없으므로 세트 구성 → 응답 키 순으로 되짚는다. */
 function examIds(e){
   if(e.ids && e.ids.length) return e.ids;
-  if(e.setNo && DAP.sets[e.setNo-1]) return DAP.sets[e.setNo-1];
+  if(e.setNo && (!e.bank || e.bank===DAP.id) && DAP.sets[e.setNo-1]) return DAP.sets[e.setNo-1];
   return Object.keys(e.answers||{});
 }
 
@@ -1630,7 +1669,7 @@ function viewSettings(){
 
   /* ── 진도 파일 ── */
   h += '<div class="card pad" style="margin-bottom:16px"><h3 style="font-size:calc(14.5px * var(--fs));margin-bottom:12px">진도 파일</h3>'+
-      '<p class="note">현재 기록: '+o.seen+'문항 풀이 · 오답 '+wrongIds().length+' · 북마크 '+bookmarkIds().length+' · 모의고사 '+S.exams.length+'회 · 진행 중 세션 '+liveSessions().length+'건</p>'+
+      '<p class="note">현재 기록: '+o.seen+'문항 풀이 · 오답 '+wrongIds().length+' · 북마크 '+bookmarkIds().length+' · 모의고사 '+examsAsc().length+'회 · 진행 중 세션 '+liveSessions().length+'건</p>'+
       '<p class="note" style="margin-top:6px">저장 파일: <span class="mono">'+esc(PROGRESS_FILE)+'</span>'+
         (fileLinked() ? ' <span class="chip chip-ok">위치 연결됨</span>' : '')+'</p>'+
       '<div class="btn-row" style="margin-top:14px">'+
@@ -1933,7 +1972,7 @@ function submitExam(){
   });
   var dur = Math.round((Date.now()-session.start)/1000);
   var rec = {
-    id: "E"+Date.now(), ts: Date.now(), title: session.title, setNo: session.setNo,
+    id: "E"+Date.now(), ts: Date.now(), bank: DAP.id, title: session.title, setNo: session.setNo,
     count: session.ids.length, correct: correct,
     score: Math.round(correct*PER_Q*10)/10, dur: dur, byCh: byCh,
     ids: session.ids.slice(),
