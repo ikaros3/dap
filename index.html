@@ -743,6 +743,7 @@ function useBank(id){
   QMAP = {}; DAP.questions.forEach(function(q){ QMAP[q.id]=q; });
   EXAM = DAP.exam;
   PER_Q = EXAM.perQuestion; TOTAL_SCORE = EXAM.totalScore; TOTAL_Q = EXAM.totalQuestions;
+  examPage = 0;                  /* 묶음이 바뀌면 응시 이력도 첫 쪽부터 */
   return b.id;
 }
 useBank(BANKS[0].id);
@@ -1405,12 +1406,15 @@ function viewDash(){
   h += '</div>';
   h += '</div>';
 
-  /* 최근 응시 */
+  /* 최근 응시 — 한 쪽에 EXAM_PAGE 회씩, 앞뒤로 넘겨 전부 볼 수 있다 */
   if(mine.length){
+    var all = examsRecent(), pages = Math.max(1, Math.ceil(all.length/EXAM_PAGE));
+    examPage = Math.min(Math.max(0, examPage), pages-1);
+    var from = examPage*EXAM_PAGE, rows = all.slice(from, from+EXAM_PAGE);
     h += '<div class="card" style="margin-top:16px"><div class="sec-head"><span class="sec-title">최근 응시 이력</span>'+
-         '<span class="eyebrow">최근 12회</span></div>'+ sparkline() +
+         '<span class="eyebrow">'+(from+1)+'–'+(from+rows.length)+' / 총 '+all.length+'회</span></div>'+ sparkline() +
          '<div class="tblwrap"><table class="tbl"><thead><tr><th>일시</th><th>구분</th><th style="text-align:right">점수</th><th style="text-align:right">정답</th><th style="text-align:right">소요</th><th>판정</th><th></th><th></th></tr></thead><tbody>';
-    examsRecent(12).forEach(function(e){
+    rows.forEach(function(e){
       h += '<tr><td class="mono" style="font-size:calc(12px * var(--fs))">'+fmtDate(e.ts)+'</td><td>'+esc(e.title)+'</td>'+
         '<td class="num"><strong>'+e.score.toFixed(1)+'</strong></td>'+
         '<td class="num">'+e.correct+'/'+e.count+'</td>'+
@@ -1419,7 +1423,14 @@ function viewDash(){
         '<td class="num"><button class="btn btn-sm" data-act="openexam" data-id="'+e.id+'">리포트</button></td>'+
         '<td class="num"><button class="btn btn-sm btn-danger" data-act="delexam" data-id="'+e.id+'" title="이 응시 기록을 삭제">삭제</button></td></tr>';
     });
-    h += '</tbody></table></div></div>';
+    h += '</tbody></table></div>';
+    if(pages>1){
+      h += '<div class="btn-row" style="padding:12px 16px;justify-content:space-between;align-items:center">'+
+           '<button class="btn btn-sm" data-act="exampage" data-p="'+(examPage-1)+'"'+(examPage===0?' disabled':'')+'>← 이전</button>'+
+           '<span class="eyebrow">'+(examPage+1)+' / '+pages+' 쪽</span>'+
+           '<button class="btn btn-sm" data-act="exampage" data-p="'+(examPage+1)+'"'+(examPage===pages-1?' disabled':'')+'>다음 →</button></div>';
+    }
+    h += '</div>';
   }
 
   h += '<p class="note" style="margin-top:18px">배점 구성은 시험 구성표('+TOTAL_Q+'문항 · '+TOTAL_SCORE+'점 · 문항당 '+PER_Q+'점)를 그대로 따릅니다. '+
@@ -1463,6 +1474,8 @@ function examsAsc(){
                 .sort(function(a,b){ return a.ts-b.ts; });
 }
 function examsRecent(n){ var a = examsAsc().reverse(); return n ? a.slice(0,n) : a; }
+/* 응시 이력 표는 한 쪽에 12회씩 끊어 보여 준다. 이력이 쌓여도 예전 회차를 찾아갈 수 있어야 한다. */
+var EXAM_PAGE = 12, examPage = 0;
 /* 리포트에서 문항 번호를 매기려면 출제 순서가 필요하다.
    예전 기록에는 ids 가 없으므로 세트 구성 → 응답 키 순으로 되짚는다. */
 function examIds(e){
@@ -2205,6 +2218,7 @@ document.addEventListener("click", function(ev){
       break;
     }
     case "openexam": go("result", { examId: t.getAttribute("data-id") }); break;
+    case "exampage": examPage = +t.getAttribute("data-p"); render(); break;
     case "rvjump": view.rq = +t.getAttribute("data-i"); render(); break;
     case "rvclose": view.rq = null; render(); break;
     case "delexam": {
