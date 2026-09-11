@@ -2064,22 +2064,11 @@ function viewResult(){
   var ids = examIds(e).filter(function(id){ return QMAP[id]; });
   var missed = ids.filter(function(id){ return e.answers[id]!==QMAP[id].a; });
 
-  /* 문항별 검토 — 풀이 화면과 같은 배치다. 문제와 해설이 먼저 오고 번호 격자가 아래에 온다.
+  /* 문항별 검토 — 정오답 격자가 먼저 오고, 고른 문항의 문제와 해설이 그 아래에 붙는다.
      기본은 1번을 펼친 상태이고, 접으면(view.rq=null) 격자만 남는다. */
   var sel = view.rq===null ? null : Math.min(Math.max(view.rq||0, 0), ids.length-1);
   h += '<div class="card" style="margin-bottom:16px"><div class="sec-head"><span class="sec-title">문항별 검토</span>'+
     '<span class="eyebrow">정답 / 오답 · <span class="kbd">←</span> <span class="kbd">→</span> 이동</span></div>';
-  if(sel===null){
-    h += '<div class="note" style="padding:14px 16px 0">번호를 누르면 그 문항의 보기·내가 고른 답·해설을 볼 수 있습니다. '+
-         '테두리가 점선인 것은 답을 고르지 않은 문항입니다.</div>';
-  }else{
-    h += '<div style="padding:14px 16px 0">'+ revBlock(ids[sel], e.answers[ids[sel]], (sel+1)+"번") +
-      '<div class="btn-row" style="margin-top:2px">'+
-      '<button class="btn btn-sm" data-act="rvjump" data-i="'+(sel-1)+'"'+(sel===0?" disabled":"")+'>← 이전 문항</button>'+
-      '<button class="btn btn-sm" data-act="rvjump" data-i="'+(sel+1)+'"'+(sel===ids.length-1?" disabled":"")+'>다음 문항 →</button>'+
-      '<span class="spacer" style="flex:1"></span>'+
-      '<button class="btn btn-sm" data-act="rvclose">접기</button></div></div>';
-  }
   h += '<div class="navgrid">';
   ids.forEach(function(id,i){
     var picked = e.answers[id], cls = "navdot";
@@ -2089,15 +2078,48 @@ function viewResult(){
     if(S.bookmarks[id]) cls += " mark";
     h += '<button class="'+cls+'" data-act="rvjump" data-i="'+i+'" title="'+esc(id)+'">'+(i+1)+'</button>';
   });
-  h += '</div></div>';
+  h += '</div>';
+  if(sel===null){
+    h += '<div class="note" style="padding:0 16px 14px">번호를 누르면 그 문항의 보기·내가 고른 답·해설을 볼 수 있습니다. '+
+         '테두리가 점선인 것은 답을 고르지 않은 문항입니다.</div>';
+  }else{
+    h += '<div style="padding:2px 16px 14px">'+ revBlock(ids[sel], e.answers[ids[sel]], (sel+1)+"번") +
+      '<div class="btn-row" style="margin-top:2px">'+
+      '<button class="btn btn-sm" data-act="rvjump" data-i="'+(sel-1)+'"'+(sel===0?" disabled":"")+'>← 이전 문항</button>'+
+      '<button class="btn btn-sm" data-act="rvjump" data-i="'+(sel+1)+'"'+(sel===ids.length-1?" disabled":"")+'>다음 문항 →</button>'+
+      '<span class="spacer" style="flex:1"></span>'+
+      '<button class="btn btn-sm" data-act="rvclose">접기</button></div></div>';
+  }
+  h += '</div>';
 
+  /* 틀린 문항 해설 — 기본은 모두 접어 두고, 고른 문항만 펼친다.
+     한 화면에 해설이 수십 개 늘어서면 정작 볼 것을 찾기 어렵다. */
+  var open = view.rvOpen || {};
   h += '<div class="card"><div class="sec-head"><span class="sec-title">틀린 문항 해설</span>'+
-    '<span class="eyebrow">'+missed.length+'문항</span></div>'+
-    (missed.length? '<div style="padding:14px 16px">'+missed.map(function(id){
-        return revBlock(id, e.answers[id], (ids.indexOf(id)+1)+"번");
-      }).join("")+'</div>'
-      : '<div class="empty"><b>만점입니다</b>틀린 문항이 없습니다.</div>')+
-    '</div>';
+    '<span class="eyebrow">'+missed.length+'문항'+
+    (missed.length? ' · <button class="btn btn-sm" data-act="rvallmissed">'+
+       (missed.every(function(id){ return open[id]; })? '모두 접기' : '모두 펼치기')+'</button>' : '')+
+    '</span></div>';
+  if(!missed.length){
+    h += '<div class="empty"><b>만점입니다</b>틀린 문항이 없습니다.</div>';
+  }else{
+    h += '<div style="padding:14px 16px">';
+    missed.forEach(function(id){
+      var q = QMAP[id], no = ids.indexOf(id)+1, isOpen = !!open[id];
+      h += '<div class="rev" style="margin-bottom:8px">'+
+        '<button class="rev-h" data-act="rvmissed" data-id="'+esc(id)+'" style="width:100%;text-align:left;background:none;border:0;cursor:pointer">'+
+          '<span class="chip chip-accent mono">'+no+'번</span>'+
+          '<span class="chip">'+q.ch+'. '+esc(CH[q.ch].name)+'</span>'+
+          (S.bookmarks[id]? '<span class="chip chip-key">★</span>' : '')+
+          '<span class="rev-q" style="flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(q.q)+'</span>'+
+          '<span class="eyebrow">'+(isOpen? '접기 ▲' : '해설 ▼')+'</span>'+
+        '</button>'+
+        (isOpen? '<div style="padding:0 4px 4px">'+revBlock(id, e.answers[id], no+"번")+'</div>' : '')+
+      '</div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
   return h;
 }
 
@@ -2221,6 +2243,21 @@ document.addEventListener("click", function(ev){
     case "exampage": examPage = +t.getAttribute("data-p"); render(); break;
     case "rvjump": view.rq = +t.getAttribute("data-i"); render(); break;
     case "rvclose": view.rq = null; render(); break;
+    case "rvmissed": {
+      var mid = t.getAttribute("data-id");
+      view.rvOpen = view.rvOpen || {};
+      if(view.rvOpen[mid]) delete view.rvOpen[mid]; else view.rvOpen[mid] = true;
+      render(); break;
+    }
+    case "rvallmissed": {
+      var rex = S.exams.filter(function(x){ return x.id===view.examId; })[0];
+      if(!rex) break;
+      var rids = examIds(rex).filter(function(id){ return QMAP[id] && rex.answers[id]!==QMAP[id].a; });
+      var allOpen = rids.length && rids.every(function(id){ return view.rvOpen && view.rvOpen[id]; });
+      view.rvOpen = {};
+      if(!allOpen) rids.forEach(function(id){ view.rvOpen[id] = true; });
+      render(); break;
+    }
     case "delexam": {
       var xid = t.getAttribute("data-id");
       var ex = S.exams.filter(function(x){ return x.id===xid; })[0];
