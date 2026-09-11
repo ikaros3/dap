@@ -32,6 +32,8 @@
   --bad:#B4342B;
   --bad-soft:#F7E2DF;
   --warn:#8A6A12;
+  /* 과목 6개를 구분하는 색. 대시보드 오답 비중 차트가 쓴다 */
+  --c1:#0B6B63; --c2:#3D6FB4; --c3:#A9700D; --c4:#8A4FA8; --c5:#B4342B; --c6:#3F7A3A;
   --shadow:0 1px 2px rgba(16,26,30,.05), 0 8px 24px -14px rgba(16,26,30,.28);
   --radius:10px;
   --rail:264px;
@@ -62,6 +64,7 @@
     --bad:#E1685C;
     --bad-soft:#3A1E1B;
     --warn:#D6A93C;
+    --c1:#37B8A5; --c2:#6FA8E8; --c3:#DCA548; --c4:#B98AD6; --c5:#E1685C; --c6:#77C46B;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.7);
   }
 }
@@ -71,6 +74,7 @@
   --accent:#37B8A5; --accent-soft:#123632; --accent-ink:#8FE0D2;
   --key:#DCA548; --key-soft:#33280F;
   --ok:#41C094; --ok-soft:#0F3229; --bad:#E1685C; --bad-soft:#3A1E1B; --warn:#D6A93C;
+  --c1:#37B8A5; --c2:#6FA8E8; --c3:#DCA548; --c4:#B98AD6; --c5:#E1685C; --c6:#77C46B;
   --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.7);
 }
 
@@ -177,6 +181,10 @@ a{color:var(--accent)}
 .meter-track{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
 .meter-fill{height:100%;border-radius:99px;background:var(--accent)}
 .meter-fill.low{background:var(--bad)} .meter-fill.mid{background:var(--key)}
+.pie-leg{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:calc(13.5px * var(--fs))}
+.pie-leg:last-child{border-bottom:none}
+.pie-leg button{background:none;border:0;color:inherit;font:inherit;padding:0;cursor:pointer}
+.pie-leg button:hover{color:var(--accent)}
 .meter-pct{font-family:var(--font-mono);font-size:calc(12.5px * var(--fs));text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)}
 
 /* chips */
@@ -1391,6 +1399,9 @@ function viewDash(){
   });
   h += '</div></div>';
 
+  /* 과목별 오답 비중 */
+  h += wrongPie();
+
   /* 취약 절 */
   var weak = weakSections(7);
   h += '<div class="card"><div class="sec-head"><span class="sec-title">취약 영역</span><span class="eyebrow">오답 누적 상위</span></div>';
@@ -1445,6 +1456,56 @@ function verdictChip(e){
   var fail = e.byCh && CHLIST.some(function(c){ var b=e.byCh[c.id]; return b && pct(b.correct,b.count) < 40; });
   if(fail) return '<span class="chip chip-bad">과락</span>';
   return e.score >= target ? '<span class="chip chip-ok">합격권</span>' : '<span class="chip">미달</span>';
+}
+/* 과목별 오답 비중 — 누적 오답이 어느 과목에 몰려 있는지 한눈에 본다.
+   조각 크기는 "전체 오답 중 이 과목의 몫"이지, 과목 안의 오답률이 아니다.
+   문항 수가 과목마다 다르므로 범례에 과목 내 오답률도 함께 적는다. */
+function wrongMix(){
+  var rows = CHLIST.map(function(c, i){
+    return { ch:c.id, name:c.name, wrong:0, tries:0, color:"var(--c"+((i%6)+1)+")" };
+  });
+  var by = {}; rows.forEach(function(r){ by[r.ch] = r; });
+  DAP.questions.forEach(function(q){
+    var s = st(q.id), r = by[q.ch];
+    if(!s || !r) return;
+    r.wrong += s.wrong; r.tries += s.wrong + s.right;
+  });
+  return rows;
+}
+function wrongPie(){
+  var rows = wrongMix(), total = rows.reduce(function(a,r){ return a + r.wrong; }, 0);
+  var h = '<div class="card"><div class="sec-head"><span class="sec-title">과목별 오답 비중</span>'+
+          '<span class="eyebrow">누적 오답 '+total+'건</span></div>';
+  if(!total){
+    return h + '<div class="empty"><b>아직 오답 데이터가 없습니다</b>문항을 풀면 과목별 오답 비중이 그려집니다.</div></div>';
+  }
+  var r = 54, cx = 70, cy = 70, C = 2*Math.PI*r, off = 0, seg = "";
+  rows.forEach(function(row){
+    if(!row.wrong) return;
+    var len = C * row.wrong / total;
+    seg += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="'+row.color+'" stroke-width="26"'+
+           ' stroke-dasharray="'+len.toFixed(2)+' '+(C-len).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'">'+
+           '<title>'+esc(row.ch+". "+row.name)+' · '+row.wrong+'건 ('+pct(row.wrong,total)+'%)</title></circle>';
+    off += len;
+  });
+  var top = rows.slice().sort(function(a,b){ return b.wrong - a.wrong; })[0];
+  h += '<div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;padding:14px 16px">'+
+    '<svg viewBox="0 0 140 140" style="width:150px;height:150px;flex:none;transform:rotate(-90deg)" role="img" aria-label="과목별 오답 비중">'+
+      '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--line)" stroke-width="26"/>'+ seg +
+    '</svg>'+
+    '<div style="flex:1;min-width:200px">';
+  rows.slice().sort(function(a,b){ return b.wrong - a.wrong; }).forEach(function(row){
+    h += '<div class="pie-leg">'+
+      '<span style="width:10px;height:10px;border-radius:2px;flex:none;background:'+(row.wrong?row.color:"var(--line)")+'"></span>'+
+      '<button data-go="chapter" data-ch="'+row.ch+'" style="text-align:left;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+
+        '<span class="mono" style="color:var(--muted)">'+row.ch+'</span> '+esc(row.name)+'</button>'+
+      '<span class="meter-pct" title="과목 내 오답률 '+(row.tries? pct(row.wrong,row.tries)+"%" : "–")+'">'+
+        pct(row.wrong,total)+'% <span style="color:var(--muted)">('+row.wrong+'건)</span></span></div>';
+  });
+  h += '</div></div>';
+  if(top && top.wrong) h += '<p class="note" style="padding:0 16px 14px">오답이 가장 많이 쌓인 과목은 <strong>'+top.ch+'. '+esc(top.name)+
+       '</strong>입니다 — 전체 오답의 '+pct(top.wrong,total)+'%. 백분율은 전체 오답 대비 몫이고, 괄호 안은 누적 오답 건수입니다.</p>';
+  return h + '</div>';
 }
 function sparkline(){
   var rows = examsAsc().slice(-12);
