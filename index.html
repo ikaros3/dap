@@ -2062,6 +2062,48 @@ function submitExam(){
   go("result", { examId: rec.id });
 }
 
+/* ─────────── 정답 정정 반영 ─────────── */
+/* 문항의 정답(q.a)을 바로잡으면 이미 낸 응시의 점수·과목별 집계는 제출 당시 값으로
+   남는다. 리포트의 문항별 정오답은 q.a 로 그때그때 그리므로 둘이 어긋난다.
+   응답(answers)은 그대로 있으니 지금 정답으로 다시 세어 덮는다. 몇 번을 돌려도
+   결과가 같아 동기화로 옛 기록이 다시 들어와도 다음 화면에서 바로잡힌다.
+   오답노트도 마지막에 고른 보기(pick)가 지금 정답이면 뺀다. right/wrong 횟수는
+   동기화 병합이 큰 쪽을 택하므로 줄여도 되살아나 손대지 않는다. */
+function regradeByKey(){
+  var n = 0;
+  S.exams.forEach(function(e){
+    if(!e || !e.answers || examBank(e)!==DAP.id) return;
+    var ids = examIds(e);
+    if(!ids.length || !ids.every(function(id){ return QMAP[id]; })) return;
+    var byCh = {}, correct = 0;
+    CHLIST.forEach(function(c){ byCh[c.id] = { count:0, correct:0 }; });
+    ids.forEach(function(id){
+      var q = QMAP[id], b = byCh[q.ch] || (byCh[q.ch] = { count:0, correct:0 });
+      b.count++;
+      if(e.answers[id] === q.a){ b.correct++; correct++; }
+    });
+    var score = Math.round(correct*PER_Q*10)/10;
+    if(e.correct===correct && e.score===score && JSON.stringify(e.byCh)===JSON.stringify(byCh)) return;
+    e.correct = correct; e.score = score; e.byCh = byCh; e.count = ids.length;
+    n++;
+  });
+  Object.keys(S.wrong).forEach(function(id){
+    var q = QMAP[id], t = S.stats[id];
+    if(!q || !t || t.pick !== q.a) return;
+    delete S.wrong[id];
+    if(!t.box){
+      t.box = 1;
+      t.due = Date.now() + BOX_DAYS[1] * 864e5;
+    }
+    n++;
+  });
+  if(n){
+    try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+    markDirty();
+  }
+  return n;
+}
+
 /* 리포트에서 문항 하나를 보여준다. picked 가 없으면 미응답. */
 function revBlock(id, picked, no){
   var q = QMAP[id];
@@ -2186,6 +2228,7 @@ function viewResult(){
 
 /* ─────────── 렌더 ─────────── */
 function render(){
+  regradeByKey();   /* 정답을 바로잡은 문항이 있으면 응시 점수·오답노트를 맞춘다 */
   renderRail();
   var m = $("#main"), h="";
   switch(view.name){

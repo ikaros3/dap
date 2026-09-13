@@ -21,6 +21,7 @@ node test/pack-format.js 3  # 과목 3 팩만
 | `pack-format.js` | 보기 4개·정답 인덱스·출처 표기·정답 쏠림·문두 중복 |
 | `session-resume.js` | 이어풀기 키 처리, `isSeqKey`, 이전 답 복원 |
 | `quiz-answer-target.js` | 답이 화면에 있는 문항에 기록되는가 |
+| `regrade.js` | 정답을 바로잡은 뒤 응시 점수·과목별 집계·오답노트가 다시 맞춰지는가 |
 | `wipe.js` | 전체 초기화가 로컬과 Gist를 모두 비우는가 |
 | `epoch.js` | 초기화가 다른 기기로 전파되는가 |
 | `sync-two-devices.js` | PC·폰 왕복. 평상시 `pull`/`push`, 삭제 전파 |

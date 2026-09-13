@@ -13,6 +13,7 @@ const SUITES = [
   ['문항 팩 형식',             'test/pack-format.js'],
   ['세션 이어풀기',            'test/session-resume.js'],
   ['답이 기록되는 문항',       'test/quiz-answer-target.js'],
+  ['정답 정정 재채점',         'test/regrade.js'],
   ['전체 초기화',              'test/wipe.js'],
   ['초기화 전파(epoch)',       'test/epoch.js'],
   ['두 기기 동기화',           'test/sync-two-devices.js'],
