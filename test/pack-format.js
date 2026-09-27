@@ -48,17 +48,19 @@ packs.forEach(({ file, pack }) => pack.questions.forEach(q => {
 packs.forEach(({ file, collection, pack }) => {
   const qs = pack.questions;
   if (only && pack.chapter !== only) return;
+  /* 직접 만든 묶음 — core 와 그것을 출제 유형에 맞춰 새로 쓴 v2 */
+  const own = collection === 'core' || collection === 'v2';
   console.log('\n■ ' + file + '  [' + collection + ']  ' + qs.length + '문항');
 
   /* 원천 자료는 해설과 함께 화면에 나온다. 팩의 source 나 문항의 r 중
      하나는 있어야 "어느 문서를 펴 봐야 하는가"를 답해 줄 수 있다.
      외부 출처 묶음(practice)은 원본이 하나뿐이라 예외로 둔다. */
-  if (collection === 'core' && !pack.source && qs.some(q => !q.r))
+  if (own && !pack.source && qs.some(q => !q.r))
     fail(file + ' — 팩에 source 가 없고 r 이 없는 문항이 있음');
 
   /* 참고 파일은 원천의 짝이다. 원천이 "무엇을 근거로 했나"라면 이쪽은
      "data_source/ 의 어느 파일을 여나"에 답한다. 같은 이유로 하나는 있어야 한다. */
-  if (collection === 'core' && !pack.sourceFiles && qs.some(q => !q.rf))
+  if (own && !pack.sourceFiles && qs.some(q => !q.rf))
     fail(file + ' — 팩에 sourceFiles 가 없고 rf 가 없는 문항이 있음');
 
   const nos = new Set();
@@ -71,7 +73,7 @@ packs.forEach(({ file, collection, pack }) => {
     });
     if (q.ch !== pack.chapter) fail(at + ' — ch 가 팩의 chapter 와 다름: ' + q.ch);
     /* 직접 만든 core 는 보기 4개. 외부 원본 묶음은 원본 오류를 "없다" 보기로 바로잡은 경우 5개일 수 있다 */
-    const nc = collection === 'core' ? [4] : [4, 5];
+    const nc = own ? [4] : [4, 5];
     if (!Array.isArray(q.c) || !nc.includes(q.c.length)) fail(at + ' — 보기가 ' + nc.join('~') + '개가 아님');
     else {
       if (new Set(q.c).size !== q.c.length) fail(at + ' — 보기 중복');
@@ -84,6 +86,8 @@ packs.forEach(({ file, collection, pack }) => {
       fail(at + ' — a 가 보기 인덱스(또는 그 배열)가 아님');
     if (q.m && !Array.isArray(q.a)) fail(at + ' — m(모두 고르시오)인데 a 가 배열이 아님');
     if (!q.m && Array.isArray(q.a) && as.length < 2) fail(at + ' — 복수 정답 인정인데 정답이 하나뿐');
+    /* v2 는 실제 시험 유형을 따른다. 실제 시험에는 정답을 여럿 고르는 문항이 없다 */
+    if (collection === 'v2' && (q.m || Array.isArray(q.a))) fail(at + ' — v2 는 정답이 하나인 문항만 둔다');
 
     /* 지문·보기·해설의 그림 표기는 팩의 images 에 있어야 화면에 나온다 */
     [q.q, q.e, ...(q.c || [])].forEach(t => {
@@ -119,7 +123,7 @@ packs.forEach(({ file, collection, pack }) => {
   if (selfRef.length) console.log('   확인 요망 · 해설이 자기 정답 번호를 짚음 : ' + selfRef.join(', '));
   /* 쏠림은 직접 만든 문항에서만 실패로 본다. 외부 원본(practice·dap2013)은 원래 정답
      그대로여야 하므로 보기 순서를 바꿀 수 없다 — 알리기만 한다. */
-  if (collection !== 'core' && qs.length >= 20 && worst > even * 1.6) {
+  if (!own && qs.length >= 20 && worst > even * 1.6) {
     console.log('   참고 · 원본 정답이 한 보기에 몰려 있음 (' + dist.join('/') + ')');
   } else if (qs.length >= 20 && worst > even * 1.6) {
     fail(file + ' — 정답이 한 보기에 쏠림 (' + dist.join('/') + ', 고른 값은 ' + Math.round(even) + ')');

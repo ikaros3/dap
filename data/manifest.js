@@ -39,7 +39,9 @@ window.DAP_MANIFEST = {
     { id: "practice", name: "연습문제·모의고사",
       note: "외부 공개 연습문제" },
     { id: "dap2013",  name: "DAP 자격검정 실전문제(2013 Edition)",
-      note: "실전문제집 원문과 모범답안 그대로 — 그림·표 포함" }
+      note: "실전문제집 원문과 모범답안 그대로 — 그림·표 포함" },
+    { id: "v2",       name: "기본 문제은행 ver 2 (출제유형 적용)",
+      note: "기본 문제은행을 실제 출제 유형에 맞춰 새로 쓴 문항 — 지엽적인 문항은 뺐다" }
   ],
 
   /* 읽어들일 팩 파일 목록 (data/ 기준, 나열 순서대로 로딩)
@@ -67,6 +69,13 @@ window.DAP_MANIFEST = {
 
     { file: "practice.e1.js",  collection: "practice" },                    /* 평문 — 암호 없이 바로 */
 
-    { file: "dap2013.js",      collection: "dap2013" }                     /* 평문 — 암호 없이 바로 */
+    { file: "dap2013.js",      collection: "dap2013" },                    /* 평문 — 암호 없이 바로 */
+
+    { file: "1.전사아키텍처이해.v2.js", collection: "v2" },
+    { file: "2.데이터요건분석.v2.js", collection: "v2" },
+    { file: "3.데이터표준화.v2.js", collection: "v2" },
+    { file: "4.데이터모델링.v2.js", collection: "v2" },
+    { file: "5.데이터베이스설계와이용.v2.js", collection: "v2" },
+    { file: "6.데이터품질관리이해.v2.js", collection: "v2" }
   ]
 };
