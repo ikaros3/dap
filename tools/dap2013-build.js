@@ -270,14 +270,29 @@ function shrinkAll(pngs) {          /* { key: Buffer(png) } → { key: Buffer(jp
   return out;
 }
 
+/* ─────────── 도형으로 그린 표 → 그림 ───────────
+   156번 「동산 관리 대장」은 그림 파일이 아니라 글상자 속 표로 그려져 있다. 표로 옮기면 원본의
+   칸 배치·음영이 사라지므로, 원본을 캡처한 그림을 docx 옆에 두고 그것을 쓴다.
+   그림이 없으면 표로 옮긴 것을 그대로 쓴다. */
+const DRAWN = { 156: { key: 'd13q-f156', file: 'DAP 자격검정 실전문제 2013 Edition_156.png' } };
+
 /* ─────────── 조립 ─────────── */
 const zq = unzip(path.join(ROOT, 'data_source', SRC_Q)), za = unzip(path.join(ROOT, 'data_source', SRC_A));
 const qs = splitQuestions(readBlocks(zq)), as = splitAnswers(readBlocks(za));
 if (qs.length !== 395) throw new Error('문항 수가 395 가 아님: ' + qs.length);
 
+const drawn = {};
+for (const d of Object.values(DRAWN)) {
+  const p = path.join(ROOT, 'data_source', d.file);
+  if (fs.existsSync(p)) drawn[d.key] = fs.readFileSync(p);
+  else console.warn('그림 없음 — 표로 둔다: ' + d.file);
+}
+
 const packs = {}, skipped = [], needImg = new Set();
 for (const q of qs) {
   let { stem, c } = convert(q);
+  /* 글상자 속 표(::: … :::)를 원본 캡처 그림으로 바꾼다 */
+  if (DRAWN[q.no] && drawn[DRAWN[q.no].key]) stem = stem.replace(/\n?:::\n[\s\S]*\n:::/, '\n[[img:' + DRAWN[q.no].key + ']]');
   if (/문제 ?은행 제외/.test(stem)) { skipped.push(q.no + ' 문제은행 제외'); continue; }
   if (SKIP[q.no]) { skipped.push(q.no + ' ' + SKIP[q.no]); continue; }
   const rowT = choiceRowsTable(q);
@@ -314,6 +329,7 @@ for (const q of qs) {
 /* 그림: key → data URI */
 const media = {};
 for (const k of needImg) {
+  if (drawn[k]) { media[k] = { mime: 'image/png', b: drawn[k] }; continue; }
   const zip = k[3] === 'q' ? zq : za, num = k.slice(5);
   const svg = zip['word/media/image' + num + '.svg'], png = zip['word/media/image' + num + '.png'];
   if (svg) media[k] = { mime: 'image/svg+xml', b: svg };
