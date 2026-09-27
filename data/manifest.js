@@ -37,7 +37,9 @@ window.DAP_MANIFEST = {
     { id: "core",     name: "기본 문제은행",
       note: "교재·강의자료·요약 자료를 근거로 직접 만든 문항" },
     { id: "practice", name: "연습문제·모의고사",
-      note: "외부 공개 연습문제 — 개인 학습용, 배포본에는 포함되지 않음" }
+      note: "외부 공개 연습문제" },
+    { id: "dap2013",  name: "DAP 자격검정 실전문제(2013 Edition)",
+      note: "실전문제집 원문과 모범답안 그대로 — 그림·표 포함" }
   ],
 
   /* 읽어들일 팩 파일 목록 (data/ 기준, 나열 순서대로 로딩)
@@ -63,7 +65,8 @@ window.DAP_MANIFEST = {
     { file: "6.데이터품질관리이해.extra.js",    collection: "core" },
     { file: "6.데이터품질관리이해.extra2.js",   collection: "core" },
 
-    { file: "practice.e1.js",  collection: "practice", optional: true },   /* 평문 — 로컬에서만 */
-    { file: "practice.enc.js", collection: "practice", optional: true }    /* 암호문 — 배포용 */
+    { file: "practice.e1.js",  collection: "practice" },                    /* 평문 — 암호 없이 바로 */
+
+    { file: "dap2013.js",      collection: "dap2013" }                     /* 평문 — 암호 없이 바로 */
   ]
 };

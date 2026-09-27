@@ -4,6 +4,8 @@ const fs = require('fs'), vm = require('vm');
 const src = fs.readFileSync('index.html', 'utf8');
 const m = src.match(/function regradeByKey\(\)\{[\s\S]*?\n\}/);
 if (!m) { console.error('추출 실패: regradeByKey'); process.exit(1); }
+const helpers = src.match(/function ansList[\s\S]*?\nfunction numText[^\n]*\n/);
+if (!helpers) { console.error('추출 실패: 정답 판정 (ansList … numText)'); process.exit(1); }
 
 let fail = 0;
 function check(name, cond) { console.log((cond ? 'ok   ' : 'FAIL ') + name); if (!cond) fail++; }
@@ -35,6 +37,7 @@ function makeCtx() {
     },
   };
   vm.createContext(ctx);
+  vm.runInContext(helpers[0], ctx);
   vm.runInContext(m[0], ctx);
   return ctx;
 }

@@ -12,11 +12,13 @@ function loadManifest() {
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'data/manifest.js'), 'utf8'), ctx);
   return ctx.window.DAP_MANIFEST;
 }
-function loadPack(file) {
-  const ctx = { DAP_BANK: { add: o => { ctx.P = o; } } };
+/* 한 파일이 과목마다 add 를 여러 번 부를 수 있다 (practice.e1.js, dap2013.plain.js) */
+function loadPacks(file) {
+  const got = [];
+  const ctx = { DAP_BANK: { add: o => { got.push(o); } } };
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'data', file), 'utf8'), ctx);
-  return ctx.P;
+  return got;
 }
 
 const man = loadManifest();
@@ -30,9 +32,10 @@ man.files.forEach(f => {
   const p = path.join(ROOT, 'data', file);
   if (/\.enc\./.test(file)) return;                 /* 암호문 — 여기서는 볼 수 없다 */
   if (!fs.existsSync(p)) return;                    /* optional 팩이 없을 수 있다 */
-  const pack = loadPack(file);
-  if (!pack || !pack.questions) { fail(file + ' — DAP_BANK.add 형태가 아님'); return; }
-  packs.push({ file, collection: (typeof f === 'string' ? 'core' : (f.collection || 'core')), pack });
+  const got = loadPacks(file);
+  if (!got.length || got.some(p => !p || !p.questions)) { fail(file + ' — DAP_BANK.add 형태가 아님'); return; }
+  const collection = typeof f === 'string' ? 'core' : (f.collection || 'core');
+  got.forEach(pack => packs.push({ file: got.length > 1 ? file + '#' + pack.chapter : file, collection, pack }));
 });
 
 /* 문항 id 는 전체 은행에서 유일해야 한다 (매니페스트 주석의 규칙) */
@@ -67,12 +70,26 @@ packs.forEach(({ file, collection, pack }) => {
       if (typeof q[k] !== 'string' || !q[k].trim()) fail(at + ' — ' + k + ' 가 비어 있음');
     });
     if (q.ch !== pack.chapter) fail(at + ' — ch 가 팩의 chapter 와 다름: ' + q.ch);
-    if (!Array.isArray(q.c) || q.c.length !== 4) fail(at + ' — 보기가 4개가 아님');
+    /* 직접 만든 core 는 보기 4개. 외부 원본 묶음은 원본 오류를 "없다" 보기로 바로잡은 경우 5개일 수 있다 */
+    const nc = collection === 'core' ? [4] : [4, 5];
+    if (!Array.isArray(q.c) || !nc.includes(q.c.length)) fail(at + ' — 보기가 ' + nc.join('~') + '개가 아님');
     else {
-      if (new Set(q.c).size !== 4) fail(at + ' — 보기 중복');
+      if (new Set(q.c).size !== q.c.length) fail(at + ' — 보기 중복');
       q.c.forEach((c, j) => { if (!String(c).trim()) fail(at + ' — 보기 ' + (j + 1) + ' 이 비어 있음'); });
     }
-    if (!Number.isInteger(q.a) || q.a < 0 || q.a > 3) fail(at + ' — a 가 0~3 인덱스가 아님');
+    /* a 는 보기 인덱스(0부터) 하나, 또는 인덱스 배열. 배열은 m 이 있으면 "모두 고르시오",
+       없으면 복수 정답 인정(원본 정답이 정정된 문항)이다. */
+    const as = Array.isArray(q.a) ? q.a : [q.a];
+    if (!as.length || as.some(a => !Number.isInteger(a) || a < 0 || a >= (q.c || []).length) || new Set(as).size !== as.length)
+      fail(at + ' — a 가 보기 인덱스(또는 그 배열)가 아님');
+    if (q.m && !Array.isArray(q.a)) fail(at + ' — m(모두 고르시오)인데 a 가 배열이 아님');
+    if (!q.m && Array.isArray(q.a) && as.length < 2) fail(at + ' — 복수 정답 인정인데 정답이 하나뿐');
+
+    /* 지문·보기·해설의 그림 표기는 팩의 images 에 있어야 화면에 나온다 */
+    [q.q, q.e, ...(q.c || [])].forEach(t => {
+      for (const mm of String(t || '').matchAll(/\[\[img:([^\]]+)\]\]/g))
+        if (!pack.images || !pack.images[mm[1]]) fail(at + ' — 그림 ' + mm[1] + ' 이 팩 images 에 없음');
+    });
     if (q.no !== undefined) {
       if (nos.has(q.no)) fail(at + ' — no 중복: ' + q.no);
       nos.add(q.no);
@@ -94,11 +111,17 @@ packs.forEach(({ file, collection, pack }) => {
   /* 정답이 한 보기에 쏠리면 찍어서 맞힐 수 있다 */
   const dist = [0, 0, 0, 0];
   qs.forEach(q => { if (Number.isInteger(q.a) && q.a >= 0 && q.a <= 3) dist[q.a]++; });
+  const multi = qs.filter(q => Array.isArray(q.a)).length;
+  if (multi) console.log('   복수 정답 문항 ' + multi + '개 (분포에서 뺌)');
   const worst = Math.max(...dist), even = qs.length / 4;
   console.log('   정답 분포 (1/2/3/4번) : ' + dist.join(' / ') +
               (odd ? '   · s 표기가 관례와 다른 문항 ' + odd + '개' : ''));
   if (selfRef.length) console.log('   확인 요망 · 해설이 자기 정답 번호를 짚음 : ' + selfRef.join(', '));
-  if (qs.length >= 20 && worst > even * 1.6) {
+  /* 쏠림은 직접 만든 문항에서만 실패로 본다. 외부 원본(practice·dap2013)은 원래 정답
+     그대로여야 하므로 보기 순서를 바꿀 수 없다 — 알리기만 한다. */
+  if (collection !== 'core' && qs.length >= 20 && worst > even * 1.6) {
+    console.log('   참고 · 원본 정답이 한 보기에 몰려 있음 (' + dist.join('/') + ')');
+  } else if (qs.length >= 20 && worst > even * 1.6) {
     fail(file + ' — 정답이 한 보기에 쏠림 (' + dist.join('/') + ', 고른 값은 ' + Math.round(even) + ')');
   }
 

@@ -249,9 +249,29 @@ a{color:var(--accent)}
 .opt:disabled{cursor:default}
 .opt-txt{white-space:pre-line}
 
+/* 지문 서식 (rich) — 원본의 그림·표·「아 래」 상자·SQL. 버튼 안에도 들어가므로 span 으로 그린다 */
+.rx-p{display:block;white-space:pre-line}
+.rx-p + .rx-p{margin-top:.5em}
+.rx-label{display:block;width:max-content;margin:10px auto 4px;padding:1px 14px;border-radius:4px;
+  background:var(--ink);color:var(--surface);font-size:.78em;font-weight:600;letter-spacing:.3em}
+.rx-box{display:block;margin:6px 0 10px;padding:10px 14px;border:1px solid var(--line-strong);border-radius:6px;
+  background:var(--surface);font-weight:400;font-size:.94em}
+.rx-box > :first-child{margin-top:0}
+.rx-box > :last-child{margin-bottom:0}
+.rx-pre{display:block;margin:6px 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface-2);
+  font-family:var(--font-mono);font-size:.8em;line-height:1.5;font-weight:400;white-space:pre;overflow-x:auto;letter-spacing:0}
+.rx-tw{display:block;margin:6px 0 10px;overflow-x:auto}
+.rx-tbl{border-collapse:collapse;font-size:.86em;font-weight:400;line-height:1.45;min-width:40%}
+.rx-tbl th,.rx-tbl td{border:1px solid var(--line-strong);padding:4px 9px;text-align:left;vertical-align:top;white-space:normal}
+.rx-tbl th{background:var(--surface-2);font-weight:600}
+.rx-fig{display:block;margin:6px 0 10px;overflow-x:auto}
+.rx-img{display:block;max-width:100%;height:auto;border-radius:4px;background:#fff;cursor:zoom-in}
+.rx-fig.zoom .rx-img{max-width:none;cursor:zoom-out}
+.rev-a .rx-tw,.rev-a .rx-pre{margin:4px 0}
+
 .explain{margin:0 14px 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);padding:13px 15px;display:flex;flex-direction:column;gap:7px}
 .explain-h{display:flex;align-items:center;gap:8px}
-.explain-b{font-size:calc(13.5px * var(--fs));color:var(--ink-2);line-height:1.65}
+.explain-b{font-size:calc(13.5px * var(--fs));color:var(--ink-2);line-height:1.65;white-space:pre-line}
 /* 원천 자료 — 해설 아래에 옅게. 원문을 찾아볼 수 있도록 문서명과 장·절을 함께 적는다 */
 .explain-s{font-size:calc(12px * var(--fs));color:var(--muted);line-height:1.55;
   padding-top:7px;border-top:1px dashed var(--line);display:flex;gap:6px;align-items:baseline}
@@ -580,14 +600,23 @@ function buildBank(M, def, myPacks){
     }
     var ch = chMap[pk.chapter];
     if(!ch){ orphans += pk.questions.length; return; }
+    /* 팩에 딸린 그림. 지문·해설의 [[img:키]] 가 여기서 찾는다. 키는 전체에서 유일해야 한다. */
+    if(pk.images){
+      var IMG = window.DAP_IMG || (window.DAP_IMG = {});
+      Object.keys(pk.images).forEach(function(k){ IMG[k] = pk.images[k]; });
+    }
     var added = 0;
     pk.questions.forEach(function(q){
-      if(!q || !q.id || !q.q || !q.c || q.c.length < 2 || typeof q.a !== "number") return;
+      /* a 는 보기 번호(0부터) 하나, 또는 번호 배열. 배열은 m 이 있으면 "모두 고르시오"
+         (고른 것이 정답 집합과 같아야 정답), 없으면 그중 하나만 골라도 정답이다. */
+      if(!q || !q.id || !q.q || !q.c || q.c.length < 2) return;
+      if(!(typeof q.a === "number" ||
+           (Array.isArray(q.a) && q.a.length && q.a.every(function(x){ return typeof x === "number"; })))) return;
       if(seen[q.id]){ dupes++; return; }
       seen[q.id] = true;
       questions.push({
         id:q.id, ch:ch.id, no:(q.no || 0),
-        q:q.q, c:q.c, a:q.a, e:(q.e || ""), s:(q.s || (ch.id + "장")),
+        q:q.q, c:q.c, a:q.a, m:(q.m ? 1 : 0), e:(q.e || ""), s:(q.s || (ch.id + "장")),
         /* 원천 자료. 문항에 r 이 있으면 그것을, 없으면 팩의 source 를 쓴다.
            해설과 함께 보여 주어 원문을 찾아볼 수 있게 한다. */
         r:(q.r || pk.source || ""),
@@ -899,6 +928,97 @@ function esc(s){ return String(s).replace(/[&<>"']/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function $(s,r){ return (r||document).querySelector(s); }
 function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+
+/* ─────────── 정답 판정 ───────────
+   q.a 는 보기 번호 하나이거나 번호 배열이다. 고른 답(pick)도 번호 하나이거나 배열이다.
+   q.m 이 있으면 "모두 고르시오" — 여러 개를 골라 채점하고, 고른 것이 정답 집합과
+   같아야 맞다. q.m 없이 a 가 배열이면 복수 정답 인정 — 그중 하나만 골라도 맞다. */
+function ansList(q){ return Array.isArray(q.a) ? q.a : [q.a]; }
+function pickList(p){ return (p === undefined || p === null) ? [] : (Array.isArray(p) ? p : [p]); }
+function isAns(q, i){ return ansList(q).indexOf(i) >= 0; }
+function hasPick(p, i){ return pickList(p).indexOf(i) >= 0; }
+function isRight(q, p){
+  var ps = pickList(p), a = ansList(q);
+  if(!ps.length) return false;
+  if(q.m) return ps.length === a.length && a.every(function(x){ return ps.indexOf(x) >= 0; });
+  return ps.length === 1 && a.indexOf(ps[0]) >= 0;
+}
+function numText(list){ return pickList(list).map(function(i){ return (i+1) + "번"; }).join(", "); }
+
+/* ─────────── 지문 서식 ───────────
+   원본에 표·그림이 있는 문항(실전문제 2013 등)은 지문에 간단한 표기를 쓴다.
+     [[img:키]]      그림 한 장 (window.DAP_IMG 에 팩이 등록한 것)
+     ::: … :::       테두리 상자 (원본의 「아 래」 상자)
+     ``` … ```       고정폭 (SQL · 실행계획)
+     | a | b |       표 한 행. 첫 행이 ‖ 로 시작하면 머리행. 셀 안 줄바꿈은 ¶
+   표기가 없는 문항은 esc() 와 똑같이 나온다. */
+var RICH_RE = /\[\[img:|^:::|^```|^[|‖] |^아 ?래$/m;
+function rich(s){
+  s = String(s == null ? "" : s);
+  if(!RICH_RE.test(s)) return esc(s);
+  var lines = s.split("\n"), i = 0;
+  function table(rows){
+    var cells = rows.map(function(r){
+      return r.replace(/\s+$/, "").slice(2, -2).split(" | ");   /* "| " + 셀.join(" | ") + " |" */
+    });
+    var w = Math.max.apply(null, cells.map(function(c){ return c.length; }));
+    return '<span class="rx-tw"><table class="rx-tbl">'+ cells.map(function(c, ri){
+      var th = ri === 0 && rows[0].charAt(0) === "‖";
+      return '<tr>'+ c.map(function(x, ci){
+        var span = (ci === c.length-1 && c.length < w) ? ' colspan="'+(w - c.length + 1)+'"' : '';
+        var tag = th ? "th" : "td";
+        return '<'+tag+span+'>'+ esc(x).replace(/¶/g, "<br>") +'</'+tag+'>';
+      }).join("") +'</tr>';
+    }).join("") +'</table></span>';
+  }
+  function block(stop){
+    var out = "", text = [];
+    function flush(){
+      if(text.length){ out += '<span class="rx-p">'+ esc(text.join("\n")) +'</span>'; text = []; }
+    }
+    while(i < lines.length){
+      var L = lines[i];
+      if(stop && L === stop){ i++; break; }
+      var m = /^\[\[img:([\w\-]+)\]\]$/.exec(L.trim());
+      if(m){
+        flush(); i++;
+        var src = (window.DAP_IMG || {})[m[1]];
+        out += src ? '<span class="rx-fig"><img class="rx-img" src="'+src+'" alt="그림" data-act="imgzoom"></span>'
+                   : '<span class="rx-p note">[그림을 찾을 수 없습니다 · '+esc(m[1])+']</span>';
+      }else if(L === ":::"){
+        flush(); i++;
+        out += '<span class="rx-box">'+ block(":::") +'</span>';
+      }else if(L === "```"){
+        flush(); i++;
+        var code = [];
+        while(i < lines.length && lines[i] !== "```") code.push(lines[i++]);
+        i++;
+        out += '<span class="rx-pre">'+ esc(code.join("\n")) +'</span>';
+      }else if(/^[|‖] /.test(L)){
+        flush();
+        var rows = [];
+        while(i < lines.length && /^[|‖] /.test(lines[i])) rows.push(lines[i++]);
+        out += table(rows);
+      }else if(/^아 ?래$/.test(L.trim())){
+        flush(); i++;
+        out += '<span class="rx-label">아 래</span>';
+      }else if(!L.trim()){
+        flush(); i++;
+      }else{
+        text.push(L); i++;
+      }
+    }
+    flush();
+    return out;
+  }
+  return block(null);
+}
+/* 목록 한 줄에 쓸 때 — 표기를 걷어내고 첫 줄만 */
+function plain(s){
+  return String(s == null ? "" : s).split("\n").filter(function(L){
+    return L.trim() && !/^(\[\[img:|:::|```|[|‖] |아 ?래$)/.test(L.trim());
+  })[0] || "";
+}
 /* 해설 밑에 붙는 원천 한 줄. 틀린 문항을 다시 볼 때 필요한 것은 두 가지뿐이다 —
    data_source/ 의 어느 파일이고, 그 안의 어느 파트인가. 그래서 한 줄로 합쳐 둔다.
    파일마다 어떤 자료인지 함께 적는다. 「V. 데이터베이스 설계와 이용.hwpx」와
@@ -922,6 +1042,7 @@ function srcKind(name){
   if(/^\[데이터 전문가 포럼\]/.test(name)) return "교재";
   if(/^[IVX]+\. /.test(name))              return "요약본";
   if(/^\d과목\./.test(name))               return "강의자료";
+  if(/실전문제/.test(name))                return "실전문제";
   if(/\.docx?$/.test(name))                return "워드 요약";
   return "";
 }
@@ -1026,7 +1147,7 @@ function rollbackExam(e){
   var out = { touched:0, cleared:0, unwrong:0 };
   ids.forEach(function(id){
     var t = S.stats[id]; if(!t) return;
-    var wasCorrect = e.answers[id] === QMAP[id].a;   /* 미응답은 오답으로 기록됐다 */
+    var wasCorrect = isRight(QMAP[id], e.answers[id]);   /* 미응답은 오답으로 기록됐다 */
     if(wasCorrect) t.right = Math.max(0, (t.right||0) - 1);
     else           t.wrong = Math.max(0, (t.wrong||0) - 1);
     out.touched++;
@@ -1663,11 +1784,11 @@ function reviewCard(id, showRemove){
     (showRemove? '<button class="btn btn-sm" data-act="unwrong" data-id="'+q.id+'">해결 처리</button>':'')+
     '<button class="btn btn-sm" data-act="togglemark" data-id="'+q.id+'">'+(S.bookmarks[q.id]?"★":"☆")+'</button>'+
     '</div><div class="rev-b">'+
-    '<div class="rev-q">'+esc(q.q)+'</div>'+
+    '<div class="rev-q">'+rich(q.q)+'</div>'+
     '<div class="rev-a">'+ q.c.map(function(c,i){
-        return '<div'+(i===q.a?' class="tag-ok"':'')+'>'+(i===q.a?'✔ ':'　 ')+esc(c)+'</div>'; }).join("") +'</div>'+
+        return '<div'+(isAns(q,i)?' class="tag-ok"':'')+'>'+(isAns(q,i)?'✔ ':'　 ')+rich(c)+'</div>'; }).join("") +'</div>'+
     '<div class="explain" style="margin:4px 0 0"><div class="explain-h"><span class="eyebrow">해설</span></div>'+
-    '<div class="explain-b">'+esc(q.e)+'</div>'+srcLine(q)+'</div>'+
+    '<div class="explain-b">'+rich(q.e)+'</div>'+srcLine(q)+'</div>'+
     '</div></div>';
 }
 
@@ -1988,26 +2109,30 @@ function viewQuiz(){
     (isExam? '<button class="icon-btn'+(session.flags[q.id]?" on":"")+'" data-act="flag" title="나중에 다시 보기">⚑</button>':'')+
   '</div>';
 
-  h += '<div class="qbody"><p class="qtext">'+esc(q.q)+'</p></div>';
+  h += '<div class="qbody"><div class="qtext">'+rich(q.q)+'</div>'+
+    (q.m && !revealed? '<div class="note" style="margin-top:8px"><span class="chip chip-key">복수 선택</span> 해당하는 보기를 모두 고른 뒤 '+(isExam? '다음 문항으로 넘어가세요' : '채점(Enter)을 누르세요')+'</div>' : '')+
+    '</div>';
 
   h += '<div class="opts">';
   q.c.forEach(function(txt,i){
     var cls = "opt";
     if(revealed){
-      if(i===q.a) cls += " correct";
-      else if(i===picked) cls += " wrong";
-    }else if(picked===i) cls += " sel";
+      if(isAns(q,i)) cls += " correct";
+      else if(hasPick(picked,i)) cls += " wrong";
+    }else if(hasPick(picked,i)) cls += " sel";
     h += '<button class="'+cls+'" data-act="pick" data-i="'+i+'" data-q="'+esc(q.id)+'"'+(revealed?" disabled":"")+'>'+
-      '<span class="opt-n">'+(i+1)+'</span><span class="opt-txt">'+esc(txt)+'</span></button>';
+      '<span class="opt-n">'+(i+1)+'</span><span class="opt-txt">'+rich(txt)+'</span></button>';
   });
   h += '</div>';
 
   if(revealed){
-    var ok = picked===q.a;
+    var ok = isRight(q, picked);
     h += '<div class="explain"><div class="explain-h">'+
       (ok? '<span class="chip chip-ok">정답</span>' : '<span class="chip chip-bad">오답</span>')+
-      '<span class="eyebrow">해설</span></div>'+
-      '<div class="explain-b">'+esc(q.e)+'</div>'+srcLine(q)+'</div>';
+      '<span class="eyebrow">해설</span>'+
+      (!ok && (q.m || Array.isArray(q.a))? '<span class="note">정답 '+numText(q.a)+(q.m? ' 모두' : ' 중 하나')+'</span>' : '')+
+      '</div>'+
+      '<div class="explain-b">'+rich(q.e)+'</div>'+srcLine(q)+'</div>';
   }
 
   h += '<div class="qfoot">'+
@@ -2015,7 +2140,7 @@ function viewQuiz(){
     '<button class="btn btn-sm" data-act="next">'+(session.idx===session.ids.length-1?"마지막 문항":"다음 →")+'</button>'+
     (!isExam && picked!==undefined && !revealed? '<button class="btn btn-sm btn-primary" data-act="reveal">채점 (Enter)</button>':'')+
     '<span class="spacer"></span>'+
-    '<span class="note"><span class="kbd">1</span>–<span class="kbd">4</span> 선택 · <span class="kbd">Enter</span> 진행</span>'+
+    '<span class="note"><span class="kbd">1</span>–<span class="kbd">'+q.c.length+'</span> 선택 · <span class="kbd">Enter</span> 진행</span>'+
   '</div></div>';
 
   /* 네비게이터 */
@@ -2026,7 +2151,7 @@ function viewQuiz(){
     if(i===session.idx) cls += " cur";
     if(session.flags[id]) cls += " flag";
     if(isExam){ if(session.ans[id]!==undefined) cls += " answered"; }
-    else if(session.revealed[id]) cls += (session.ans[id]===QMAP[id].a ? " ok" : " no");
+    else if(session.revealed[id]) cls += (isRight(QMAP[id], session.ans[id]) ? " ok" : " no");
     else if(session.ans[id]!==undefined) cls += " answered";
     h += '<button class="'+cls+'" data-act="jump" data-i="'+i+'">'+(i+1)+'</button>';
   });
@@ -2041,7 +2166,7 @@ function submitExam(){
   CHLIST.forEach(function(c){ byCh[c.id] = { count:0, correct:0 }; });
   session.ids.forEach(function(id){
     var q = QMAP[id], picked = session.ans[id];
-    var ok = picked === q.a;
+    var ok = isRight(q, picked);
     byCh[q.ch].count++;
     if(ok){ byCh[q.ch].correct++; correct++; }
     record(id, ok, picked);
@@ -2080,7 +2205,7 @@ function regradeByKey(){
     ids.forEach(function(id){
       var q = QMAP[id], b = byCh[q.ch] || (byCh[q.ch] = { count:0, correct:0 });
       b.count++;
-      if(e.answers[id] === q.a){ b.correct++; correct++; }
+      if(isRight(q, e.answers[id])){ b.correct++; correct++; }
     });
     var score = Math.round(correct*PER_Q*10)/10;
     if(e.correct===correct && e.score===score && JSON.stringify(e.byCh)===JSON.stringify(byCh)) return;
@@ -2089,7 +2214,7 @@ function regradeByKey(){
   });
   Object.keys(S.wrong).forEach(function(id){
     var q = QMAP[id], t = S.stats[id];
-    if(!q || !t || t.pick !== q.a) return;
+    if(!q || !t || !isRight(q, t.pick)) return;
     delete S.wrong[id];
     if(!t.box){
       t.box = 1;
@@ -2108,7 +2233,8 @@ function regradeByKey(){
 function revBlock(id, picked, no){
   var q = QMAP[id];
   if(!q) return "";
-  var ok = picked===q.a;
+  var ok = isRight(q, picked);
+  if(!pickList(picked).length) picked = undefined;
   return '<div class="rev"><div class="rev-h">'+
     (no? '<span class="chip chip-accent mono">'+esc(no)+'</span>' : '')+
     '<span class="chip mono">'+q.id+'</span>'+
@@ -2117,14 +2243,16 @@ function revBlock(id, picked, no){
     (S.bookmarks[q.id]? '<span class="chip chip-key">★ 즐겨찾기</span>' : '')+
     '<span style="flex:1"></span><button class="btn btn-sm" data-act="solveone" data-id="'+q.id+'">다시 풀기</button>'+
     '<button class="btn btn-sm" data-act="togglemark" data-id="'+q.id+'" title="즐겨찾기">'+(S.bookmarks[q.id]?"★":"☆")+'</button></div>'+
-    '<div class="rev-b"><div class="rev-q">'+esc(q.q)+'</div>'+
+    '<div class="rev-b"><div class="rev-q">'+rich(q.q)+'</div>'+
     '<div class="rev-a">'+q.c.map(function(c,i){
-      var mk = i===q.a ? '<span class="tag-ok">✔ 정답</span> ' : (i===picked? '<span class="tag-bad">✕ 내 답</span> ':'　　　　 ');
-      return '<div>'+mk+esc(c)+'</div>'; }).join("")+'</div>'+
+      var mk = isAns(q,i) ? '<span class="tag-ok">✔ 정답</span> '+(hasPick(picked,i) && q.m? '<span class="tag-ok">· 내 답</span> ' : '')
+             : (hasPick(picked,i)? '<span class="tag-bad">✕ 내 답</span> ':'　　　　 ');
+      return '<div>'+mk+rich(c)+'</div>'; }).join("")+'</div>'+
     (picked===undefined? '<div class="note">답을 고르지 않은 문항입니다.</div>'
-     : (ok? '' : '<div class="note">내가 고른 답 '+(picked+1)+'번 · 정답 '+(q.a+1)+'번</div>'))+
+     : (ok? '' : '<div class="note">내가 고른 답 '+numText(picked)+' · 정답 '+numText(q.a)+
+                 (q.m? ' 모두' : (Array.isArray(q.a)? ' 중 하나' : ''))+'</div>'))+
     '<div class="explain" style="margin:4px 0 0"><div class="explain-h"><span class="eyebrow">해설</span></div>'+
-    '<div class="explain-b">'+esc(q.e)+'</div>'+srcLine(q)+'</div></div></div>';
+    '<div class="explain-b">'+rich(q.e)+'</div>'+srcLine(q)+'</div></div></div>';
 }
 
 function viewResult(){
@@ -2165,7 +2293,7 @@ function viewResult(){
   h += '</tbody></table></div></div>';
 
   var ids = examIds(e).filter(function(id){ return QMAP[id]; });
-  var missed = ids.filter(function(id){ return e.answers[id]!==QMAP[id].a; });
+  var missed = ids.filter(function(id){ return !isRight(QMAP[id], e.answers[id]); });
 
   /* 문항별 검토 — 정오답 격자가 먼저 오고, 고른 문항의 문제와 해설이 그 아래에 붙는다.
      기본은 1번을 펼친 상태이고, 접으면(view.rq=null) 격자만 남는다. */
@@ -2175,8 +2303,8 @@ function viewResult(){
   h += '<div class="navgrid">';
   ids.forEach(function(id,i){
     var picked = e.answers[id], cls = "navdot";
-    cls += (picked===QMAP[id].a) ? " ok" : " no";
-    if(picked===undefined) cls += " skip";
+    cls += isRight(QMAP[id], picked) ? " ok" : " no";
+    if(!pickList(picked).length) cls += " skip";
     if(i===sel) cls += " cur";
     if(S.bookmarks[id]) cls += " mark";
     h += '<button class="'+cls+'" data-act="rvjump" data-i="'+i+'" title="'+esc(id)+'">'+(i+1)+'</button>';
@@ -2214,7 +2342,7 @@ function viewResult(){
           '<span class="chip chip-accent mono">'+no+'번</span>'+
           '<span class="chip">'+q.ch+'. '+esc(CH[q.ch].name)+'</span>'+
           (S.bookmarks[id]? '<span class="chip chip-key">★</span>' : '')+
-          '<span class="rev-q" style="flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(q.q)+'</span>'+
+          '<span class="rev-q" style="flex:1;min-width:0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(plain(q.q))+'</span>'+
           '<span class="eyebrow">'+(isOpen? '접기 ▲' : '해설 ▼')+'</span>'+
         '</button>'+
         (isOpen? '<div style="padding:0 4px 4px">'+revBlock(id, e.answers[id], no+"번")+'</div>' : '')+
@@ -2338,7 +2466,7 @@ document.addEventListener("click", function(ev){
     case "retrywrong": {
       var e = S.exams.filter(function(x){ return x.id===t.getAttribute("data-id"); })[0];
       if(!e) break;
-      var ms = Object.keys(e.answers).filter(function(id){ return QMAP[id] && e.answers[id]!==QMAP[id].a; });
+      var ms = Object.keys(e.answers).filter(function(id){ return QMAP[id] && !isRight(QMAP[id], e.answers[id]); });
       if(!ms.length){ toast("틀린 문항이 없습니다"); break; }
       startSession({ key:"retry:"+e.id, mode:"study", title:e.title+" 오답 "+ms.length+"문항", ids:ms });
       break;
@@ -2356,7 +2484,7 @@ document.addEventListener("click", function(ev){
     case "rvallmissed": {
       var rex = S.exams.filter(function(x){ return x.id===view.examId; })[0];
       if(!rex) break;
-      var rids = examIds(rex).filter(function(id){ return QMAP[id] && rex.answers[id]!==QMAP[id].a; });
+      var rids = examIds(rex).filter(function(id){ return QMAP[id] && !isRight(QMAP[id], rex.answers[id]); });
       var allOpen = rids.length && rids.every(function(id){ return view.rvOpen && view.rvOpen[id]; });
       view.rvOpen = {};
       if(!allOpen) rids.forEach(function(id){ view.rvOpen[id] = true; });
@@ -2390,6 +2518,9 @@ document.addEventListener("click", function(ev){
       save(); render(); break;
     }
     case "dosearch": go("search", { kw: $("#q").value }); break;
+
+    /* 지문 그림 — 눌러서 원래 크기로 보고, 다시 누르면 폭에 맞춘다 */
+    case "imgzoom": t.parentNode.classList.toggle("zoom"); break;
 
     /* 퀴즈 */
     case "pick": pick(+t.getAttribute("data-i"), t.getAttribute("data-q")); break;
@@ -3067,6 +3198,16 @@ function pick(i, qid){
   var q = QMAP[cur];
   if(!q) return;
   if(session.mode==="study" && session.revealed[q.id]) return;
+  /* "모두 고르시오" — 누를 때마다 넣고 뺀다. 채점은 따로(Enter / 채점 버튼).
+     다 빼면 미응답으로 돌아간다. */
+  if(q.m){
+    var cur = pickList(session.ans[q.id]).slice(), k = cur.indexOf(i);
+    if(k >= 0) cur.splice(k, 1); else cur.push(i);
+    cur.sort(function(x, y){ return x - y; });
+    if(cur.length) session.ans[q.id] = cur; else delete session.ans[q.id];
+    save(); render();
+    return;
+  }
   session.ans[q.id] = i; save();
   if(session.mode==="study") reveal(); else render();
 }
@@ -3074,7 +3215,7 @@ function reveal(){
   var q = QMAP[session.ids[session.idx]];
   if(session.ans[q.id]===undefined || session.revealed[q.id]) return;
   session.revealed[q.id] = true;
-  record(q.id, session.ans[q.id]===q.a, session.ans[q.id]);
+  record(q.id, isRight(q, session.ans[q.id]), session.ans[q.id]);
   save(); render();
 }
 function nextQ(){
@@ -3082,7 +3223,7 @@ function nextQ(){
   else if(session.mode==="exam"){ toast("마지막 문항입니다 · 제출 버튼으로 채점하세요"); }
   else {
     var n = session.ids.filter(function(id){ return session.revealed[id]; }).length;
-    var ok = session.ids.filter(function(id){ return session.revealed[id] && session.ans[id]===QMAP[id].a; }).length;
+    var ok = session.ids.filter(function(id){ return session.revealed[id] && isRight(QMAP[id], session.ans[id]); }).length;
     endSession();
     toast("학습 완료 · "+ok+"/"+n+" 정답");
     go("dash");
@@ -3107,7 +3248,7 @@ document.addEventListener("keydown", function(e){
   }
   if(view.name!=="quiz" || !session) return;
   var q = QMAP[session.ids[session.idx]];
-  if(e.key>="1" && e.key<="4"){ e.preventDefault(); pick(+e.key-1); return; }
+  if(e.key>="1" && e.key<="9" && +e.key<=q.c.length){ e.preventDefault(); pick(+e.key-1); return; }   /* 보기 수만큼 (158번은 다섯) */
   if(e.key==="ArrowRight"){ e.preventDefault(); if(session.idx<session.ids.length-1){session.idx++;save();render();} return; }
   if(e.key==="ArrowLeft"){ e.preventDefault(); if(session.idx>0){session.idx--;save();render();} return; }
   if(e.key==="Enter"){

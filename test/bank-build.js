@@ -62,8 +62,12 @@ if (!m) {
 
   /* 보기·정답 형식 전수 점검 */
   packs.forEach(p => p.questions.forEach(q => {
-    if (!Array.isArray(q.c) || q.c.length !== 4) fail(q.id + ' 보기 4개 아님');
-    if (!Number.isInteger(q.a) || q.a < 0 || q.a >= q.c.length) fail(q.id + ' 정답 인덱스 범위 밖');
+    /* 보기는 4개. 외부 원본의 오류를 "없다" 보기로 바로잡은 문항(D13-158)만 5개 */
+    if (!Array.isArray(q.c) || q.c.length < 4 || q.c.length > 5) fail(q.id + ' 보기 4~5개 아님');
+    /* a 는 인덱스 하나, 또는 인덱스 배열(m 이면 "모두 고르시오", 아니면 복수 정답 인정) */
+    const as = Array.isArray(q.a) ? q.a : [q.a];
+    if (!as.length || as.some(a => !Number.isInteger(a) || a < 0 || a >= q.c.length)) fail(q.id + ' 정답 인덱스 범위 밖');
+    if (q.m && !Array.isArray(q.a)) fail(q.id + ' m(모두 고르시오)인데 a 가 배열이 아님');
     if (!q.s) fail(q.id + ' 출처(s) 없음');
   }));
 

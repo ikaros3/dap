@@ -1,9 +1,7 @@
 # 원천 소스는 저작권이 있는 교재·강의자료다. 목록 문서를 포함해 저장소에 올리지 않는다.
 data_source/
 
-# 외부 출처 연습문제 팩은 개인 학습용 — 공개 저장소·배포본에 포함하지 않는다
-data/practice.*.js
-!data/practice.enc.js
+# 연습문제 팩은 data/practice.e1.js 로 평문 배포한다(2026-09-27). 이 JSON 은 같은 내용의 옛 암호화 입력본
 practice.plain.json
 
 # 원천에서 뽑은 본문 캐시 (tools/source-check.js --extract). 원문과 같은 저작물이다.

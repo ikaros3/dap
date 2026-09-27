@@ -22,6 +22,8 @@ const ctx = {
   renders: 0,
 };
 vm.createContext(ctx);
+/* 정답 판정 도우미 (ansList … numText) — pick·reveal 이 부른다 */
+vm.runInContext(grab('정답 판정', /function ansList[\s\S]*?\nfunction numText[^\n]*\n/), ctx);
 ['function firstUnsolved\\(s\\)\\{[\\s\\S]*?\\n\\}',
  'function record\\(qid, correct, pick\\)\\{[\\s\\S]*?\\n\\}',
  'function reveal\\(\\)\\{[\\s\\S]*?\\n\\}',
@@ -69,6 +71,31 @@ console.log('── 키보드 입력(문항 id 없음)은 현재 위치에 기�
 ctx.session.idx = 3;
 ctx.pick(1);
 chk('4번에 기록됨', ctx.session.ans['C1-004'], 1);
+
+console.log('── "모두 고르시오"(m) — 누를 때마다 넣고 빼며, 채점은 따로 ──');
+ctx.QMAP['M-1'] = { id: 'M-1', a: [0, 2], m: 1, ch: 1 };
+ctx.QMAP['M-2'] = { id: 'M-2', a: [1, 3], m: 1, ch: 1 };
+ctx.QMAP['Y-1'] = { id: 'Y-1', a: [0, 2], ch: 1 };          /* 복수 정답 인정 — 하나만 골라도 정답 */
+ctx.session = { key: 'x', mode: 'study', ids: ['M-1', 'M-2', 'Y-1'], idx: 0, ans: {}, revealed: {}, submitted: false, spent: 0, ts: 1 };
+ctx.pick(2, 'M-1'); ctx.pick(0, 'M-1');
+chk('두 개를 고르면 정렬된 배열', ctx.session.ans['M-1'], [0, 2]);
+chk('고르는 동안은 채점하지 않음', !!ctx.session.revealed['M-1'], false);
+ctx.pick(3, 'M-1'); ctx.pick(3, 'M-1');
+chk('다시 누르면 빠짐', ctx.session.ans['M-1'], [0, 2]);
+ctx.reveal();
+chk('정답 집합과 같으면 정답', ctx.S.stats['M-1'].right, 1);
+chk('고른 배열이 pick 으로 남음', ctx.S.stats['M-1'].pick, [0, 2]);
+ctx.session.idx = 1;
+ctx.pick(1, 'M-2');
+chk('하나만 고르면 배열 하나', ctx.session.ans['M-2'], [1]);
+ctx.reveal();
+chk('일부만 고르면 오답', ctx.S.stats['M-2'].wrong, 1);
+ctx.session.idx = 2;
+ctx.pick(2, 'Y-1');
+chk('복수 정답 인정 문항은 하나만 골라도 바로 채점·정답', ctx.S.stats['Y-1'] && ctx.S.stats['Y-1'].right, 1);
+ctx.session.idx = 0; ctx.session.revealed = {}; ctx.session.ans = { 'M-1': [0] };
+ctx.pick(0, 'M-1');
+chk('모두 빼면 미응답으로 돌아감', 'M-1' in ctx.session.ans, false);
 
 console.log(bad ? '\n실패 ' + bad + '건' : '\n전부 통과');
 process.exit(bad ? 1 : 0);
