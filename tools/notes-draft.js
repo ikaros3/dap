@@ -4,6 +4,8 @@
    - 문단 스타일로 단계를 가른다: 장(#) · 절(##) · 항(###) · 「가.」(####) · 글머리(- 들여쓰기)
    - 원본의 강조는 표기로 남긴다: 굵게 **…** · 빨강 {r}…{/r} · 파랑 {b}…{/b} · 밑줄 {u}…{/u}
    - 표는 내용정리 표 표기(| 셀 |, 병합은 << ^^)로, 그림은 [[img:키]] 로 옮긴다
+     행마다 칸이 하나뿐인 상자는 표로 두지 않고 안의 글·표·그림을 펼치고, 칸 안에 든 표·그림은 그 표 뒤에 꺼낸다
+   - 그림 파일 없이 한글에서 직접 그린 도형(글상자·엔터티 상자)은 도형마다 한 칸인 한 줄 표로 옮긴다
    - 그림폴더를 주면 BinData 원본을 키 이름으로 복사해 둔다 (변환은 tools/notes-img.ps1)
    초안은 사람이 다듬는다. 원고는 tools/notes-src/ 에 둔다. */
 const fs = require('fs'), zlib = require('zlib'), path = require('path');
@@ -112,11 +114,24 @@ function main() {
         else if (k.tag === 'hp:t') walk(k, em);
         else if (k.tag === 'hp:tab') s += ' ';
         else if (k.tag === 'hp:lineBreak') s += inCell ? '¶' : '\n';
-        else if (k.tag === 'hp:tbl') { if (inCell) s += tableInline(k); else onBlock({ tbl: k }); }
-        else if (k.tag === 'hp:pic' || k.tag === 'hp:container' || k.tag === 'hp:rect') {
-          const imgs = [];
-          (function f(n2) { for (const c of n2.kids) { if (c.tag === 'hc:img') imgs.push(attr(c, 'binaryItemIDRef')); if (c.kids) f(c); } })(k);
-          imgs.forEach(b => { if (inCell) s += ' [[img:' + imgKey(b) + ']] '; else onBlock({ img: b }); });
+        else if (k.tag === 'hp:tbl') onBlock({ tbl: k });
+        else if (/^hp:(pic|container|rect|ellipse|polygon|curve|arc|connectLine|line)$/.test(k.tag)) {
+          /* 그림이면 그림으로. 그림 없이 한글에서 직접 그린 도형(글상자·엔터티 상자 등)이면 도형마다 안의 글을 모은다 */
+          const imgs = [], texts = [];
+          (function f(n2) {
+            for (const c of n2.kids) {
+              if (c.tag === 'hc:img') imgs.push(attr(c, 'binaryItemIDRef'));
+              else if (c.tag === 'hp:drawText') {
+                const sub = c.kids.find(x => x.tag === 'hp:subList');
+                const t = (sub ? sub.kids : []).filter(x => x.tag === 'hp:p').map(x => runText(x, () => {}, true).trim()).filter(Boolean).join('¶');
+                if (t) texts.push(t.replace(/\|/g, '｜'));
+                continue;
+              }
+              if (c.kids) f(c);
+            }
+          })(k);
+          imgs.forEach(b => onBlock({ img: b }));
+          if (!imgs.length && texts.length) onBlock({ draw: texts });
         }
         else if (k.kids && !/^hp:(linesegarray|shapeComment|ctrl|secPr)$/.test(k.tag)) walk(k, em);
       }
@@ -125,18 +140,83 @@ function main() {
     return fmt.canon(s);   /* 같은 모양이 이어진 토막을 하나로 묶는다 */
   }
 
-  function cellText(tc) {
-    const out = [];
+  /* 칸 안의 문단 — 칸 안에 든 표·그림은 blocks 로 따로 모은다 (글자 사이에 끼우면 칸 구분이 무너진다) */
+  function cellParas(tc, inCell = true) {
     const sub = tc.kids.find(k => k.tag === 'hp:subList');
-    for (const p of (sub ? sub.kids : []).filter(k => k.tag === 'hp:p')) {
-      const t = runText(p, null, true).trim();
-      if (t) out.push(t);
-    }
-    return out.join('¶').replace(/\|/g, '｜');
+    return (sub ? sub.kids : []).filter(k => k.tag === 'hp:p').map(p => {
+      const blocks = [];
+      return { p, text: runText(p, b => blocks.push(b), inCell).trim(), blocks };
+    });
   }
-  function tableInline(tbl) { return '[표] ' + tableRows(tbl).join(' / '); }
+  function cellText(tc, extra) {
+    const ps = cellParas(tc);
+    ps.forEach(x => extra.push(...x.blocks));
+    return ps.map(x => x.text).filter(Boolean).join('¶').replace(/\|/g, '｜');
+  }
 
-  function tableRows(tbl) {
+  /* 글머리 단계: 문단 모양의 글머리 → 스타일 5~8 */
+  function bulletPre(p) {
+    const bl = bullets[attr(p, 'paraPrIDRef')], st = attr(p, 'styleIDRef');
+    if (bl !== undefined) return '  '.repeat(bl) + '- ';
+    return { 5: '- ', 6: '  - ', 7: '    - ', 8: '      - ' }[st] || '';
+  }
+
+  /* 표 하나를 원고 줄로. 행마다 칸이 하나뿐인 상자(제목 상자·설명 상자)는 표로 두지 않고
+     안의 문단·표·그림을 그대로 펼친다. 첫 행이 짧은 제목이면 [정리] 제목줄로 둔다.
+     (칸 하나짜리 행이 넷 이상이고 칸마다 한 줄뿐이면 상자가 아니라 1열 표로 본다)
+     여러 칸 표의 칸 안에 든 표·그림은 그 표 바로 뒤에 꺼내 놓는다. */
+  function emitTable(tbl, out) {
+    const trs = tbl.kids.filter(k => k.tag === 'hp:tr');
+    const tcOf = tr => tr.kids.filter(k => k.tag === 'hp:tc');
+    const box = trs.length && trs.every(tr => tcOf(tr).length === 1) &&
+      (trs.length <= 3 || trs.some(tr => { const ps = cellParas(tcOf(tr)[0]); return ps.filter(x => x.text).length > 1 || ps.some(x => x.blocks.length); }));
+    if (box) {
+      trs.forEach((tr, ri) => {
+        const ps = cellParas(tcOf(tr)[0], false);
+        const texts = ps.filter(x => x.text);
+        if (ri === 0 && trs.length > 1 && texts.length === 1 && !ps.some(x => x.blocks.length) && fmt.plain(texts[0].text).length <= 60) {
+          out.push('[정리] ' + texts[0].text.replace(/\n/g, ' '));
+          return;
+        }
+        /* 상자 글머리는 상자 안에서 다시 센다 — 가장 얕은 단계를 맨 앞 단계로 */
+        const pres = ps.map(x => bulletPre(x.p));
+        const min = Math.min(...pres.filter(Boolean).map(s => s.length));
+        const ind = pres.map(s => s ? s.length - min : -1);
+        /* 앞 줄보다 두 단계 넘게 깊고 다음 줄보다도 깊은 줄은 소제목 구실이다 → 다음 줄의 한 단계 위로 */
+        for (let i = 0; i < ind.length; i++) {
+          if (ind[i] < 0 || !ps[i].text) continue;
+          const nx = ind.slice(i + 1).find((v, k) => v >= 0 && ps[i + 1 + k].text);
+          let pv = -2;
+          for (let k = i - 1; k >= 0; k--) if (ind[k] >= 0 && ps[k].text) { pv = ind[k]; break; }
+          if (nx !== undefined && nx < ind[i] && ind[i] > pv + 2) {
+            ind[i] = nx - 2;
+            if (ind[i] < 0) { ind[i] = 0; for (let k = i + 1; k < ind.length; k++) if (ind[k] >= 0) ind[k] += 2; }
+          }
+        }
+        ps.forEach((x, i) => {
+          if (x.text && /^제\s*\d+\s*장/.test(fmt.plain(x.text))) { out.push('# ' + fmt.plain(x.text).trim()); return; }
+          if (x.text) {
+            const pre = ind[i] >= 0 ? ' '.repeat(ind[i]) + '- ' : '';
+            out.push(pre + x.text.replace(/\n/g, '\n' + ' '.repeat(pre.length)));
+          }
+          x.blocks.forEach(b => emitBlock(b, out));
+        });
+      });
+      return;
+    }
+    const extra = [];
+    /* 칸에 그림·표만 있던 행은 글자가 비므로 버린다 */
+    const rows = tableRows(tbl, extra).filter(r => r.slice(2, -2).split(' | ').some(c => c.trim() && c !== '<<' && c !== '^^'));
+    if (rows.length) out.push('', ...rows, '');
+    extra.forEach(b => emitBlock(b, out));
+  }
+  function emitBlock(b, out) {
+    if (b.img) out.push('[[img:' + imgKey(b.img) + ']]');
+    else if (b.draw) out.push('', '| ' + b.draw.join(' | ') + ' |', '');   /* 도형 묶음 → 도형마다 한 칸 */
+    else emitTable(b.tbl, out);
+  }
+
+  function tableRows(tbl, extra) {
     const grid = [];
     let maxC = 0;
     for (const tr of tbl.kids.filter(k => k.tag === 'hp:tr')) {
@@ -145,7 +225,7 @@ function main() {
         const c = +attr(addr, 'colAddr'), r = +attr(addr, 'rowAddr');
         const cs = +attr(span, 'colSpan') || 1, rs = +attr(span, 'rowSpan') || 1;
         for (let i = 0; i < rs; i++) for (let j = 0; j < cs; j++) {
-          (grid[r + i] = grid[r + i] || [])[c + j] = i === 0 && j === 0 ? cellText(tc) : (i === 0 ? '<<' : '^^');
+          (grid[r + i] = grid[r + i] || [])[c + j] = i === 0 && j === 0 ? cellText(tc, extra) : (i === 0 ? '<<' : '^^');
         }
         maxC = Math.max(maxC, c + cs);
       }
@@ -184,10 +264,7 @@ function main() {
       else if (st === '8') pre = '      - ';
       if (pre.startsWith('#')) text = plainT.trim();
       if (text) lines.push(pre + text.replace(/\n/g, '\n' + ' '.repeat(pre.startsWith('#') ? 0 : pre.length)));
-      for (const b of blocks) {
-        if (b.img) lines.push('[[img:' + imgKey(b.img) + ']]');
-        else { lines.push(''); lines.push(...tableRows(b.tbl)); lines.push(''); }
-      }
+      for (const b of blocks) emitBlock(b, lines);
     }
   }
   fs.writeFileSync(outPath, lines.join('\n').replace(/\n{3,}/g, '\n\n') + '\n', 'utf8');

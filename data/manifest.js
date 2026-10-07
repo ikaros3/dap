@@ -83,6 +83,11 @@ window.DAP_MANIFEST = {
      원고 tools/notes-src/chN.md 를 고치고 node tools/notes-build.js N --write 로 만든다.
      여기 없는 과목은 내용정리 화면에 「준비 중」으로 나온다. */
   notes: [
-    { ch: 3, file: "notes/3.데이터표준화.js" }
+    { ch: 1, file: "notes/1.전사아키텍처이해.js" },
+    { ch: 2, file: "notes/2.데이터요건분석.js" },
+    { ch: 3, file: "notes/3.데이터표준화.js" },
+    { ch: 4, file: "notes/4.데이터모델링.js" },
+    { ch: 5, file: "notes/5.데이터베이스설계와이용.js" },
+    { ch: 6, file: "notes/6.데이터품질관리이해.js" }
   ]
 };
