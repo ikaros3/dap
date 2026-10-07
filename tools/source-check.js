@@ -3,7 +3,8 @@
  *   node tools/source-check.js            # 대조만
  *   node tools/source-check.js --extract  # 원천 텍스트를 다시 뽑고 대조
  *
- * data_source/ 는 gitignore 라 이 도구는 로컬에서만 돌아간다. 추출 결과는
+ * data_source/ 는 gitignore 라 이 도구는 로컬에서만 돌아간다. 자료 묶음별 하위 폴더까지
+ * 모두 훑되 캐시는 파일 이름만으로 둔다 — 문항의 rf 가 경로 없이 이름만 적기 때문이다. 추출 결과는
  * tools/.source-text/ 에 캐시하며 이 폴더도 저장소에 올리지 않는다.
  *
  * 두 방향을 함께 본다.
@@ -60,23 +61,27 @@ const tags = x => x.replace(/<[^>]+>/g, ' ').replace(/&lt;/g, '<').replace(/&gt;
 
 function extract() {
   fs.mkdirSync(CACHE, { recursive: true });
-  for (const f of fs.readdirSync(SRC)) {
-    const out = path.join(CACHE, f + '.txt');
+  const walk = d => fs.readdirSync(d, { withFileTypes: true })
+    .flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
+  for (const full of walk(SRC)) {
+    const f = path.basename(full), out = path.join(CACHE, f + '.txt');
     try {
       if (/\.hwpx$/.test(f)) {
-        const e = unzip(fs.readFileSync(path.join(SRC, f)), /^Contents\/section\d+\.xml$/)
+        const e = unzip(fs.readFileSync(full), /^Contents\/section\d+\.xml$/)
           .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
         fs.writeFileSync(out, e.map(s => tags(s.data.toString('utf8'))).join('\n'), 'utf8');
       } else if (/\.docx$/.test(f)) {
-        const e = unzip(fs.readFileSync(path.join(SRC, f)), /^word\/document\.xml$/);
+        const e = unzip(fs.readFileSync(full), /^word\/document\.xml$/);
         fs.writeFileSync(out, e.length ? tags(e[0].data.toString('utf8')) : '', 'utf8');
       } else if (/\.doc$/.test(f)) {
         /* 구형 .doc = OLE. UTF-16LE 로 읽어 한글·영문 구간만 골라낸다 */
-        let s = fs.readFileSync(path.join(SRC, f)).toString('utf16le')
+        let s = fs.readFileSync(full).toString('utf16le')
           .replace(/[^가-힣ㄱ-ㆎ0-9A-Za-z .,()\[\]{}·:;%\/+\-~='"\n]+/g, ' ');
         fs.writeFileSync(out, s.split(/\s{3,}/).filter(x => /[가-힣]/.test(x) && x.length > 4).join('\n'), 'utf8');
       } else if (/\.pdf$/.test(f)) {
-        cp.execFileSync('pdftotext', ['-enc', 'UTF-8', path.join(SRC, f), out]);
+        /* 같은 폴더에 같은 이름의 hwpx 가 있으면 그 사본이다. 본문은 hwpx 로만 본다 */
+        if (fs.existsSync(full.replace(/\.pdf$/, '.hwpx'))) { console.log('  ' + f + ' — hwpx 사본, 건너뜀'); continue; }
+        cp.execFileSync('pdftotext', ['-enc', 'UTF-8', full, out]);
       } else continue;
       console.log('  ' + f + ' → ' + fs.statSync(out).size.toLocaleString() + 'B');
     } catch (e) { console.log('  ' + f + ' — 건너뜀 (' + e.message + ')'); }
@@ -100,8 +105,10 @@ const CAND = {
       '630. 데이터베이스 성능개선.doc', 'RDB의 데이터 조작.docx'],
   6: ['VI. 데이터 품질관리 이해.hwpx', '230. 데이터품질관리_프로세스.doc']
 };
-/* 같은 문서의 pdf 사본이 남아 있으면 함께 본다. 표시는 hwpx 이름으로 통일한다.
-   (A·C 의 pdf 는 2026-08-27 에 지웠다 — hwpx 와 같은 내용이었다) */
+/* 같은 문서의 pdf 사본 추출본이 캐시에 있으면 함께 본다. 표시는 hwpx 이름으로 통일한다.
+   다만 extract() 는 hwpx 옆의 pdf 사본을 뽑지 않는다. 이어 붙이면 그 파일 점수만 부풀어
+   가이드를 거짓 원천으로 잘못 잡는다 — 2026-10-07 폴더 정리 때 C 의 pdf 가 다시 들어와
+   6문항이 그렇게 잡혔다. */
 
 const norm = s => s.toLowerCase().replace(/\s+/g, '');
 const TXT = {};

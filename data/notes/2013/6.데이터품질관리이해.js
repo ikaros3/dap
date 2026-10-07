@@ -5,7 +5,7 @@ DAP_NOTES.add({
  "ch": 6,
  "title": "데이터 품질 관리 이해",
  "sourceFiles": [
-  "230 데이터품질관리 프로세스.doc"
+  "230. 데이터품질관리_프로세스.doc"
  ],
  "images": {},
  "chapters": [

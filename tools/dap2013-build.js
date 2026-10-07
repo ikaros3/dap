@@ -2,7 +2,7 @@
  *
  *   node tools/dap2013-build.js
  *
- * 읽는 것 (data_source/, 저장소 밖)
+ * 읽는 것 (data_source/DAP 자격검정 실전문제 2013 Edition/, 저장소 밖)
  *   DAP 자격검정 실전문제 2013 Edition.docx          문제
  *   DAP 자격검정 실전문제 2013 Edition_모범답안.docx  정답·해설
  * 만드는 것
@@ -23,6 +23,8 @@ const { spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
 const SRC_Q = 'DAP 자격검정 실전문제 2013 Edition.docx';
 const SRC_A = 'DAP 자격검정 실전문제 2013 Edition_모범답안.docx';
+/* data_source/ 는 자료 묶음마다 하위 폴더로 나뉜다. 실전문제 docx·캡처 그림은 이 폴더에 함께 둔다. */
+const SRC_DIR = path.join(ROOT, 'data_source', 'DAP 자격검정 실전문제 2013 Edition');
 const MARK = '①②③④';
 
 /* ─────────── zip ─────────── */
@@ -277,13 +279,13 @@ function shrinkAll(pngs) {          /* { key: Buffer(png) } → { key: Buffer(jp
 const DRAWN = { 156: { key: 'd13q-f156', file: 'DAP 자격검정 실전문제 2013 Edition_156.png' } };
 
 /* ─────────── 조립 ─────────── */
-const zq = unzip(path.join(ROOT, 'data_source', SRC_Q)), za = unzip(path.join(ROOT, 'data_source', SRC_A));
+const zq = unzip(path.join(SRC_DIR, SRC_Q)), za = unzip(path.join(SRC_DIR, SRC_A));
 const qs = splitQuestions(readBlocks(zq)), as = splitAnswers(readBlocks(za));
 if (qs.length !== 395) throw new Error('문항 수가 395 가 아님: ' + qs.length);
 
 const drawn = {};
 for (const d of Object.values(DRAWN)) {
-  const p = path.join(ROOT, 'data_source', d.file);
+  const p = path.join(SRC_DIR, d.file);
   if (fs.existsSync(p)) drawn[d.key] = fs.readFileSync(p);
   else console.warn('그림 없음 — 표로 둔다: ' + d.file);
 }

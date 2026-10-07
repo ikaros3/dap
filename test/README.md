@@ -47,5 +47,5 @@ node test/pack-format.js 3  # 과목 3 팩만
 `tools/hwpx-text.js` — HWPX에서 본문을 뽑는다. `unzip` 없이 node만 쓴다.
 
 ```bash
-node tools/hwpx-text.js "data_source/III. 데이터 표준화.hwpx" /tmp/ch3.txt
+node tools/hwpx-text.js "data_source/DAP 정리(2020 Edition)/III. 데이터 표준화.hwpx" /tmp/ch3.txt
 ```
