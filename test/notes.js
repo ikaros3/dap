@@ -1,4 +1,4 @@
-/* 내용정리 점검.   node test/notes.js
+/* 내용정리 점검.   node test/notes.js  (2020·2013 두 판 모두. 문항 연결은 2020 판만)
    - manifest 의 notes 파일이 있고, 과목 번호가 맞고, 그림 파일이 모두 있는가
    - 앱의 noteHtml(원문 그대로 꺼냄)로 모든 절을 그려 태그 짝이 맞는가
    - 문항의 s(「N장 M절 주제」)가 가리키는 절이 실제로 있는가 — 없으면 실패
@@ -21,16 +21,19 @@ vm.runInContext(tagDecl[0], ctx);
 const M = {};
 vm.runInContext(fs.readFileSync('data/manifest.js', 'utf8'), vm.createContext({ window: M }));
 const notes = (M.DAP_MANIFEST.notes || []);
-let bad = 0, warn = 0;
+let bad = 0, warn = 0, got = null;
 const fail = m => { bad++; console.log('FAIL  ' + m); };
 
-const NOTES = {};
+const NOTES = {};          /* 2020 판 — 문항 연결 점검에 쓴다 */
 notes.forEach(n => {
+  const ed = n.ed || '2020';
   const file = path.join('data', n.file);
   if (!fs.existsSync(file)) return fail('파일 없음: ' + file);
-  vm.runInContext(fs.readFileSync(file, 'utf8'), vm.createContext({ DAP_NOTES: { add: b => { NOTES[n.ch] = b; } } }));
-  const b = NOTES[n.ch];
+  vm.runInContext(fs.readFileSync(file, 'utf8'), vm.createContext({ DAP_NOTES: { add: x => { got = x; } } }));
+  const b = got; got = null;
   if (!b || b.ch !== n.ch) return fail(file + ' 의 ch 가 manifest 와 다르다');
+  if ((b.ed || '2020') !== ed) return fail(file + ' 의 판(ed)이 manifest 와 다르다');
+  if (ed === '2020') NOTES[n.ch] = b;
   Object.entries(b.images || {}).forEach(([k, im]) => {
     if (!fs.existsSync(path.join('data', 'notes', im.src))) fail(k + ' 그림 파일 없음: ' + im.src);
   });
@@ -48,7 +51,7 @@ notes.forEach(n => {
     const heads = ctx.noteHeads(S);
     if (heads.filter(h => h.lv === 4 || h.lv === 5).length !== H.n || heads.filter(h => h.lv === 6).length !== (H.c || 0)) fail(n.ch + '-' + C.no + '-' + S.no + ' 소제목 번호가 noteHeads 와 noteHtml 에서 다르다');
   }));
-  console.log('PASS  과목 ' + n.ch + ' ' + b.title + ' — ' + secs + '절, 그림 ' + Object.keys(b.images || {}).length);
+  console.log('PASS  ' + ed + ' 과목 ' + n.ch + ' ' + b.title + ' — ' + secs + '절, 그림 ' + Object.keys(b.images || {}).length);
 });
 
 /* 문항 → 절 · 소제목 */

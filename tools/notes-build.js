@@ -1,6 +1,11 @@
 // 내용정리 원고(tools/notes-src/chN.md) → data/notes/N.과목명.js
 //
-// node tools/notes-build.js <과목> [--write]   (--write 없으면 점검 통계만)
+// node tools/notes-build.js <과목> [--ed 2013] [--write]   (--write 없으면 점검 통계만)
+//
+// 판(--ed) — 내용정리는 두 판이다. 기본은 2020(요약본).
+//   2020 : 원고 tools/notes-src/chN.md       → data/notes/N.과목명.js,      그림 data/notes/img/
+//   2013 : 원고 tools/notes-src/2013/chN.md  → data/notes/2013/N.과목명.js, 그림 data/notes/img2013/
+//          (준전문가 가이드 본문을 개조식으로 정리한 것. 데이터 머리에 ed:"2013" 이 들어간다)
 //
 // 원고 형식
 //   --- 머리 (ch, title, sourceFiles: 파일 | 파일) ---
@@ -15,15 +20,21 @@
 //   > 암기 : …         암기 상자
 //   **굵게**  {r}빨강{/r}  {b}파랑{/b}  {u}밑줄{/u}   원본의 강조 그대로 (tools/notes-fmt.js, 줄마다 짝이 맞아야 한다)
 //   {2013}             2013 Edition 에만 있는 내용 표시
+//   {w}                2013 판에서 워드 요약(data_source 의 .doc)으로 보탠 내용 표시
 // 그림은 tools/notes-draft.js 로 꺼내고 tools/notes-img.ps1 로 바꾼다.
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..');
 const NAMES = { 1: '전사아키텍처이해', 2: '데이터요건분석', 3: '데이터표준화', 4: '데이터모델링', 5: '데이터베이스설계와이용', 6: '데이터품질관리이해' };
 const ch = +process.argv[2], write = process.argv.includes('--write');
-if (!NAMES[ch]) { console.error('사용: node tools/notes-build.js <과목 1~6> [--write]'); process.exit(1); }
+const ed = process.argv.includes('--ed') ? process.argv[process.argv.indexOf('--ed') + 1] : '2020';
+if (ed !== '2020' && ed !== '2013') { console.error('--ed 는 2020 또는 2013'); process.exit(1); }
+const E13 = ed === '2013';
+if (!NAMES[ch]) { console.error('사용: node tools/notes-build.js <과목 1~6> [--ed 2013] [--write]'); process.exit(1); }
 
-const srcPath = path.join(__dirname, 'notes-src', 'ch' + ch + '.md');
-const IMG_DIR = path.join(ROOT, 'data', 'notes', 'img');
+const srcRel = (E13 ? '2013/' : '') + 'ch' + ch + '.md';
+const srcPath = path.join(__dirname, 'notes-src', srcRel);
+const IMG_SUB = E13 ? 'img2013' : 'img';
+const IMG_DIR = path.join(ROOT, 'data', 'notes', IMG_SUB);
 let text = fs.readFileSync(srcPath, 'utf8').replace(/\r/g, '');
 
 /* 머리 */
@@ -48,16 +59,16 @@ function imgSize(file) {
 const errs = [];
 if (+meta.ch !== ch) errs.push('머리의 ch(' + meta.ch + ')가 과목 번호와 다르다');
 
-const book = {
+const book = Object.assign(E13 ? { ed: '2013' } : {}, {
   ch, title: meta.title || '',
   sourceFiles: (meta.sourceFiles || '').split('|').map(s => s.trim()).filter(Boolean),
   images: {}, chapters: []
-};
+});
 let C = null, S = null, I = null;
-const stat = { lines: 0, tables: 0, images: 0, e2013: 0 };
+const stat = { lines: 0, tables: 0, images: 0, e2013: 0, w: 0 };
 
 text.split('\n').forEach((line, n) => {
-  const at = 'ch' + ch + '.md:' + (n + 1);
+  const at = srcRel + ':' + (n + 1);
   let m;
   if ((m = /^# 제\s*(\d+)\s*장\s+(.+)$/.exec(line))) {
     C = { no: +m[1], title: m[2].trim(), sections: [] }; book.chapters.push(C); S = I = null; return;
@@ -78,10 +89,11 @@ text.split('\n').forEach((line, n) => {
     const key = im[1];
     const file = ['jpg', 'png'].map(e => key + '.' + e).find(f => fs.existsSync(path.join(IMG_DIR, f)));
     if (!file) errs.push(at + ' 그림 파일 없음: ' + key);
-    else { const [w, h] = imgSize(path.join(IMG_DIR, file)); book.images[key] = { src: 'img/' + file, w, h }; }
+    else { const [w, h] = imgSize(path.join(IMG_DIR, file)); book.images[key] = { src: IMG_SUB + '/' + file, w, h }; }
     stat.images++;
   }
   stat.e2013 += (line.match(/\{2013\}/g) || []).length;
+  stat.w += (line.match(/\{w\}/g) || []).length;
   /* 강조 표기 짝 — 한 줄(표는 한 칸) 안에서 닫혀야 화면에서 태그가 엇갈리지 않는다 */
   (/^[|‖] /.test(line) ? line.slice(2, -2).split(' | ') : [line]).forEach(part => {
     const odd = ((part.match(/\*\*/g) || []).length % 2) ? ['**'] : [];
@@ -117,14 +129,15 @@ book.chapters.forEach((c, k) => { if (c.no !== k + 1) errs.push('장 번호가 �
 const nSec = book.chapters.reduce((a, c) => a + c.sections.length, 0);
 const nItem = book.chapters.reduce((a, c) => a + c.sections.reduce((b, s) => b + s.items.length, 0), 0);
 console.log('과목 ' + ch + ' ' + book.title + ' : ' + book.chapters.length + '장 ' + nSec + '절 ' + nItem + '항 · 본문 ' +
-  stat.lines + '줄 · 표 ' + stat.tables + ' · 그림 ' + stat.images + ' · 2013 표시 ' + stat.e2013 + ' · 강조 빨강 ' + (stat.r||0) + ' 파랑 ' + (stat.b||0) + ' 밑줄 ' + (stat.u||0));
+  stat.lines + '줄 · 표 ' + stat.tables + ' · 그림 ' + stat.images + ' · 2013 표시 ' + stat.e2013 + ' · 워드 표시 ' + stat.w + ' · 강조 빨강 ' + (stat.r||0) + ' 파랑 ' + (stat.b||0) + ' 밑줄 ' + (stat.u||0));
 if (errs.length) { errs.forEach(e => console.log('  ✗ ' + e)); process.exit(1); }
 
 if (write) {
-  const out = path.join(ROOT, 'data', 'notes', ch + '.' + NAMES[ch] + '.js');
+  const out = path.join(ROOT, 'data', 'notes', E13 ? '2013' : '', ch + '.' + NAMES[ch] + '.js');
+  fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out,
-    '/* 내용정리 · 과목 ' + ch + ' ' + book.title + '\n' +
-    '   tools/notes-build.js 가 tools/notes-src/ch' + ch + '.md 에서 만든다. 손으로 고치지 말 것. */\n' +
+    '/* 내용정리' + (E13 ? ' 2013 Edition' : '') + ' · 과목 ' + ch + ' ' + book.title + '\n' +
+    '   tools/notes-build.js 가 tools/notes-src/' + srcRel + ' 에서 만든다. 손으로 고치지 말 것. */\n' +
     'DAP_NOTES.add(' + JSON.stringify(book, null, 1) + ');\n', 'utf8');
   console.log('→ ' + path.relative(ROOT, out));
 }

@@ -79,15 +79,25 @@ window.DAP_MANIFEST = {
     { file: "6.데이터품질관리이해.v2.js", collection: "v2" }
   ],
 
-  /* 내용정리 — 과목별 교재 이론 정리. 그 과목을 처음 열 때 불러온다(시작 속도와 무관).
-     원고 tools/notes-src/chN.md 를 고치고 node tools/notes-build.js N --write 로 만든다.
-     여기 없는 과목은 내용정리 화면에 「준비 중」으로 나온다. */
+  /* 내용정리 — 과목별 이론 정리. 그 과목을 처음 열 때 불러온다(시작 속도와 무관).
+     두 판이 있다. ed 가 없으면 2020 판이다.
+       2020 : 요약본(I.~VI. hwpx). 원고 tools/notes-src/chN.md → node tools/notes-build.js N --write
+       2013 : 준전문가 가이드(교재) 본문을 개조식으로. 원고 tools/notes-src/2013/chN.md
+              → node tools/notes-build.js N --ed 2013 --write  (가이드에는 과목 I~IV 만 있다)
+     여기 없는 과목은 그 판의 화면에 「준비 중」/「가이드에 없음」으로 나온다. */
   notes: [
     { ch: 1, file: "notes/1.전사아키텍처이해.js" },
     { ch: 2, file: "notes/2.데이터요건분석.js" },
     { ch: 3, file: "notes/3.데이터표준화.js" },
     { ch: 4, file: "notes/4.데이터모델링.js" },
     { ch: 5, file: "notes/5.데이터베이스설계와이용.js" },
-    { ch: 6, file: "notes/6.데이터품질관리이해.js" }
+    { ch: 6, file: "notes/6.데이터품질관리이해.js" },
+
+    { ed: "2013", ch: 1, file: "notes/2013/1.전사아키텍처이해.js" },
+    { ed: "2013", ch: 2, file: "notes/2013/2.데이터요건분석.js" },
+    { ed: "2013", ch: 3, file: "notes/2013/3.데이터표준화.js" },
+    { ed: "2013", ch: 4, file: "notes/2013/4.데이터모델링.js" },
+    { ed: "2013", ch: 5, file: "notes/2013/5.데이터베이스설계와이용.js" },
+    { ed: "2013", ch: 6, file: "notes/2013/6.데이터품질관리이해.js" }
   ]
 };
