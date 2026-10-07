@@ -21,6 +21,7 @@ const SUITES = [
   ['올리는 중 변경',           'test/sync-upload-window.js'],
   ['받아오는 중 변경',         'test/sync-read-window.js'],
   ['내용정리',                 'test/notes.js'],
+  ['형광펜',                   'test/highlight.js'],
 ];
 
 let failed = [];

@@ -471,6 +471,56 @@ mark.n-hit{background:var(--key-soft);color:inherit;border-radius:2px;padding:0 
 .ns-hit:last-child{border-bottom:none}
 .ns-path{font-size:calc(11.5px * var(--fs));color:var(--muted)}
 .ns-snip{font-size:calc(13.5px * var(--fs));color:var(--ink-2)}
+/* 형광펜 — 바탕은 반투명이라 원본의 빨강·파랑 글자색이 그대로 보인다. 가리기에는 같은 계열의 진한 색 */
+:root{--hl-y:rgba(255,212,0,.42);--hl-g:rgba(52,199,110,.30);--hl-r:rgba(255,92,128,.30);
+  --hl-y-solid:#F2C400;--hl-g-solid:#3FB873;--hl-r-solid:#F0668A}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--hl-y:rgba(255,212,0,.28);--hl-g:rgba(60,210,120,.26);--hl-r:rgba(255,100,135,.28);
+  --hl-y-solid:#A88A10;--hl-g-solid:#2C8A55;--hl-r-solid:#B04A68}}
+:root[data-theme="dark"]{--hl-y:rgba(255,212,0,.28);--hl-g:rgba(60,210,120,.26);--hl-r:rgba(255,100,135,.28);
+  --hl-y-solid:#A88A10;--hl-g-solid:#2C8A55;--hl-r-solid:#B04A68}
+mark.hl{color:inherit;border-radius:2px;cursor:pointer;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.hl-y{background:var(--hl-y)} .hl-g{background:var(--hl-g)} .hl-r{background:var(--hl-r)}
+.hl-hide mark.hl:not(.show){color:transparent}
+.hl-hide mark.hl-y:not(.show){background:var(--hl-y-solid)}
+.hl-hide mark.hl-g:not(.show){background:var(--hl-g-solid)}
+.hl-hide mark.hl-r:not(.show){background:var(--hl-r-solid)}
+mark.hl.n-flash{animation:hlflash 1.8s ease}
+@keyframes hlflash{0%,45%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 3px transparent}}
+.hl-memo{color:var(--accent);font-size:.72em;margin:0 1px;cursor:pointer}
+.hl-only .hl-off{display:none}
+.hl-sw{display:inline-block;width:12px;height:12px;border-radius:3px;flex:none;vertical-align:-1px}
+.hl-sw.hl-y{background:var(--hl-y-solid)} .hl-sw.hl-g{background:var(--hl-g-solid)} .hl-sw.hl-r{background:var(--hl-r-solid)}
+.hl-tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:-6px 0 12px}
+.hl-tip{flex:1;min-width:200px;font-size:calc(12.5px * var(--fs));color:var(--muted)}
+.hl-tip b{color:var(--ink-2);font-weight:600}
+.hl-bar,.hl-pop{position:absolute;z-index:150;background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+/* hidden 으로 감춘다. 아래 display:flex 가 hidden 의 기본 display:none 을 덮으므로 따로 못 박는다 */
+.hl-bar[hidden],.hl-pop[hidden]{display:none}
+.hl-bar{display:flex;gap:2px;padding:4px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.hl-bar button{display:flex;align-items:center;gap:6px;padding:7px 10px;border-radius:7px;font-size:calc(13px * var(--fs));color:var(--ink-2);white-space:nowrap}
+.hl-bar button:hover{background:var(--surface-2)}
+.hl-pop{width:min(320px,calc(100vw - 16px));padding:10px;display:flex;flex-direction:column;gap:8px}
+.hl-pop-c{display:flex;gap:4px}
+.hl-pick{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:6px 4px;border:1px solid var(--line);border-radius:7px;font-size:calc(12.5px * var(--fs));color:var(--ink-2)}
+.hl-pick.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink);font-weight:500}
+.hl-pop textarea{width:100%;resize:vertical;font:inherit;font-size:calc(13px * var(--fs));padding:7px 9px;border-radius:7px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
+.hl-pop-a{display:flex;gap:6px;align-items:center}
+.hl-lost{margin-bottom:12px;padding:10px 14px;border:1px dashed var(--line-strong);border-radius:var(--radius);display:flex;flex-direction:column;gap:6px;font-size:calc(13px * var(--fs))}
+.hl-lost-row{display:flex;align-items:center;gap:8px}
+.hl-lost-row > span{flex:1;min-width:0}
+.nt-hl{margin-left:auto;flex:none;font-family:var(--font-mono);font-size:calc(10px * var(--fs));line-height:1.6;padding:0 6px;border-radius:99px;color:var(--ink-2);background:var(--hl-y)}
+.nt-hl + .nt-ok{margin-left:4px !important}
+.hl-filter{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
+.hl-filter .chip{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.hl-group{padding:4px 0;margin-bottom:12px}
+.hl-gh{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:10px 18px;font-size:calc(12.5px * var(--fs));color:var(--muted);font-weight:600;border-bottom:1px solid var(--line)}
+.hl-row{display:flex;gap:12px;align-items:flex-start;padding:11px 18px;border-bottom:1px solid var(--line)}
+.hl-row:last-child{border-bottom:none}
+.hl-row-b{flex:1;min-width:0;font-size:calc(14px * var(--fs));line-height:1.7}
+.hl-row-a{display:flex;flex-direction:column;gap:4px;flex:none}
+mark.hl-card{padding:1px 3px}
+.hl-m{margin-top:3px;font-size:calc(12.5px * var(--fs));color:var(--muted)}
+@media (max-width:600px){ .hl-row{flex-direction:column;gap:6px} .hl-row-a{flex-direction:row} .hl-tip{flex-basis:100%} }
 @media (max-width:1100px){
   .note-layout{grid-template-columns:minmax(0,1fr)}
   .note-layout > .note-toc{display:none}
@@ -936,10 +986,12 @@ var S = load();
 function blank(){
   return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{}, epoch:0, rev:0, by:"",
            notesRead:{},     /* 내용정리에서 읽음 표시한 절 { "3-2-2": 시각 } — 2013 판은 "13:1-2-3" */
+           hl:{},            /* 내용정리 형광펜 { id: { k:절 키, c, q, pre, suf, o, m, t, u, del } } — 자세한 것은 「형광펜」 */
            /* target = 필기 60점 만점 중 목표 점수. 합격은 필기+실기(40점) 합산 75점이므로
               실기에서 23점을 얻는다고 보면 필기 52점이 목표가 된다. */
            settings:{ timerMin:90, target:52, theme:"auto", bank:"",
-                      fontId:FONTS[0].id, fontStack:FONTS[0].stack, fontScale:1 } };
+                      fontId:FONTS[0].id, fontStack:FONTS[0].stack, fontScale:1,
+                      hlHide:false, hlOnly:false } };   /* 형광펜 가리기 · 형광만 보기 */
 }
 function normalize(o){
   var b = blank();
@@ -962,6 +1014,11 @@ function normalize(o){
   var sc = parseFloat(o.settings.fontScale);
   if(!isFinite(sc)) sc = 1;
   o.settings.fontScale = Math.round(Math.min(FS_MAX, Math.max(FS_MIN, sc)) * 100) / 100;
+  /* 지운 형광펜 표시(del)는 반년이 지나면 버린다. 그만큼 동기화하지 않은 기기는 없다고 본다 */
+  Object.keys(o.hl).forEach(function(id){
+    var h = o.hl[id];
+    if(!h || !h.k || (h.del && Date.now() - (h.u||0) > 180*864e5)) delete o.hl[id];
+  });
   return o;
 }
 function load(){
@@ -2017,7 +2074,7 @@ function viewSettings(){
 
   /* ── 진도 파일 ── */
   h += '<div class="card pad" style="margin-bottom:16px"><h3 style="font-size:calc(14.5px * var(--fs));margin-bottom:12px">진도 파일</h3>'+
-      '<p class="note">현재 기록: '+o.seen+'문항 풀이 · 오답 '+wrongIds().length+' · 북마크 '+bookmarkIds().length+' · 모의고사 '+examsAsc().length+'회 · 진행 중 세션 '+liveSessions().length+'건</p>'+
+      '<p class="note">현재 기록: '+o.seen+'문항 풀이 · 오답 '+wrongIds().length+' · 북마크 '+bookmarkIds().length+' · 모의고사 '+examsAsc().length+'회 · 진행 중 세션 '+liveSessions().length+'건 · 형광펜 '+hlLive().length+'개</p>'+
       '<p class="note" style="margin-top:6px">저장 파일: <span class="mono">'+esc(PROGRESS_FILE)+'</span>'+
         (fileLinked() ? ' <span class="chip chip-ok">위치 연결됨</span>' : '')+'</p>'+
       '<div class="btn-row" style="margin-top:14px">'+
@@ -2565,7 +2622,7 @@ function needNotes(list, ed){
   }, ed); });
   return false;
 }
-function isNoteView(name){ return name === "notes" || name === "note" || name === "nsearch"; }
+function isNoteView(name){ return name === "notes" || name === "note" || name === "nsearch" || name === "nhl"; }
 /* 읽음 표시 키 — 2020 판은 예전 그대로("3-2-2"), 2013 판은 "13:" 을 앞에 붙인다 */
 function noteKey(ch, c, s, ed){ return ((ed || curEd()) === "2013" ? "13:" : "") + ch + "-" + c + "-" + s; }
 function noteRead(ch, c, s, ed){ return !!(S.notesRead && S.notesRead[noteKey(ch, c, s, ed)]); }
@@ -2748,6 +2805,7 @@ function viewNotesHome(){
     (E.id === "2020" ? ' <span class="n-2013">2013</span> 표시는 2013 Edition 에만 있는 내용입니다.' : '')+'</p></div>'+
     '<button class="btn" data-go="nsearch">⌕ 내용 검색</button></div>';
   h += '<div class="nh-grid">';
+  var hc = hlCounts(E.id);
   subs.forEach(function(sub){
     var b = noteBook(sub.id);
     if(!hasNotes(sub.id) || !b){
@@ -2763,13 +2821,24 @@ function viewNotesHome(){
       h += '<div class="nh-ch">제'+C.no+'장 '+esc(C.title)+'</div><div class="nh-secs">';
       C.sections.forEach(function(Sx){
         h += '<button data-go="note" data-ch="'+sub.id+'" data-c="'+C.no+'" data-s="'+Sx.no+'"><span class="mono" style="color:var(--muted)">'+Sx.no+'절</span>'+
-          '<span>'+esc(Sx.title)+'</span>'+(noteRead(sub.id, C.no, Sx.no) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
+          '<span>'+esc(Sx.title)+'</span>'+hlBadge(hc[noteKey(sub.id, C.no, Sx.no)])+(noteRead(sub.id, C.no, Sx.no) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
       });
       h += '</div>';
     });
     h += '</div>';
   });
   return h + '</div>';
+}
+
+/* 절 본문 — 절 화면과 형광펜 모아보기(칠한 자리가 아직 있는지 보려고)가 함께 쓴다 */
+function noteDocHtml(Sx, b, E){
+  var H = { n:0 }, doc = "";
+  if(Sx.intro) doc += '<div class="note-intro">' + noteHtml(Sx.intro, b, H) + '</div>';
+  Sx.items.forEach(function(it){
+    doc += '<section class="n-item" id="na-'+it.no+'"><h2 class="n-h3"><span class="n-no">'+it.no+'.</span><span>'+noteInline(it.title)+'</span></h2>'+
+      (it.body ? noteHtml(it.body, b, H) : '<p class="n-empty">'+(E.id === "2013" ? '가이드' : '요약본')+'에 이 항의 본문이 없습니다.</p>') + '</section>';
+  });
+  return doc;
 }
 
 function viewNote(){
@@ -2786,6 +2855,11 @@ function viewNote(){
     '<button data-go="notes">'+ROMAN[ch]+'. '+esc(b.title)+'</button><span>›</span><span>제'+C.no+'장 '+esc(C.title)+'</span></div>';
   h += '<div class="page-head" style="margin-bottom:16px"><div><h1 class="page-title">제'+s+'절 '+esc(Sx.title)+'</h1></div>'+
     '<button class="btn'+(read ? ' btn-primary' : '')+'" data-act="noteread">'+(read ? '✓ 읽음' : '읽음 표시')+'</button></div>';
+  var hn = hlOf(noteKey(ch, c, s)).length;
+  h += '<div class="hl-tools"><span class="hl-tip"><b>형광펜 '+hn+'개</b> · 글자를 선택하면 색을 고르는 막대가 나옵니다. 칠한 곳을 누르면 색·메모를 고칩니다</span>'+
+    '<button class="btn btn-sm'+(S.settings.hlHide ? ' btn-primary' : '')+'" data-act="hlhide" aria-pressed="'+!!S.settings.hlHide+'" title="칠한 글자를 가리고, 누르면 보입니다">가리기</button>'+
+    '<button class="btn btn-sm'+(S.settings.hlOnly ? ' btn-primary' : '')+'" data-act="hlonly" aria-pressed="'+!!S.settings.hlOnly+'" title="칠한 곳이 있는 줄만 남깁니다">형광만 보기</button>'+
+    '<button class="btn btn-sm" data-go="nhl">모아보기</button></div><div id="hlLost"></div>';
 
   var heads = noteHeads(Sx);
   function toc(){
@@ -2795,12 +2869,7 @@ function viewNote(){
           (x.lv === 3 ? x.item + '. ' : '') + esc(x.t) + '</button>';
       }).join("") + '</nav>';
   }
-  var H = { n:0 }, doc = "";
-  if(Sx.intro) doc += '<div class="note-intro">' + noteHtml(Sx.intro, b, H) + '</div>';
-  Sx.items.forEach(function(it){
-    doc += '<section class="n-item" id="na-'+it.no+'"><h2 class="n-h3"><span class="n-no">'+it.no+'.</span><span>'+noteInline(it.title)+'</span></h2>'+
-      (it.body ? noteHtml(it.body, b, H) : '<p class="n-empty">'+(E.id === "2013" ? '가이드' : '요약본')+'에 이 항의 본문이 없습니다.</p>') + '</section>';
-  });
+  var doc = noteDocHtml(Sx, b, E);
   h += '<details class="note-toc-m"><summary>이 절의 목차 · '+Sx.items.length+'항</summary>'+toc()+'</details>';
   h += '<div class="note-layout"><article class="note-doc">'+doc+'</article>'+toc()+'</div>';
 
@@ -2889,13 +2958,17 @@ function viewNoteSearch(){
 /* ---- 레일: 목차 트리 ---- */
 var NOTE_NAVS = [
   { id:"notes",   ico:"◈", label:"개요" },
-  { id:"nsearch", ico:"⌕", label:"내용 검색" }
+  { id:"nsearch", ico:"⌕", label:"내용 검색" },
+  { id:"nhl",     ico:"✎", label:"형광펜 모아보기" }
 ];
 function renderNoteRail(){
   $("#bankBox").innerHTML = "";
+  var hc = hlCounts(curEd()), hall = 0;
+  Object.keys(hc).forEach(function(k){ hall += hc[k]; });
   $("#navMain").innerHTML = NOTE_NAVS.map(function(n){
     return '<button class="nav-item" data-go="'+n.id+'" aria-current="'+(view.name===n.id)+'">'+
-      '<span class="nav-ico">'+n.ico+'</span><span>'+n.label+'</span></button>';
+      '<span class="nav-ico">'+n.ico+'</span><span>'+n.label+'</span>'+
+      (n.id === "nhl" && hall ? '<span class="nav-count">'+hall+'</span>' : '')+'</button>';
   }).join("");
   $("#chapLabel").textContent = "목차";
   var E = noteEd(), ok = nk("", view.ch);
@@ -2914,7 +2987,8 @@ function renderNoteRail(){
         C.sections.forEach(function(Sx){
           var cur = view.name === "note" && view.ch === sub.id && view.c === C.no && view.s === Sx.no;
           h += '<button class="nt-sec" data-go="note" data-ch="'+sub.id+'" data-c="'+C.no+'" data-s="'+Sx.no+'" aria-current="'+cur+'">'+
-            '<span class="nt-no">'+Sx.no+'</span><span>'+esc(Sx.title)+'</span>'+(noteRead(sub.id, C.no, Sx.no) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
+            '<span class="nt-no">'+Sx.no+'</span><span>'+esc(Sx.title)+'</span>'+hlBadge(hc[noteKey(sub.id, C.no, Sx.no)])+
+            (noteRead(sub.id, C.no, Sx.no) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
         });
       });
       h += '</div>';
@@ -2929,14 +3003,15 @@ function viewHash(v){
   var p = "#/" + (v.ed || "2020");
   if(v.name === "notes")   return p;
   if(v.name === "nsearch") return p + "/search";
+  if(v.name === "nhl")     return p + "/marks";
   if(v.name === "note")    return p + "/" + v.ch + "/" + v.c + "/" + v.s;
   return "";
 }
 function viewFromHash(){
-  var m = /^#\/(notes|2020|2013)(?:\/(search)|\/(\d+)\/(\d+)\/(\d+))?\/?$/.exec(location.hash || "");
+  var m = /^#\/(notes|2020|2013)(?:\/(search|marks)|\/(\d+)\/(\d+)\/(\d+))?\/?$/.exec(location.hash || "");
   if(!m) return null;
   var ed = m[1] === "2013" ? "2013" : "2020";
-  if(m[2]) return { name:"nsearch", ed:ed };
+  if(m[2]) return { name:m[2] === "marks" ? "nhl" : "nsearch", ed:ed };
   if(m[3]) return { name:"note", ed:ed, ch:+m[3], c:+m[4], s:+m[5] };
   return { name:"notes", ed:ed };
 }
@@ -2959,6 +3034,329 @@ function scrollToNote(id){
   el.classList.remove("n-flash"); void el.offsetWidth; el.classList.add("n-flash");
 }
 
+/* ═══════════ 형광펜 ═══════════
+   내용정리 본문에서 글자를 선택해 칠한다. 기록은 S.hl = { id: 형광펜 } 이다.
+   형광펜 = { k:절 키(noteKey), c:색, q:칠한 글자, pre·suf:그 앞뒤 글자, o:칠할 때의 위치,
+              m:메모, t:만든 시각, u:마지막으로 고친 시각, del:지움 }
+   위치를 글자 번호로만 두면 원고를 다시 빌드할 때 어긋난다. 칠한 글자를 앞뒤 글자와 함께 기억해 두고
+   그릴 때마다 본문에서 다시 찾는다(텍스트 인용 앵커). 같은 글자가 여러 곳이면 앞뒤가 더 많이 맞는 곳,
+   그다음 o 에 가까운 곳이다. 못 찾은 것은 버리지 않고 「위치를 찾지 못한 형광펜」으로 보인다.
+   본문을 문자열 하나로 볼 때 블록(글머리·문단·셀·소제목)이 바뀌는 자리와 <br> 에는 "\n" 을 넣는다 —
+   블록을 걸쳐 칠한 글자가 모아보기에서 붙어 보이지 않게. 배지(2013·워드)·메모 표시는 본문 글자로 치지 않는다.
+   칠한 곳은 서로 겹치지 않게 둔다. 겹치게 칠하면 둘을 합친다.
+   지운 것은 del 로 남긴다. 병합은 합집합이라 그냥 지우면 다른 기기에 남은 것이 되살아난다. */
+var HL_COLORS = [ { id:"y", name:"중요" }, { id:"g", name:"헷갈림" }, { id:"r", name:"꼭 암기" } ];
+var HL_CTX = 24;                                        /* 앞뒤로 기억하는 글자 수 */
+var HL_BLOCK = "li,p,td,th,h2,h4,h5,.n-tip,.n-cap";
+var HL_SKIP = ".n-2013,.n-w,.hl-memo,.hl-skip";
+var HL_POS = {};                                        /* 지금 절 화면에서 형광펜이 놓인 자리 { id:[시작, 끝] } */
+var hlSelNow = null, hlSelT = null;
+
+function hlLive(){
+  return Object.keys(S.hl || {}).map(function(id){
+    var h = S.hl[id];
+    return h && !h.del ? Object.assign({ id:id }, h) : null;
+  }).filter(Boolean);
+}
+function hlOf(key){
+  return hlLive().filter(function(h){ return h.k === key; }).sort(function(a, b){ return (a.o||0) - (b.o||0); });
+}
+function hlEdOf(k){ return String(k).indexOf("13:") === 0 ? "2013" : "2020"; }
+function hlCounts(ed){
+  var m = {};
+  hlLive().forEach(function(h){ if(hlEdOf(h.k) === ed) m[h.k] = (m[h.k]||0) + 1; });
+  return m;
+}
+function hlBadge(n){ return n ? '<span class="nt-hl" title="형광펜 '+n+'개">'+n+'</span>' : ''; }
+
+/* 본문을 문자열 하나로. nodes = [{ n:글자 노드, s:문자열 속 시작 }] */
+function hlText(root){
+  var out = { text:"", nodes:[] }, prev = null, br = false, n;
+  var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null);
+  while((n = w.nextNode())){
+    if(n.nodeType === 1){ if(n.tagName === "BR") br = true; continue; }
+    var p = n.parentNode;
+    if(!n.nodeValue || p.closest(HL_SKIP)) continue;
+    var blk = p.closest(HL_BLOCK) || root;
+    if(out.text && (br || (prev && blk !== prev))) out.text += "\n";
+    prev = blk; br = false;
+    out.nodes.push({ n:n, s:out.text.length });
+    out.text += n.nodeValue;
+  }
+  return out;
+}
+/* 선택 경계(노드, 오프셋) → 문자열 위치. 글자 노드가 아니면 그 뒤 첫 글자 노드의 시작 */
+function hlPoint(info, node, off){
+  for(var i = 0; i < info.nodes.length; i++)
+    if(info.nodes[i].n === node) return info.nodes[i].s + Math.min(off, node.nodeValue.length);
+  var r = document.createRange();
+  r.setStart(node, off); r.collapse(true);
+  for(var j = 0; j < info.nodes.length; j++) if(r.comparePoint(info.nodes[j].n, 0) >= 0) return info.nodes[j].s;
+  return info.text.length;
+}
+function hlSel(root){
+  var sel = window.getSelection();
+  if(!sel || sel.isCollapsed || !sel.rangeCount) return null;
+  var r = sel.getRangeAt(0);
+  if(!root.contains(r.startContainer) || !root.contains(r.endContainer)) return null;
+  var info = hlText(root), s = hlPoint(info, r.startContainer, r.startOffset), e = hlPoint(info, r.endContainer, r.endOffset);
+  while(s < e && /\s/.test(info.text.charAt(s))) s++;
+  while(e > s && /\s/.test(info.text.charAt(e-1))) e--;
+  return e > s ? { s:s, e:e, rect:r.getBoundingClientRect() } : null;
+}
+/* 본문 문자열에서 형광펜 자리를 찾는다. 없으면 -1 */
+function hlFind(text, h){
+  var q = h.q || "", a = h.pre || "", b = h.suf || "", best = -1, bs = 0, i = q ? text.indexOf(q) : -1;
+  while(i >= 0){
+    var sc = 0, x, y;
+    for(x = 1; x <= a.length && i - x >= 0 && text.charAt(i-x) === a.charAt(a.length-x); x++) sc++;
+    for(y = 0; y < b.length && text.charAt(i+q.length+y) === b.charAt(y); y++) sc++;
+    sc = sc * 1e7 - Math.abs(i - (h.o||0));
+    if(best < 0 || sc > bs){ best = i; bs = sc; }
+    i = text.indexOf(q, i + 1);
+  }
+  return best;
+}
+/* [s, e) 를 <mark> 로 감싼다. 블록을 걸치면 노드마다 따로 감싸고, 첫 조각에 id 를 붙인다 */
+function hlWrap(root, s, e, h){
+  var first = null, last = null;
+  hlText(root).nodes.forEach(function(x){
+    var len = x.n.nodeValue.length, a = Math.max(s, x.s) - x.s, b = Math.min(e, x.s + len) - x.s;
+    if(a >= b || x.n.parentNode.closest("mark.hl")) return;
+    var n = x.n;
+    if(b < len) n.splitText(b);
+    if(a > 0) n = n.splitText(a);
+    var mk = document.createElement("mark");
+    mk.className = "hl hl-" + h.c;
+    mk.setAttribute("data-act", "hlmark"); mk.setAttribute("data-hl", h.id);
+    if(h.m) mk.title = h.m;
+    if(!first){ mk.id = "hl-" + h.id; first = mk; }
+    n.parentNode.insertBefore(mk, n); mk.appendChild(n);
+    last = mk;
+  });
+  if(last && h.m){
+    var sp = document.createElement("sup");
+    sp.className = "hl-memo"; sp.textContent = "✎"; sp.title = h.m;
+    sp.setAttribute("data-act", "hlmark"); sp.setAttribute("data-hl", h.id);
+    last.parentNode.insertBefore(sp, last.nextSibling);
+  }
+}
+/* 절 본문에 그 절의 형광펜을 칠한다. 자리를 못 찾은 것을 돌려준다 */
+function hlApply(root, key){
+  var list = hlOf(key), text = hlText(root).text, lost = [];
+  HL_POS = {};
+  list.forEach(function(h){
+    var i = hlFind(text, h);
+    if(i < 0) lost.push(h); else HL_POS[h.id] = [i, i + h.q.length];
+  });
+  list.forEach(function(h){ if(HL_POS[h.id]) hlWrap(root, HL_POS[h.id][0], HL_POS[h.id][1], h); });
+  return lost;
+}
+/* 형광만 보기 — 칠한 곳이 있는 줄만 남긴다. 소제목은 그 아래에 칠한 곳이 있으면, 표는 머리 행을 남긴다 */
+function hlOnly(root){
+  var has = function(el){ return !!(el && el.querySelector("mark.hl")); };
+  var off = function(el){ el.classList.add("hl-off"); };
+  $$(".note-intro, .n-item", root).forEach(function(box){
+    if(!has(box)) return off(box);
+    var kids = Array.prototype.slice.call(box.children);
+    kids.forEach(function(el, i){
+      var tg = el.tagName;
+      if(tg === "H2") return;
+      if(tg === "H4" || tg === "H5"){
+        for(var j = i + 1; j < kids.length; j++){
+          var t2 = kids[j].tagName;
+          if(t2 === "H4" || (tg === "H5" && t2 === "H5")) break;
+          if(has(kids[j])) return;
+        }
+        return off(el);
+      }
+      if(el.classList.contains("n-cap") && has(kids[i+1])) return;
+      if(!has(el)) return off(el);
+      $$("li", el).forEach(function(li){ if(!has(li)) off(li); });
+      $$("tr", el).forEach(function(tr){ if(!has(tr) && !tr.querySelector("th")) off(tr); });
+    });
+  });
+}
+function hlAfterRender(){
+  hlHideUi();
+  if(view.name !== "note") return;
+  var root = $(".note-doc");
+  if(!root) return;
+  var lost = hlApply(root, noteKey(view.ch, view.c, view.s));
+  if(S.settings.hlHide) root.classList.add("hl-hide");
+  if(S.settings.hlOnly){
+    root.classList.add("hl-only");
+    hlOnly(root);
+    if(!root.querySelector("mark.hl")) root.insertAdjacentHTML("afterbegin", '<p class="n-empty hl-skip">이 절에는 칠한 곳이 없습니다. [형광만 보기]를 끄면 본문 전체가 나옵니다.</p>');
+  }
+  var box = $("#hlLost");
+  if(box && lost.length) box.innerHTML = '<div class="hl-lost"><b>위치를 찾지 못한 형광펜 '+lost.length+'개</b>'+
+    '<span class="note">내용정리 원고가 바뀌어 칠했던 글자를 찾지 못했습니다. 내용은 그대로 남아 있습니다.</span>'+
+    lost.map(function(h){
+      return '<div class="hl-lost-row"><i class="hl-sw hl-'+esc(h.c)+'"></i><span>'+esc(h.q).replace(/\n/g, " / ")+
+        (h.m ? ' <span class="note">✎ '+esc(h.m)+'</span>' : '')+'</span><button class="btn btn-sm" data-act="hldel" data-id="'+esc(h.id)+'">삭제</button></div>';
+    }).join("") + '</div>';
+}
+
+/* ---- 칠하기 · 고치기 ---- */
+function hlRerender(){ var y = window.scrollY; render(); window.scrollTo(0, y); }
+function hlNewId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function hlAdd(sel, c){
+  var root = $(".note-doc");
+  if(!root || view.name !== "note") return;
+  var info = hlText(root), now = Date.now(), s = sel.s, e = sel.e, memo = [], hit = true;
+  /* 겹치는 형광펜은 새것에 합친다. 합쳐서 넓어진 자리가 또 다른 것과 겹칠 수 있어 더 없을 때까지 */
+  while(hit){
+    hit = false;
+    Object.keys(HL_POS).forEach(function(id){
+      var p = HL_POS[id], h = S.hl[id];
+      if(!h || h.del || !(p[0] < e && p[1] > s)) return;
+      s = Math.min(s, p[0]); e = Math.max(e, p[1]);
+      if(h.m) memo.push(h.m);
+      S.hl[id] = { k:h.k, del:1, u:now };
+      hit = true;
+    });
+  }
+  S.hl[hlNewId()] = { k:noteKey(view.ch, view.c, view.s), c:c, q:info.text.slice(s, e),
+                      pre:info.text.slice(Math.max(0, s - HL_CTX), s), suf:info.text.slice(e, e + HL_CTX),
+                      o:s, m:memo.join(" / "), t:now, u:now };
+  save();
+  try{ window.getSelection().removeAllRanges(); }catch(er){}
+  hlSelNow = null;
+  hlRerender();
+}
+function hlSet(id, patch){
+  var h = S.hl[id];
+  if(!h || h.del) return;
+  if(patch.del) S.hl[id] = { k:h.k, del:1, u:Date.now() };
+  else { Object.assign(h, patch); h.u = Date.now(); }
+  save();
+  hlRerender();
+}
+
+/* ---- 색 고르는 막대 · 고치기 창 ---- */
+function hlEl(id, cls){
+  var el = document.getElementById(id);
+  if(!el){ el = document.createElement("div"); el.id = id; el.className = cls; el.hidden = true; document.body.appendChild(el); }
+  return el;
+}
+function hlBarEl(){
+  var el = document.getElementById("hlBar");
+  if(el) return el;
+  el = hlEl("hlBar", "hl-bar");
+  el.innerHTML = HL_COLORS.map(function(c){
+    return '<button type="button" data-c="'+c.id+'" title="'+esc(c.name)+'"><i class="hl-sw hl-'+c.id+'"></i><span>'+esc(c.name)+'</span></button>';
+  }).join("");
+  /* 막대를 누르는 순간 선택이 풀리지 않게 한다. 풀리더라도 칠할 자리는 hlSelNow 에 있다 */
+  el.addEventListener("mousedown", function(e){ e.preventDefault(); });
+  el.addEventListener("touchstart", function(e){ e.preventDefault(); }, { passive:false });
+  el.addEventListener("pointerdown", function(e){
+    var b = e.target.closest("button[data-c]");
+    if(!b) return;
+    e.preventDefault();
+    if(hlSelNow) hlAdd(hlSelNow, b.getAttribute("data-c"));
+  });
+  return el;
+}
+function hlPlace(el, rect){
+  el.hidden = false;
+  var sx = window.scrollX, sy = window.scrollY, vw = document.documentElement.clientWidth, w = el.offsetWidth;
+  var x = Math.max(sx + 8, Math.min(rect.left + rect.width / 2 - w / 2 + sx, sx + vw - w - 8));
+  el.style.left = x + "px";
+  el.style.top = (rect.bottom + sy + 10) + "px";
+}
+function hlHideUi(){
+  var b = document.getElementById("hlBar"), p = document.getElementById("hlPop");
+  if(b) b.hidden = true;
+  if(p) p.hidden = true;
+}
+function hlOpen(id, rect){
+  var h = S.hl[id];
+  if(!h || h.del) return;
+  var el = hlEl("hlPop", "hl-pop");
+  el.innerHTML = '<div class="hl-pop-c">'+HL_COLORS.map(function(c){
+      return '<button type="button" class="hl-pick'+(h.c === c.id ? ' on' : '')+'" data-act="hlcolor" data-id="'+esc(id)+'" data-c="'+c.id+'">'+
+        '<i class="hl-sw hl-'+c.id+'"></i>'+esc(c.name)+'</button>';
+    }).join("")+'</div>'+
+    '<textarea id="hlMemo" rows="2" placeholder="메모 (선택)">'+esc(h.m || "")+'</textarea>'+
+    '<div class="hl-pop-a"><button class="btn btn-sm" data-act="hldel" data-id="'+esc(id)+'">삭제</button><span style="flex:1"></span>'+
+    '<button class="btn btn-sm" data-act="hlclose">닫기</button><button class="btn btn-sm btn-primary" data-act="hlsave" data-id="'+esc(id)+'">메모 저장</button></div>';
+  hlBarEl().hidden = true;
+  hlPlace(el, rect);
+}
+document.addEventListener("selectionchange", function(){
+  clearTimeout(hlSelT);
+  hlSelT = setTimeout(function(){
+    var root = view.name === "note" && $(".note-doc"), sel = root && hlSel(root);
+    if(sel){ hlSelNow = sel; var p = document.getElementById("hlPop"); if(p) p.hidden = true; hlPlace(hlBarEl(), sel.rect); }
+    else { hlSelNow = null; var b = document.getElementById("hlBar"); if(b) b.hidden = true; }
+  }, 160);
+});
+/* 고치기 창 바깥을 누르면 닫는다. 칠한 곳을 누른 것이면 그 형광펜 창이 새로 열린다 */
+document.addEventListener("pointerdown", function(e){
+  var p = document.getElementById("hlPop");
+  if(p && !p.hidden && !p.contains(e.target) && !e.target.closest("[data-act=hlmark]")) p.hidden = true;
+});
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") hlHideUi(); });
+
+/* ---- 모아보기 ---- */
+function viewNoteMarks(){
+  var E = noteEd(), fc = view.hc || "", hide = !!S.settings.hlHide;
+  var all = hlLive().filter(function(h){ return hlEdOf(h.k) === E.id; });
+  var h = '<div class="page-head"><div><div class="eyebrow">Highlights · '+esc(E.title)+'</div><h1 class="page-title">형광펜 모아보기</h1>'+
+    '<p class="page-desc">'+esc(E.title)+'에서 칠한 글자를 과목 → 절 순서로 모았습니다. [위치로]를 누르면 본문의 그 자리로 갑니다. '+
+    '[가리기]를 켜면 칠한 글자가 가려져 암기 확인용 카드가 되고, 누르면 보입니다.</p></div></div>';
+  if(!all.length) return h + '<div class="card"><div class="empty"><b>아직 칠한 형광펜이 없습니다</b>절 화면에서 글자를 선택하면 색을 고르는 막대가 나옵니다.</div></div>';
+  var cnt = {};
+  all.forEach(function(x){ cnt[x.c] = (cnt[x.c]||0) + 1; });
+  h += '<div class="hl-filter">'+[{ id:"", name:"전체" }].concat(HL_COLORS).map(function(c){
+      return '<button class="chip'+(fc === c.id ? ' chip-accent' : '')+'" data-act="hlfilter" data-c="'+c.id+'">'+
+        (c.id ? '<i class="hl-sw hl-'+c.id+'"></i>' : '')+esc(c.name)+' '+(c.id ? (cnt[c.id]||0) : all.length)+'</button>';
+    }).join("")+'<span style="flex:1"></span>'+
+    '<button class="btn btn-sm'+(hide ? ' btn-primary' : '')+'" data-act="hlhide" aria-pressed="'+hide+'">가리기</button></div>';
+  /* 절 키 → 과목·장·절 */
+  var groups = {}, chs = {};
+  all.forEach(function(x){
+    var m = /^(?:13:)?(\d+)-(\d+)-(\d+)$/.exec(x.k);
+    if(!m) return;
+    (groups[x.k] = groups[x.k] || { ch:+m[1], c:+m[2], s:+m[3], list:[] }).list.push(x);
+    chs[m[1]] = 1;
+  });
+  if(!needNotes(Object.keys(chs).map(Number))) return h + '<div class="card"><div class="empty"><b>내용정리를 불러오는 중…</b></div></div>';
+  var keys = Object.keys(groups).sort(function(a, b){
+    var A = groups[a], B = groups[b];
+    return A.ch - B.ch || A.c - B.c || A.s - B.s;
+  });
+  var shown = 0;
+  keys.forEach(function(k){
+    var g = groups[k], b = noteBook(g.ch), here = b && noteFind(g.ch, g.c, g.s), text = null;
+    /* 칠한 자리가 지금 본문에 아직 있는지 — 그림은 빼고 그려 본다(떨어진 요소라도 img 는 받아 오므로) */
+    if(here){
+      var box = document.createElement("div");
+      box.innerHTML = noteDocHtml(here.S, b, E).replace(/<img[^>]*>/g, "");
+      text = hlText(box).text;
+    }
+    var list = g.list.filter(function(x){ return !fc || x.c === fc; }).sort(function(a, b){ return (a.o||0) - (b.o||0); });
+    if(!list.length) return;
+    shown += list.length;
+    h += '<div class="card hl-group"><div class="hl-gh"><span>'+ROMAN[g.ch]+' › '+g.c+'장 '+g.s+'절 '+(here ? esc(here.S.title) : '')+'</span>'+
+      '<span class="nav-count">'+list.length+'</span></div>';
+    list.forEach(function(x){
+      var lost = text === null || hlFind(text, x) < 0;
+      h += '<div class="hl-row"><div class="hl-row-b'+(hide ? ' hl-hide' : '')+'">'+
+        '<mark class="hl hl-'+esc(x.c)+' hl-card" data-act="hlreveal">'+esc(x.q).replace(/\n/g, "<br>")+'</mark>'+
+        (x.m ? '<div class="hl-m">✎ '+esc(x.m)+'</div>' : '')+
+        (lost ? '<div class="hl-m"><span class="chip">위치를 찾지 못함</span> 원고가 바뀌어 본문에서 이 글자를 찾지 못했습니다</div>' : '')+
+        '</div><div class="hl-row-a">'+
+        '<button class="btn btn-sm" data-go="note" data-ed="'+E.id+'" data-ch="'+g.ch+'" data-c="'+g.c+'" data-s="'+g.s+'" data-h="hl-'+esc(x.id)+'">위치로 →</button>'+
+        (lost ? '<button class="btn btn-sm" data-act="hldel" data-id="'+esc(x.id)+'">삭제</button>' : '')+'</div></div>';
+    });
+    h += '</div>';
+  });
+  if(!shown) h += '<div class="card"><div class="empty"><b>이 색으로 칠한 형광펜이 없습니다</b></div></div>';
+  return h;
+}
+
 /* ─────────── 렌더 ─────────── */
 function render(){
   regradeByKey();   /* 정답을 바로잡은 문항이 있으면 응시 점수·오답노트를 맞춘다 */
@@ -2976,11 +3374,13 @@ function render(){
     case "notes": h = viewNotesHome(); break;
     case "note": h = viewNote(); break;
     case "nsearch": h = viewNoteSearch(); break;
+    case "nhl": h = viewNoteMarks(); break;
     case "quiz": h = session ? viewQuiz() : viewDash(); break;
     case "result": h = viewResult(); break;
     default: h = viewDash();
   }
   m.innerHTML = h;
+  hlAfterRender();
   if(view.name==="quiz" && session && session.limitSec) startTimer();
   if(view.name==="search"){ var i=$("#q"); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
   if(view.name==="nsearch"){ var ni=$("#nq"); if(ni){ ni.focus(); ni.setSelectionRange(ni.value.length,ni.value.length); } }
@@ -3055,6 +3455,26 @@ document.addEventListener("click", function(ev){
       break;
     }
     case "donsearch": go("nsearch", { kw: $("#nq").value }); break;
+    /* ── 형광펜 ── */
+    case "hlmark": {
+      var hsl = window.getSelection();
+      if(hsl && !hsl.isCollapsed) break;             /* 칠한 곳 위에서 글자를 고르는 중 */
+      var hid = t.getAttribute("data-hl");
+      if(S.settings.hlHide && t.tagName === "MARK"){
+        $$('mark[data-hl="'+hid+'"]').forEach(function(el){ el.classList.toggle("show"); });
+        break;
+      }
+      hlOpen(hid, t.getBoundingClientRect());
+      break;
+    }
+    case "hlreveal": if(S.settings.hlHide) t.classList.toggle("show"); break;
+    case "hlcolor": hlSet(t.getAttribute("data-id"), { c:t.getAttribute("data-c") }); break;
+    case "hlsave": { var hm = $("#hlMemo"); hlSet(t.getAttribute("data-id"), { m:hm ? hm.value.trim() : "" }); break; }
+    case "hldel": hlSet(t.getAttribute("data-id"), { del:1 }); break;
+    case "hlclose": hlHideUi(); break;
+    case "hlhide": S.settings.hlHide = !S.settings.hlHide; save(); hlRerender(); break;
+    case "hlonly": S.settings.hlOnly = !S.settings.hlOnly; save(); hlRerender(); break;
+    case "hlfilter": view.hc = t.getAttribute("data-c") || ""; render(); break;
     case "resume": resumeSession(t.getAttribute("data-key")); break;
     case "dropsession":
       dropSession(t.getAttribute("data-key")); render();
@@ -3437,6 +3857,7 @@ function applyEpoch(o, epoch){
     if((o.sessions[k].ts||0) < epoch) delete o.sessions[k];
   });
   Object.keys(o.notesRead||{}).forEach(function(k){ if((o.notesRead[k]||0) < epoch) delete o.notesRead[k]; });
+  Object.keys(o.hl||{}).forEach(function(id){ if(((o.hl[id]||{}).u||0) < epoch) delete o.hl[id]; });
   /* 북마크에는 시각이 없어 초기화 이전 것을 가려낼 수 없다. 통째로 지운다. */
   o.bookmarks = {};
   o.epoch = epoch;
@@ -3486,6 +3907,11 @@ function mergeState(cur, inc){
   /* 내용정리 읽음 표시: 합집합 (시각은 늦은 쪽). 시각이 있어 초기화(epoch) 이전 것은 걸러진다 */
   Object.keys(inc.notesRead||{}).forEach(function(k){
     out.notesRead[k] = Math.max(out.notesRead[k]||0, inc.notesRead[k]||0);
+  });
+  /* 형광펜: 형광펜마다 늦게 고친 쪽(u). 지운 것도 del 로 남아 있어 지움이 되살아나지 않는다 */
+  Object.keys(inc.hl||{}).forEach(function(id){
+    var a = out.hl[id], b = inc.hl[id];
+    if(b && (!a || (b.u||0) > (a.u||0))) out.hl[id] = b;
   });
   /* 진행 중 세션: 같은 키면 더 최근에 손댄 쪽 */
   Object.keys(inc.sessions).forEach(function(k){
