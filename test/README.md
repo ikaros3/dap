@@ -28,6 +28,7 @@ node test/pack-format.js 3  # 과목 3 팩만
 | `sync-overwrite.js` | 같은 판에서 동시에 올려 덮였을 때 감지·복구 |
 | `sync-upload-window.js` | 올리는 도중에 푼 문항이 유실되지 않는가 |
 | `sync-read-window.js` | 받아오는 도중에 푼 문항이 `pull`로 지워지지 않는가 |
+| `notes.js` | 내용정리 파일·그림이 있는가, 모든 절이 깨지지 않고 그려지는가, 문항의 장·절이 내용정리의 절·소제목을 찾아가는가 |
 
 ## 통과가 아니라 "확인 요망"으로 나오는 것
 

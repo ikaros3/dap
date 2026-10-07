@@ -198,6 +198,24 @@ DAP_BANK.add({
 무관하기 때문이다. 다만 예전 경계로 만들어진 "블록 이어풀기" 위치는 지금 블록과
 맞지 않으므로 앱이 처음 뜰 때 정리한다.
 
+## 내용정리 (`data/notes/`)
+
+문제은행과 별개인 읽기 화면의 데이터다. 과목마다 파일 하나와 그림 폴더가 있다.
+
+```
+data/notes/
+  3.데이터표준화.js     DAP_NOTES.add({ ch, title, images, chapters:[{ no, title, sections:[{ no, title, intro, items }] }] })
+  img/III-01.jpg …      그림. 파일 이름이 원고의 [[img:키]] 다
+```
+
+`*.js` 는 손으로 고치지 않는다. 원고 `tools/notes-src/chN.md` 를 고치고
+`node tools/notes-build.js <과목> --write` 로 다시 만든다(원고 형식은 도구 머리 주석).
+새 과목은 `manifest.js` 의 `notes` 에 `{ ch, file }` 을 더하면 화면의 「준비 중」이 풀린다.
+과목 파일은 그 과목을 처음 열 때 읽으므로 문제은행 시작 속도에는 영향이 없다.
+
+문항의 `s` 가 요약본의 「N장 M절 …」 체계를 따르면 절 화면의 [이 절의 문항]에 모이고,
+해설의 원천 줄에 [내용정리에서 보기]가 붙는다. `node test/notes.js` 가 이 연결을 전수 대조한다.
+
 ## 새 과목 추가
 
 `manifest.js` 의 `chapters` 에 항목을 추가하고 팩 파일을 만들면 된다.

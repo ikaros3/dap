@@ -20,6 +20,7 @@ const SUITES = [
   ['덮어쓰기 감지·복구',       'test/sync-overwrite.js'],
   ['올리는 중 변경',           'test/sync-upload-window.js'],
   ['받아오는 중 변경',         'test/sync-read-window.js'],
+  ['내용정리',                 'test/notes.js'],
 ];
 
 let failed = [];

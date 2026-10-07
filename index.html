@@ -360,6 +360,118 @@ label.field{display:flex;flex-direction:column;gap:5px;font-size:calc(12.5px * v
   .score-big{font-size:calc(42px * var(--fs))}
   .qtext{font-size:calc(15.5px * var(--fs))}
 }
+/* ============ 모드 탭 (문제은행 / 내용정리) ============ */
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;margin:0 2px 8px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line)}
+.mode-tab{padding:7px 6px;border-radius:7px;font-size:calc(13px * var(--fs));font-weight:500;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px}
+.mode-tab:hover{color:var(--ink)}
+.mode-tab[aria-pressed="true"]{background:var(--surface);color:var(--accent-ink);box-shadow:var(--shadow);font-weight:600}
+
+/* ============ 내용정리 ============ */
+/* 레일의 목차 트리: 과목 → 장 → 절 */
+.nt-sub{display:flex;align-items:center;gap:9px;width:100%;padding:6px 9px;border-radius:7px;text-align:left;font-size:calc(13px * var(--fs));color:var(--ink-2)}
+.nt-sub:hover{background:var(--surface-2)}
+.nt-sub[aria-expanded="true"]{color:var(--ink);font-weight:600}
+.nt-sub:disabled{cursor:default;opacity:.55}
+.nt-sub:disabled:hover{background:none}
+.nt-caret{width:10px;flex:none;color:var(--muted);font-size:calc(9px * var(--fs));transition:transform .12s}
+.nt-sub[aria-expanded="true"] .nt-caret{transform:rotate(90deg)}
+.nt-rom{font-family:var(--font-mono);font-size:calc(11px * var(--fs));color:var(--muted);width:22px;flex:none}
+.nt-tree{display:flex;flex-direction:column;gap:1px;margin:2px 0 8px 14px;padding-left:8px;border-left:1px solid var(--line)}
+.nt-ch{padding:7px 8px 3px;font-size:calc(11.5px * var(--fs));color:var(--muted);font-weight:600;line-height:1.35}
+.nt-sec{display:flex;align-items:baseline;gap:7px;width:100%;padding:5px 8px;border-radius:6px;text-align:left;font-size:calc(12.5px * var(--fs));color:var(--ink-2);line-height:1.4}
+.nt-sec:hover{background:var(--surface-2)}
+.nt-sec[aria-current="true"]{background:var(--accent-soft);color:var(--accent-ink);font-weight:500}
+.nt-sec .nt-no{font-family:var(--font-mono);font-size:calc(10.5px * var(--fs));color:var(--muted);flex:none}
+.nt-sec .nt-ok{margin-left:auto;color:var(--ok);font-size:calc(11px * var(--fs));flex:none}
+.nt-soon{margin-left:auto;font-size:calc(11px * var(--fs));color:var(--muted);flex:none}
+
+/* 절 화면 */
+.note-crumb{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:calc(12.5px * var(--fs));color:var(--muted);margin-bottom:6px}
+.note-crumb button{color:var(--muted)} .note-crumb button:hover{color:var(--accent);text-decoration:underline}
+.note-layout{display:grid;grid-template-columns:minmax(0,1fr) 228px;gap:22px;align-items:start}
+.note-doc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px 30px 28px;line-height:1.75;min-width:0}
+.note-toc{position:sticky;top:20px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 10px;display:flex;flex-direction:column;gap:1px;max-height:calc(100vh - 40px);overflow-y:auto}
+.note-toc .toc-h{padding:0 7px 6px;font-size:calc(11.5px * var(--fs));color:var(--muted);font-weight:600}
+.note-toc button{text-align:left;padding:5px 7px;border-radius:6px;font-size:calc(12.5px * var(--fs));color:var(--ink-2);line-height:1.4}
+.note-toc button:hover{background:var(--surface-2);color:var(--accent-ink)}
+.note-toc .toc-sub{padding-left:18px;font-size:calc(11.5px * var(--fs));color:var(--muted)}
+.note-toc-m{display:none;margin-bottom:12px}
+.note-toc-m summary{cursor:pointer;font-size:calc(13px * var(--fs));color:var(--ink-2);padding:9px 14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius)}
+.note-toc-m .note-toc{position:static;margin-top:6px;max-height:none}
+.note-intro{margin-bottom:6px}
+.n-item{scroll-margin-top:18px}
+.n-item + .n-item, .note-intro + .n-item{border-top:1px solid var(--line);margin-top:22px;padding-top:20px}
+.n-h3{font-size:calc(18.5px * var(--fs));font-weight:650;letter-spacing:-.02em;display:flex;gap:8px;align-items:baseline;margin-bottom:8px}
+.n-no{font-family:var(--font-mono);color:var(--accent);font-size:.86em;flex:none}
+.n-h4{font-size:calc(15.5px * var(--fs));font-weight:650;margin:18px 0 6px;scroll-margin-top:18px}
+.n-h5{font-size:calc(14.5px * var(--fs));font-weight:600;color:var(--ink-2);margin:14px 0 4px;scroll-margin-top:18px}
+.n-p{margin:6px 0;font-size:calc(14.5px * var(--fs))}
+.n-ul{margin:4px 0 8px;padding-left:20px;font-size:calc(14.5px * var(--fs))}
+.n-ul .n-ul{margin:2px 0 4px;font-size:1em}
+.n-ul li{margin:3px 0}
+.n-ul > li::marker{color:var(--accent)}
+.n-ul .n-ul > li::marker{color:var(--muted)}
+/* 원본 강조 색 — 원본은 빨강(#FF0000)·파랑(#0000FF). 다크 모드에서는 같은 계열의 밝은 색 */
+.note-doc{--n-red:#D9100B; --n-blue:#1A3FD6}
+:root[data-theme="dark"] .note-doc{--n-red:#FF6B5E; --n-blue:#7FA2FF}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .note-doc{--n-red:#FF6B5E; --n-blue:#7FA2FF}}
+.note-doc strong{font-weight:700}
+.n-red{color:var(--n-red)}
+.n-blue{color:var(--n-blue)}
+.n-u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+/* 그림·표는 가운데. 제목줄([표 …] [그림 …])도 함께 가운데 둔다 */
+.n-cap{font-size:calc(12.5px * var(--fs));color:var(--muted);font-weight:600;margin:16px 0 5px;text-align:center}
+.n-tw{overflow-x:auto;margin:4px 0 14px}
+.n-tbl{border-collapse:collapse;font-size:calc(13.5px * var(--fs));line-height:1.5;min-width:60%;margin:0 auto}
+.n-tbl th,.n-tbl td{border:1px solid var(--line-strong);padding:6px 10px;vertical-align:top;text-align:left}
+.n-tbl th{background:var(--surface-2);font-weight:600}
+.n-fig{margin:10px 0 14px;text-align:center}
+.n-fig .rx-img{display:inline-block;border:1px solid var(--line);height:auto;max-width:min(100%,680px)}
+.n-fig.zoom{text-align:left}
+.n-tip{margin:8px 0 12px;padding:9px 13px;border-left:3px solid var(--key);background:var(--key-soft);border-radius:0 6px 6px 0;font-size:calc(13.5px * var(--fs))}
+.n-2013{display:inline-flex;align-items:center;gap:3px;vertical-align:1px;margin:0 2px;font-family:var(--font-mono);font-size:calc(10.5px * var(--fs));font-weight:600;line-height:1.5;
+  padding:0 7px;border-radius:99px;color:var(--c2);background:color-mix(in srgb,var(--c2) 13%,transparent);border:1px solid color-mix(in srgb,var(--c2) 35%,transparent);white-space:nowrap}
+.n-2013::before{content:"◆";font-size:.8em}
+.n-empty{color:var(--muted);font-size:calc(13px * var(--fs));font-style:italic}
+.n-flash{animation:nflash 1.8s ease}
+@keyframes nflash{0%,40%{background:var(--key-soft)}100%{background:transparent}}
+mark.n-hit{background:var(--key-soft);color:inherit;border-radius:2px;padding:0 1px}
+.note-pager{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.note-pager button{text-align:left;padding:12px 15px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);display:flex;flex-direction:column;gap:2px;min-width:0}
+.note-pager button:hover{border-color:var(--accent)}
+.note-pager .nx{text-align:right;grid-column:2}
+.note-pager small{font-size:calc(11.5px * var(--fs));color:var(--muted)}
+.note-pager span{font-size:calc(13.5px * var(--fs));font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.src-note{margin-top:4px;color:var(--accent);font-size:calc(12px * var(--fs));font-weight:500;padding:0}
+.src-note:hover{text-decoration:underline}
+/* 개요 */
+.nh-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start}
+.nh-card{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.nh-card.off{opacity:.62}
+.nh-head{display:flex;align-items:center;gap:10px}
+.nh-rom{font-family:var(--font-mono);font-weight:600;color:var(--accent);width:28px}
+.nh-title{font-weight:600;font-size:calc(15px * var(--fs));flex:1}
+.nh-ch{font-size:calc(12px * var(--fs));color:var(--muted);font-weight:600;margin-top:4px}
+.nh-secs{display:flex;flex-direction:column}
+.nh-secs button{text-align:left;font-size:calc(13px * var(--fs));color:var(--ink-2);padding:3px 0;display:flex;gap:6px}
+.nh-secs button:hover{color:var(--accent)}
+.nh-secs .nt-ok{color:var(--ok);margin-left:auto}
+.ns-hit{padding:12px 18px;border-bottom:1px solid var(--line);text-align:left;width:100%;display:flex;flex-direction:column;gap:3px}
+.ns-hit:hover{background:var(--surface-2)}
+.ns-hit:last-child{border-bottom:none}
+.ns-path{font-size:calc(11.5px * var(--fs));color:var(--muted)}
+.ns-snip{font-size:calc(13.5px * var(--fs));color:var(--ink-2)}
+@media (max-width:1100px){
+  .note-layout{grid-template-columns:minmax(0,1fr)}
+  .note-layout > .note-toc{display:none}
+  .note-toc-m{display:block}
+}
+@media (max-width:900px){
+  .note-doc{padding:18px 16px 22px}
+  .note-pager{grid-template-columns:1fr}
+  .note-pager .nx{grid-column:1}
+}
+
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 /* ============ 로딩 화면 ============ */
 #boot{
@@ -444,11 +556,13 @@ label.field{display:flex;flex-direction:column;gap:5px;font-size:calc(12.5px * v
       </div>
     </div>
 
+    <div class="mode-tabs" id="modeTabs" role="group" aria-label="화면 구분"></div>
+
     <div id="bankBox"></div>
 
     <nav class="nav" id="navMain"></nav>
 
-    <div class="rail-group"><span class="eyebrow">과목</span></div>
+    <div class="rail-group"><span class="eyebrow" id="chapLabel">과목</span></div>
     <div class="nav" id="navChap"></div>
 
     <div class="rail-foot">
@@ -811,6 +925,7 @@ var KEY = "dap750:v1";
 var S = load();
 function blank(){
   return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{}, epoch:0, rev:0, by:"",
+           notesRead:{},     /* 내용정리에서 읽음 표시한 절 { "3-2-2": 시각 } */
            /* target = 필기 60점 만점 중 목표 점수. 합격은 필기+실기(40점) 합산 75점이므로
               실기에서 23점을 얻는다고 보면 필기 52점이 목표가 된다. */
            settings:{ timerMin:90, target:52, theme:"auto", bank:"",
@@ -1029,6 +1144,9 @@ function srcLine(q){
   var files = String(q.f || "").split(" · ").filter(function(x){ return x; });
   if(!q.s && !files.length) return "";
   var body = q.s ? '<div class="src-part">'+esc(q.s)+'</div>' : "";
+  var nl = noteLinkOf(q);
+  if(nl) body += '<button class="src-note" data-go="note" data-ch="'+nl.ch+'" data-c="'+nl.c+'" data-s="'+nl.s+'" data-topic="'+esc(nl.topic)+'">'+
+                   '📖 내용정리에서 보기 →</button>';
   if(files.length){
     body += '<ul>'+files.map(function(name){
       var kind = srcKind(name);
@@ -1177,15 +1295,22 @@ function rollbackExam(e){
 
 /* ─────────── 라우팅 ─────────── */
 var view = { name:"dash" }, session = null, timerH = null;
+/* 화면은 크게 둘이다 — 문제은행(bank)과 내용정리(notes). 설정은 둘이 함께 쓰므로
+   들어가도 지금 모드를 유지한다. 모드 탭으로 오가면 그 모드에서 마지막으로 보던 화면으로 돌아간다. */
+var curMode = "bank", lastView = { bank:{ name:"dash" }, notes:{ name:"notes" } };
 
-function go(name, opt){
+function go(name, opt, fromHistory){
+  if(view && !/^(quiz|result|settings)$/.test(view.name)) lastView[curMode] = view;
   view = Object.assign({ name:name }, opt||{});
+  if(isNoteView(name)) curMode = "notes"; else if(name !== "settings") curMode = "bank";
   if(name!=="quiz" && timerH){ clearInterval(timerH); timerH=null; }
   /* 퀴즈를 벗어나면 진도를 저장하고 세션 핸들만 놓는다 (기록은 남아 이어풀기 가능) */
   if(name!=="quiz" && session){ session.idx = firstUnsolved(session); save(); session = null; }
+  if(!fromHistory) syncHash();
   render();
   if(window.innerWidth<=900) $("#rail").classList.remove("open");
   window.scrollTo(0,0);
+  if(view.h) setTimeout(function(){ scrollToNote(view.h); }, 30);
 }
 
 /* ─────────── 문제은행 묶음 선택 ─────────── */
@@ -1445,6 +1570,11 @@ var NAVS = [
   { id:"settings", ico:"⚙", label:"설정" }
 ];
 function renderRail(){
+  $("#modeTabs").innerHTML =
+    '<button class="mode-tab" data-act="mode" data-mode="bank" aria-pressed="'+(curMode==="bank")+'">📝 문제은행</button>'+
+    '<button class="mode-tab" data-act="mode" data-mode="notes" aria-pressed="'+(curMode==="notes")+'">📖 내용정리</button>';
+  if(curMode === "notes"){ renderNoteRail(); return; }
+  $("#chapLabel").textContent = "과목";
   $("#navMain").innerHTML = NAVS.map(function(n){
     var extra = "";
     if(n.badge){ var b=n.badge(); if(b>0) extra = '<span class="nav-badge">'+b+'</span>'; }
@@ -2354,6 +2484,437 @@ function viewResult(){
   return h;
 }
 
+/* ═══════════ 내용정리 ═══════════
+   교재 요약본의 이론을 과목 → 장 → 절 → 항으로 옮긴 읽기 화면. 화면 한 장이 절 하나다.
+   데이터는 data/notes/N.과목명.js — tools/notes-build.js 가 원고(tools/notes-src/chN.md)에서
+   만든다. 과목 파일은 그 과목을 처음 열 때 불러온다. 문제은행의 시작 속도와 무관하게 두려는 것이다.
+   화면 주소(#/notes/3/2/2)를 남겨 새로고침·북마크·뒤로 가기가 그 절로 돌아온다.
+   문항의 s(「2장 2절 표준 코드 정의」)가 요약본의 장·절 번호를 그대로 쓰므로, 절 화면은 그 절의
+   문항을 모아 풀게 하고, 해설의 원천 줄은 해당 절의 그 소제목으로 바로 건너뛴다. */
+var ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
+var NOTE_FILES = {}, NOTES = {}, NOTE_WAIT = {}, NOTE_FAIL = {}, NOTE_OPEN = {};
+((window.DAP_MANIFEST && window.DAP_MANIFEST.notes) || []).forEach(function(n){ if(n && n.ch && n.file) NOTE_FILES[n.ch] = n.file; });
+window.DAP_NOTES = { add: function(b){ if(b && b.ch && b.chapters) NOTES[b.ch] = b; } };
+function hasNotes(ch){ return !!NOTE_FILES[ch]; }
+function noteSubjects(){
+  return ((window.DAP_MANIFEST && window.DAP_MANIFEST.chapters) || CHLIST).map(function(c){ return { id:c.id, name:c.name }; });
+}
+/* 과목 파일을 한 번만 읽는다. 실패하면 다시 시도하지 않는다 — render 가 되부르며 맴돌지 않게 */
+function loadNotes(ch, done){
+  if(NOTES[ch] || !NOTE_FILES[ch] || NOTE_FAIL[ch]){ if(done) done(); return; }
+  if(NOTE_WAIT[ch]){ if(done) NOTE_WAIT[ch].push(done); return; }
+  NOTE_WAIT[ch] = done ? [done] : [];
+  var el = document.createElement("script");
+  el.src = "data/" + NOTE_FILES[ch];
+  el.charset = "UTF-8";
+  el.onload = el.onerror = function(){
+    var cbs = NOTE_WAIT[ch]; delete NOTE_WAIT[ch];
+    if(!NOTES[ch]){ NOTE_FAIL[ch] = true; toast("내용정리 파일을 불러오지 못했습니다 · " + NOTE_FILES[ch]); }
+    cbs.forEach(function(f){ f(); });
+  };
+  document.head.appendChild(el);
+}
+/* 아직 안 읽은 과목이 있으면 읽은 뒤 다시 그린다. 지금 그릴 수 있으면 true */
+function needNotes(list){
+  var miss = list.filter(function(ch){ return hasNotes(ch) && !NOTES[ch] && !NOTE_FAIL[ch]; });
+  if(!miss.length) return true;
+  var left = miss.length;
+  miss.forEach(function(ch){ loadNotes(ch, function(){
+    if(--left || !isNoteView(view.name)) return;
+    render();
+    if(view.h) scrollToNote(view.h);
+  }); });
+  return false;
+}
+function isNoteView(name){ return name === "notes" || name === "note" || name === "nsearch"; }
+function noteKey(ch, c, s){ return ch + "-" + c + "-" + s; }
+function noteRead(ch, c, s){ return !!(S.notesRead && S.notesRead[noteKey(ch, c, s)]); }
+/* 과목 안의 절을 순서대로 */
+function noteFlat(ch){
+  var b = NOTES[ch], out = [];
+  if(b) b.chapters.forEach(function(C){ C.sections.forEach(function(Sx){ out.push({ ch:ch, c:C.no, s:Sx.no, C:C, S:Sx }); }); });
+  return out;
+}
+function noteIndex(all, c, s){
+  for(var i = 0; i < all.length; i++) if(all[i].c === c && all[i].s === s) return i;
+  return -1;
+}
+function noteFind(ch, c, s){
+  return noteFlat(ch).filter(function(x){ return x.c === c && x.s === s; })[0] || null;
+}
+function noteReadCount(ch){
+  var all = noteFlat(ch);
+  return { done: all.filter(function(x){ return noteRead(ch, x.c, x.s); }).length, total: all.length };
+}
+
+/* ---- 본문 서식 ----
+   **굵게**  {2013}(2013 Edition 에만 있는 내용)  #### / ##### 소제목  - 글머리(두 칸마다 한 단계)
+   ‖ 머리 | 셀 |  / | 셀 | 셀 | 표 (¶ 셀 안 줄바꿈, << 왼쪽 칸과 병합, ^^ 위 칸과 병합)
+   [표 …] [그림 …] [정리] 제목줄,  [[img:키]] 그림,  > 암기 상자 */
+/* 원본 강조 그대로: **굵게** {r}빨강{/r} {b}파랑{/b} {u}밑줄{/u} — 원고에서는 늘 색 ⊃ 굵게 ⊃ 밑줄로
+   통째로 감싸므로(tools/notes-fmt.js) 표기마다 따로 바꿔도 태그가 엇갈리지 않는다 */
+var NOTE_TAG = /\*\*|\{\/?[rbu]\}|\{2013\}/g;
+function noteInline(s){
+  return esc(s)
+    .replace(/\{r\}([\s\S]*?)\{\/r\}/g, '<span class="n-red">$1</span>')
+    .replace(/\{b\}([\s\S]*?)\{\/b\}/g, '<span class="n-blue">$1</span>')
+    .replace(/\{u\}([\s\S]*?)\{\/u\}/g, '<u class="n-u">$1</u>')
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\{2013\}/g, '<span class="n-2013" title="2013 Edition 에만 있는 내용">2013</span>');
+}
+function noteList(lines){
+  var items = [];
+  lines.forEach(function(L){
+    var m = /^(\s*)- (.*)$/.exec(L);
+    if(m) items.push({ ind:m[1].length, t:m[2] });
+    else if(items.length) items[items.length-1].t += "\n" + L.trim();   /* 들여쓴 다음 줄 */
+  });
+  var h = "", st = [];
+  items.forEach(function(it){
+    if(!st.length || it.ind > st[st.length-1]){ h += '<ul class="n-ul">'; st.push(it.ind); }
+    else {
+      while(st.length > 1 && it.ind < st[st.length-1]){ h += '</li></ul>'; st.pop(); }
+      h += '</li>';
+    }
+    h += '<li>' + noteInline(it.t).replace(/\n/g, "<br>");
+  });
+  while(st.length){ h += '</li></ul>'; st.pop(); }
+  return h;
+}
+function noteTable(rows){
+  var own = [], heads = [];
+  rows.forEach(function(r, ri){
+    heads[ri] = r.charAt(0) === "‖";
+    own[ri] = [];
+    r.replace(/\s+$/, "").slice(2, -2).split(" | ").forEach(function(x, ci){
+      x = x.trim();
+      var left = own[ri][ci-1], up = ri > 0 ? own[ri-1][ci] : null;
+      if(x === "<<" && left){ if(left.r === ri) left.cs++; own[ri][ci] = left; return; }
+      if(x === "^^" && up){ if(up.last !== ri){ up.rs++; up.last = ri; } own[ri][ci] = up; return; }
+      own[ri][ci] = { t:x, cs:1, rs:1, r:ri, last:ri };
+    });
+  });
+  return '<div class="n-tw"><table class="n-tbl">' + own.map(function(row, ri){
+    return '<tr>' + row.map(function(cell, ci){
+      if(cell.r !== ri || row[ci-1] === cell) return "";
+      var tag = heads[ri] ? "th" : "td";
+      return '<' + tag + (cell.cs > 1 ? ' colspan="'+cell.cs+'"' : '') + (cell.rs > 1 ? ' rowspan="'+cell.rs+'"' : '') + '>' +
+        noteInline(cell.t).replace(/¶/g, "<br>") + '</' + tag + '>';
+    }).join("") + '</tr>';
+  }).join("") + '</table></div>';
+}
+/* H: 이 절 화면의 소제목 번호표 { n } — 소제목마다 nh-번호 id 를 붙인다. noteHeads 와 같은 순서다 */
+function noteHtml(body, book, H){
+  var lines = String(body || "").split("\n"), i = 0, out = "", m;
+  while(i < lines.length){
+    var L = lines[i], T = L.trim();
+    if(!T){ i++; continue; }
+    if((m = /^(#{4,5}) (.*)$/.exec(L))){
+      var lv = m[1].length;
+      out += '<h'+lv+' class="n-h'+lv+'" id="nh-'+(H.n++)+'">' + noteInline(m[2]) + '</h'+lv+'>';
+      i++; continue;
+    }
+    if((m = /^\[\[img:([\w\-]+)\]\]$/.exec(T))){
+      var im = (book.images || {})[m[1]];
+      out += im ? '<figure class="rx-fig n-fig"><img class="rx-img" src="data/notes/'+esc(im.src)+'" alt="그림 '+esc(m[1])+'" loading="lazy"'+
+                  (im.w ? ' width="'+im.w+'" height="'+im.h+'"' : '')+' data-act="imgzoom"></figure>'
+                : '<p class="n-empty">[그림을 찾을 수 없습니다 · '+esc(m[1])+']</p>';
+      i++; continue;
+    }
+    if(/^\[(표|그림|정리)[^\]]*\]/.test(T)){ out += '<div class="n-cap" id="nc-'+(H.c = (H.c||0) + 1)+'">' + noteInline(T) + '</div>'; i++; continue; }
+    if(/^[|‖] /.test(L)){
+      var rows = [];
+      while(i < lines.length && /^[|‖] /.test(lines[i])) rows.push(lines[i++]);
+      out += noteTable(rows); continue;
+    }
+    if(/^> /.test(L)){
+      var tip = [];
+      while(i < lines.length && /^> /.test(lines[i])) tip.push(noteInline(lines[i++].slice(2)));
+      out += '<div class="n-tip">' + tip.join("<br>") + '</div>'; continue;
+    }
+    if(/^\s*- /.test(L)){
+      var li = [];
+      while(i < lines.length && (/^\s*- /.test(lines[i]) || (/^\s+\S/.test(lines[i]) && li.length))) li.push(lines[i++]);
+      out += noteList(li); continue;
+    }
+    out += '<p class="n-p">' + noteInline(T) + '</p>'; i++;
+  }
+  return out;
+}
+/* 절 화면의 소제목 목록 — noteHtml 이 매기는 nh-번호와 같은 순서로 센다 */
+function noteHeads(Sx){
+  var out = [], n = 0, cap = 0;
+  function scan(body, item){
+    String(body || "").split("\n").forEach(function(L){
+      var m = /^(#{4,5}) (.*)$/.exec(L), k = /^\[(?:표|그림|정리)[^\]]*\]\s*(.*)$/.exec(L.trim());
+      if(m) out.push({ id:"nh-"+(n++), lv:m[1].length, t:m[2].replace(NOTE_TAG, ""), item:item });
+      else if(k) out.push({ id:"nc-"+(++cap), lv:6, t:k[1], item:item });   /* 표·그림 제목 — 목차에는 안 나온다 */
+    });
+  }
+  scan(Sx.intro, 0);
+  Sx.items.forEach(function(it){ out.push({ id:"na-"+it.no, lv:3, t:it.title, item:it.no }); scan(it.body, it.no); });
+  return out;
+}
+/* 문항의 s 끝머리(「표준 코드 정의」)에 가장 가까운 소제목·표 제목.
+   번호(가. 1) 1.)·괄호 속 풀이·띄어쓰기는 무시하고, 같거나 포함하면 그것을, 아니면 글자쌍이
+   가장 많이 겹치는 것(75% 이상)을 고른다. 절 제목과 같으면 절 머리("")다. */
+function noteAnchor(Sx, topic){
+  var norm = function(s){ return String(s || "").replace(NOTE_TAG, "").replace(/^\s*([가-하]\.|\d+\)|\d+\.)\s*/, "")
+                                  .replace(/\([^)]*\)/g, "").replace(/[\s·:,()（）]/g, ""); };
+  var pairs = function(s){ var o = []; for(var i = 0; i < s.length - 1; i++) o.push(s.substr(i, 2)); return o; };
+  var k = norm(topic);
+  if(!k || k === norm(Sx.title)) return "";
+  var kp = pairs(k), best = null, bestS = 0;
+  noteHeads(Sx).forEach(function(h){
+    var t = norm(h.t), sc;
+    if(!t) return;
+    if(t === k) sc = 2;
+    else if(t.indexOf(k) >= 0 || k.indexOf(t) >= 0) sc = 1.5;
+    else {
+      var tp = pairs(t), hit = 0, pool = tp.slice();
+      kp.forEach(function(p){ var j = pool.indexOf(p); if(j >= 0){ hit++; pool.splice(j, 1); } });
+      sc = (2 * hit) / (kp.length + tp.length || 1);
+    }
+    if(sc > bestS){ bestS = sc; best = h; }
+  });
+  return best && bestS >= 0.75 ? best.id : "";
+}
+/* 문항 → 내용정리 자리. 요약본을 근거로 쓴 문항만 잇는다(교재만 본 문항은 장·절 번호 체계가 다르다) */
+function noteLinkOf(q){
+  if(!q || !hasNotes(q.ch)) return null;
+  var m = /^(\d+)장 (\d+)절\s*(.*)$/.exec(q.s || "");
+  if(!m) return null;
+  var files = String(q.f || "").split(" · ").filter(function(x){ return x; });
+  if(files.length && !files.some(function(f){ return srcKind(f) === "요약본"; })) return null;
+  return { ch:q.ch, c:+m[1], s:+m[2], topic:m[3] };
+}
+/* 절에 딸린 문항 — 열린 묶음 전부에서. 요약본 근거 문항만 */
+function noteQuestions(ch, c, s){
+  return BANKS.filter(function(b){ return !b.locked && b.questions; }).map(function(b){
+    return { bank:b, ids: b.questions.filter(function(q){
+      var l = q.ch === ch && noteLinkOf(q);
+      return l && l.c === c && l.s === s;
+    }).map(function(q){ return q.id; }) };
+  }).filter(function(x){ return x.ids.length; });
+}
+
+/* ---- 화면 ---- */
+function viewNotesHome(){
+  var subs = noteSubjects();
+  needNotes(subs.map(function(c){ return c.id; }));
+  var h = '<div class="page-head"><div><div class="eyebrow">Notes</div><h1 class="page-title">내용정리</h1>'+
+    '<p class="page-desc">교재 요약본의 이론을 과목 → 장 → 절 순서로 옮겼습니다. 절을 고르면 그 절 전체가 한 화면에 나오고, 오른쪽 목차로 소제목 사이를 건너뜁니다. '+
+    '<span class="n-2013">2013</span> 표시는 2013 Edition 에만 있는 내용입니다.</p></div>'+
+    '<button class="btn" data-go="nsearch">⌕ 내용 검색</button></div>';
+  h += '<div class="nh-grid">';
+  subs.forEach(function(sub){
+    var b = NOTES[sub.id];
+    if(!hasNotes(sub.id) || !b){
+      h += '<div class="card nh-card off"><div class="nh-head"><span class="nh-rom">'+ROMAN[sub.id]+'</span><span class="nh-title">'+esc(sub.name)+'</span>'+
+        '<span class="chip">'+(hasNotes(sub.id) ? (NOTE_FAIL[sub.id] ? "불러오기 실패" : "불러오는 중…") : "준비 중")+'</span></div></div>';
+      return;
+    }
+    var rc = noteReadCount(sub.id);
+    h += '<div class="card nh-card"><div class="nh-head"><span class="nh-rom">'+ROMAN[sub.id]+'</span><span class="nh-title">'+esc(b.title || sub.name)+'</span>'+
+      '<span class="nav-count">'+rc.done+'/'+rc.total+'</span></div>'+
+      '<div class="meter-track"><div class="meter-fill" style="width:'+(rc.total ? Math.round(rc.done/rc.total*100) : 0)+'%"></div></div>';
+    b.chapters.forEach(function(C){
+      h += '<div class="nh-ch">제'+C.no+'장 '+esc(C.title)+'</div><div class="nh-secs">';
+      C.sections.forEach(function(Sx){
+        h += '<button data-go="note" data-ch="'+sub.id+'" data-c="'+C.no+'" data-s="'+Sx.no+'"><span class="mono" style="color:var(--muted)">'+Sx.no+'절</span>'+
+          '<span>'+esc(Sx.title)+'</span>'+(noteRead(sub.id, C.no, Sx.no) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
+      });
+      h += '</div>';
+    });
+    h += '</div>';
+  });
+  return h + '</div>';
+}
+
+function viewNote(){
+  var ch = view.ch, c = view.c, s = view.s;
+  if(!needNotes([ch])) return '<div class="card"><div class="empty"><b>내용정리를 불러오는 중…</b></div></div>';
+  var b = NOTES[ch], here = b && noteFind(ch, c, s);
+  if(!here) return '<div class="card"><div class="empty"><b>해당 절이 없습니다</b>'+
+    '<button class="btn" data-go="notes" style="margin-top:12px">내용정리 개요로</button></div></div>';
+  var C = here.C, Sx = here.S, read = noteRead(ch, c, s);
+  /* 해설에서 건너왔으면 그 소제목으로 */
+  if(view.topic && !view.h){ view.h = noteAnchor(Sx, view.topic); view.topic = ""; }
+
+  var h = '<div class="note-crumb"><button data-go="notes">내용정리</button><span>›</span>'+
+    '<button data-go="notes">'+ROMAN[ch]+'. '+esc(b.title)+'</button><span>›</span><span>제'+C.no+'장 '+esc(C.title)+'</span></div>';
+  h += '<div class="page-head" style="margin-bottom:16px"><div><h1 class="page-title">제'+s+'절 '+esc(Sx.title)+'</h1></div>'+
+    '<button class="btn'+(read ? ' btn-primary' : '')+'" data-act="noteread">'+(read ? '✓ 읽음' : '읽음 표시')+'</button></div>';
+
+  var heads = noteHeads(Sx);
+  function toc(){
+    return '<nav class="note-toc"><div class="toc-h">이 절의 목차</div>'+
+      heads.filter(function(x){ return x.lv <= 4; }).map(function(x){
+        return '<button data-act="nscroll" data-to="'+x.id+'"'+(x.lv === 4 ? ' class="toc-sub"' : '')+'>'+
+          (x.lv === 3 ? x.item + '. ' : '') + esc(x.t) + '</button>';
+      }).join("") + '</nav>';
+  }
+  var H = { n:0 }, doc = "";
+  if(Sx.intro) doc += '<div class="note-intro">' + noteHtml(Sx.intro, b, H) + '</div>';
+  Sx.items.forEach(function(it){
+    doc += '<section class="n-item" id="na-'+it.no+'"><h2 class="n-h3"><span class="n-no">'+it.no+'.</span><span>'+noteInline(it.title)+'</span></h2>'+
+      (it.body ? noteHtml(it.body, b, H) : '<p class="n-empty">요약본에 이 항의 본문이 없습니다.</p>') + '</section>';
+  });
+  h += '<details class="note-toc-m"><summary>이 절의 목차 · '+Sx.items.length+'항</summary>'+toc()+'</details>';
+  h += '<div class="note-layout"><article class="note-doc">'+doc+'</article>'+toc()+'</div>';
+
+  /* 이 절의 문항 */
+  var rel = noteQuestions(ch, c, s);
+  h += '<div class="card" style="margin-top:16px"><div class="sec-head"><span class="sec-title">이 절의 문항</span>'+
+    '<span class="note">문항의 원천(장·절)이 이 절인 것</span></div>';
+  if(!rel.length) h += '<div class="empty" style="padding:22px">이 절을 원천으로 하는 문항이 없습니다.</div>';
+  else {
+    h += '<div class="meter-list">';
+    rel.forEach(function(x){
+      /* 맞힘 = 마지막으로 고른 답이 정답인 것 */
+      var seen = 0, right = 0, qm = {};
+      x.bank.questions.forEach(function(q){ qm[q.id] = q; });
+      x.ids.forEach(function(id){
+        var st = S.stats[id];
+        if(!st || !(st.right || st.wrong)) return;
+        seen++;
+        if(st.pick !== undefined ? isRight(qm[id], st.pick) : (st.right && !st.wrong)) right++;
+      });
+      h += '<div class="resume-row"><div style="flex:1;min-width:180px"><div style="font-weight:500">'+esc(x.bank.name)+'</div>'+
+        '<div class="note">'+x.ids.length+'문항 · 푼 문항 '+seen+(seen ? ' · 맞힌 문항 '+right : '')+'</div></div>'+
+        '<button class="btn btn-sm" data-act="notequiz" data-bank="'+esc(x.bank.id)+'">풀기 →</button></div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+
+  /* 이전 · 다음 절 */
+  var all = noteFlat(ch), k = noteIndex(all, c, s), pv = all[k-1], nx = all[k+1];
+  h += '<div class="note-pager">'+
+    (pv ? '<button data-go="note" data-ch="'+ch+'" data-c="'+pv.c+'" data-s="'+pv.s+'"><small>← 이전 절</small><span>'+pv.c+'장 '+pv.s+'절 '+esc(pv.S.title)+'</span></button>' : '')+
+    (nx ? '<button class="nx" data-go="note" data-ch="'+ch+'" data-c="'+nx.c+'" data-s="'+nx.s+'"><small>다음 절 →</small><span>'+nx.c+'장 '+nx.s+'절 '+esc(nx.S.title)+'</span></button>' : '')+
+    '</div>';
+  return h;
+}
+
+function viewNoteSearch(){
+  var subs = noteSubjects().map(function(c){ return c.id; }).filter(hasNotes);
+  var ready = needNotes(subs);
+  var kw = (view.kw || "").trim();
+  var h = '<div class="page-head"><div><div class="eyebrow">Search</div><h1 class="page-title">내용 검색</h1>'+
+    '<p class="page-desc">내용정리의 제목·본문·표에서 찾습니다. 결과를 누르면 그 소제목으로 바로 갑니다.</p></div></div>';
+  h += '<div class="toolbar"><input type="text" id="nq" placeholder="예: 표준 도메인, 금칙어, 이음동의어" value="'+esc(kw)+'">'+
+       '<button class="btn btn-primary" data-act="donsearch">검색</button></div>';
+  if(!ready) return h + '<div class="card"><div class="empty"><b>내용정리를 불러오는 중…</b></div></div>';
+  if(!kw) return h + '<div class="card"><div class="empty"><b>검색어를 입력하세요</b>준비된 과목: '+
+    (subs.map(function(ch){ return ROMAN[ch]; }).join(", ") || "없음")+'</div></div>';
+  var k = kw.toLowerCase(), hits = [];
+  var plainOf = function(s){ return String(s).replace(NOTE_TAG, "").replace(/\[\[img:[^\]]*\]\]|^#+ |^\s*- |^[|‖] /gm, "").replace(/ \| |¶/g, " ").replace(/<<|\^\^/g, ""); };
+  subs.forEach(function(ch){
+    noteFlat(ch).forEach(function(x){
+      var heads = noteHeads(x.S);
+      /* 단락(소제목 단위)으로 나눠 찾는다 — 결과를 누르면 그 소제목으로 */
+      var chunks = [{ id:"", title:"", text:x.S.title + "\n" + (x.S.intro || "") }];
+      var hi = 0;
+      [{ no:0, body:x.S.intro || "" }].concat(x.S.items).forEach(function(it){
+        var cur = it.no ? { id:"na-"+it.no, title:it.no+". "+it.title, text:it.title+"\n" } : chunks[0];
+        if(it.no) chunks.push(cur);
+        String(it.body).split("\n").forEach(function(L){
+          if(/^#{4,5} /.test(L)){ var hd = heads.filter(function(z){ return z.lv === 4 || z.lv === 5; })[hi++]; cur = { id:hd ? hd.id : cur.id, title:L.replace(/^#+ /, "").replace(NOTE_TAG, ""), text:"" }; chunks.push(cur); }
+          cur.text += L + "\n";
+        });
+      });
+      chunks.forEach(function(ck){
+        var t = plainOf(ck.text), p = t.toLowerCase().indexOf(k);
+        if(p < 0) return;
+        var a = Math.max(0, p - 40), snip = t.slice(a, p + k.length + 70).replace(/\s+/g, " ");
+        var at = snip.toLowerCase().indexOf(k);
+        hits.push({ x:x, id:ck.id, title:ck.title,
+          snip: (a ? "… " : "") + esc(snip.slice(0, at)) + '<mark class="n-hit">' + esc(snip.slice(at, at + k.length)) + '</mark>' + esc(snip.slice(at + k.length)) + " …" });
+      });
+    });
+  });
+  h += '<p class="note" style="margin-bottom:12px">'+hits.length+'곳</p>';
+  if(!hits.length) return h + '<div class="card"><div class="empty"><b>결과가 없습니다</b>다른 키워드로 시도해 보세요.</div></div>';
+  h += '<div class="card">';
+  hits.slice(0, 80).forEach(function(r){
+    h += '<button class="ns-hit" data-go="note" data-ch="'+r.x.ch+'" data-c="'+r.x.c+'" data-s="'+r.x.s+'" data-h="'+esc(r.id)+'">'+
+      '<span class="ns-path">'+ROMAN[r.x.ch]+' › '+r.x.c+'장 '+r.x.s+'절 '+esc(r.x.S.title)+(r.title ? ' › '+esc(r.title) : '')+'</span>'+
+      '<span class="ns-snip">'+r.snip+'</span></button>';
+  });
+  if(hits.length > 80) h += '<p class="note" style="padding:10px 18px">상위 80곳만 표시했습니다.</p>';
+  return h + '</div>';
+}
+
+/* ---- 레일: 목차 트리 ---- */
+var NOTE_NAVS = [
+  { id:"notes",   ico:"◈", label:"개요" },
+  { id:"nsearch", ico:"⌕", label:"내용 검색" }
+];
+function renderNoteRail(){
+  $("#bankBox").innerHTML = "";
+  $("#navMain").innerHTML = NOTE_NAVS.map(function(n){
+    return '<button class="nav-item" data-go="'+n.id+'" aria-current="'+(view.name===n.id)+'">'+
+      '<span class="nav-ico">'+n.ico+'</span><span>'+n.label+'</span></button>';
+  }).join("");
+  $("#chapLabel").textContent = "목차";
+  if(view.name === "note" && NOTE_OPEN[view.ch] === undefined) NOTE_OPEN[view.ch] = true;
+  $("#navChap").innerHTML = noteSubjects().map(function(sub){
+    var on = hasNotes(sub.id), open = on && NOTE_OPEN[sub.id], b = NOTES[sub.id];
+    var cnt = b ? noteReadCount(sub.id) : null;
+    var h = '<button class="nt-sub" data-act="ntoggle" data-ch="'+sub.id+'" aria-expanded="'+!!open+'"'+(on ? '' : ' disabled title="준비 중"')+'>'+
+      '<span class="nt-caret">'+(on ? '▶' : '')+'</span><span class="nt-rom">'+ROMAN[sub.id]+'</span><span class="chap-name">'+esc(sub.name)+'</span>'+
+      (on ? '<span class="nav-count">'+(cnt ? cnt.done+'/'+cnt.total : '')+'</span>' : '<span class="nt-soon">준비 중</span>')+'</button>';
+    if(open){
+      if(!b){ loadNotes(sub.id, renderRail); return h + '<div class="nt-tree"><div class="nt-ch">불러오는 중…</div></div>'; }
+      h += '<div class="nt-tree">';
+      b.chapters.forEach(function(C){
+        h += '<div class="nt-ch">'+C.no+'장 '+esc(C.title)+'</div>';
+        C.sections.forEach(function(Sx){
+          var cur = view.name === "note" && view.ch === sub.id && view.c === C.no && view.s === Sx.no;
+          h += '<button class="nt-sec" data-go="note" data-ch="'+sub.id+'" data-c="'+C.no+'" data-s="'+Sx.no+'" aria-current="'+cur+'">'+
+            '<span class="nt-no">'+Sx.no+'</span><span>'+esc(Sx.title)+'</span>'+(noteRead(sub.id, C.no, Sx.no) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
+        });
+      });
+      h += '</div>';
+    }
+    return h;
+  }).join("");
+}
+
+/* ---- 화면 주소 ---- */
+function viewHash(v){
+  if(v.name === "notes")   return "#/notes";
+  if(v.name === "nsearch") return "#/notes/search";
+  if(v.name === "note")    return "#/notes/" + v.ch + "/" + v.c + "/" + v.s;
+  return "";
+}
+function viewFromHash(){
+  var m = /^#\/notes(?:\/(search)|\/(\d+)\/(\d+)\/(\d+))?\/?$/.exec(location.hash || "");
+  if(!m) return null;
+  if(m[1]) return { name:"nsearch" };
+  if(m[2]) return { name:"note", ch:+m[2], c:+m[3], s:+m[4] };
+  return { name:"notes" };
+}
+/* 내용정리 화면을 오갈 때만 주소를 남긴다. 문제은행 화면끼리는 지금처럼 주소가 바뀌지 않는다 */
+function syncHash(){
+  var h = viewHash(view), cur = location.hash || "";
+  if(h === cur || (!h && !/^#\/notes/.test(cur))) return;
+  try{ history.pushState(null, "", h || (location.pathname + location.search)); }catch(e){}
+}
+window.addEventListener("popstate", function(){
+  var v = viewFromHash();
+  if(v) go(v.name, v, true);
+  else if(isNoteView(view.name)) go(lastView.bank.name, lastView.bank, true);
+});
+/* 해설의 [내용정리에서 보기] — 절 화면을 열고 그 소제목으로 */
+function scrollToNote(id){
+  var el = id && document.getElementById(id);
+  if(!el) return;
+  el.scrollIntoView({ block:"start" });
+  el.classList.remove("n-flash"); void el.offsetWidth; el.classList.add("n-flash");
+}
+
 /* ─────────── 렌더 ─────────── */
 function render(){
   regradeByKey();   /* 정답을 바로잡은 문항이 있으면 응시 점수·오답노트를 맞춘다 */
@@ -2368,6 +2929,9 @@ function render(){
     case "marks": h = viewMarks(); break;
     case "search": h = viewSearch(); break;
     case "settings": h = viewSettings(); break;
+    case "notes": h = viewNotesHome(); break;
+    case "note": h = viewNote(); break;
+    case "nsearch": h = viewNoteSearch(); break;
     case "quiz": h = session ? viewQuiz() : viewDash(); break;
     case "result": h = viewResult(); break;
     default: h = viewDash();
@@ -2375,6 +2939,7 @@ function render(){
   m.innerHTML = h;
   if(view.name==="quiz" && session && session.limitSec) startTimer();
   if(view.name==="search"){ var i=$("#q"); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
+  if(view.name==="nsearch"){ var ni=$("#nq"); if(ni){ ni.focus(); ni.setSelectionRange(ni.value.length,ni.value.length); } }
 }
 function startTimer(){
   if(timerH) clearInterval(timerH);
@@ -2399,6 +2964,8 @@ document.addEventListener("click", function(ev){
 
   if(dest){
     if(dest==="chapter") return go("chapter", { ch:+t.getAttribute("data-ch") });
+    if(dest==="note") return go("note", { ch:+t.getAttribute("data-ch"), c:+t.getAttribute("data-c"), s:+t.getAttribute("data-s"),
+                                          h:t.getAttribute("data-h") || "", topic:t.getAttribute("data-topic") || "" });
     if(dest==="randomexam"){
       return startSession({ key:"rand", mode:"exam", title:"랜덤 모의고사", ids:randomExamIds(),
                             limitSec:S.settings.timerMin*60, setNo:0 });
@@ -2407,6 +2974,43 @@ document.addEventListener("click", function(ev){
   }
 
   switch(act){
+    /* ── 내용정리 ── */
+    case "mode": {
+      var md = t.getAttribute("data-mode");
+      if(md === curMode && view.name !== "settings") break;
+      var lv = lastView[md];
+      go(lv.name, lv);
+      break;
+    }
+    case "ntoggle": {
+      var nc = +t.getAttribute("data-ch");
+      NOTE_OPEN[nc] = !NOTE_OPEN[nc];
+      renderRail();
+      break;
+    }
+    case "nscroll": {
+      scrollToNote(t.getAttribute("data-to"));
+      var dm = t.closest("details"); if(dm) dm.open = false;
+      break;
+    }
+    case "noteread": {
+      S.notesRead = S.notesRead || {};
+      var nk = noteKey(view.ch, view.c, view.s);
+      if(S.notesRead[nk]) delete S.notesRead[nk]; else S.notesRead[nk] = Date.now();
+      save(); render();
+      break;
+    }
+    case "notequiz": {
+      var nb = t.getAttribute("data-bank");
+      var rel = noteQuestions(view.ch, view.c, view.s).filter(function(x){ return x.bank.id === nb; })[0];
+      if(!rel) break;
+      var nh = noteFind(view.ch, view.c, view.s);
+      if(nb !== DAP.id){ useBank(nb); S.settings.bank = DAP.id; save(); applyBrand(); }
+      startSession({ key:"note:"+noteKey(view.ch, view.c, view.s), mode:"study", seq:true,
+                     title:ROMAN[view.ch]+". "+view.c+"장 "+view.s+"절 "+(nh ? nh.S.title : ""), ids:rel.ids.slice() });
+      break;
+    }
+    case "donsearch": go("nsearch", { kw: $("#nq").value }); break;
     case "resume": resumeSession(t.getAttribute("data-key")); break;
     case "dropsession":
       dropSession(t.getAttribute("data-key")); render();
@@ -2788,6 +3392,7 @@ function applyEpoch(o, epoch){
   Object.keys(o.sessions).forEach(function(k){
     if((o.sessions[k].ts||0) < epoch) delete o.sessions[k];
   });
+  Object.keys(o.notesRead||{}).forEach(function(k){ if((o.notesRead[k]||0) < epoch) delete o.notesRead[k]; });
   /* 북마크에는 시각이 없어 초기화 이전 것을 가려낼 수 없다. 통째로 지운다. */
   o.bookmarks = {};
   o.epoch = epoch;
@@ -2834,6 +3439,10 @@ function mergeState(cur, inc){
   var seen = {}, all = out.exams.concat(inc.exams);
   out.exams = all.filter(function(e){ if(!e||!e.id||seen[e.id]) return false; seen[e.id]=1; return true; })
                  .sort(function(a,b){ return b.ts-a.ts; }).slice(0,60);
+  /* 내용정리 읽음 표시: 합집합 (시각은 늦은 쪽). 시각이 있어 초기화(epoch) 이전 것은 걸러진다 */
+  Object.keys(inc.notesRead||{}).forEach(function(k){
+    out.notesRead[k] = Math.max(out.notesRead[k]||0, inc.notesRead[k]||0);
+  });
   /* 진행 중 세션: 같은 키면 더 최근에 손댄 쪽 */
   Object.keys(inc.sessions).forEach(function(k){
     var a = out.sessions[k], b = inc.sessions[k];
@@ -3231,7 +3840,14 @@ function nextQ(){
 }
 
 document.addEventListener("keydown", function(e){
+  if(e.key==="Enter" && e.target.id==="nq"){ e.preventDefault(); go("nsearch", { kw: e.target.value }); return; }
   if(e.target.tagName==="INPUT" || e.target.tagName==="TEXTAREA" || e.target.tagName==="SELECT") return;
+  /* 내용정리 절 화면 — 좌우 화살표로 이전·다음 절 */
+  if(view.name==="note" && (e.key==="ArrowLeft" || e.key==="ArrowRight") && !e.altKey && !e.ctrlKey && !e.metaKey){
+    var all = noteFlat(view.ch), k = noteIndex(all, view.c, view.s), to = k >= 0 && all[k + (e.key==="ArrowRight" ? 1 : -1)];
+    if(to){ e.preventDefault(); go("note", { ch:to.ch, c:to.c, s:to.s }); }
+    return;
+  }
   /* 리포트의 문항별 검토도 풀이 화면처럼 좌우 화살표로 넘긴다 */
   if(view.name==="result"){
     if(e.key!=="ArrowLeft" && e.key!=="ArrowRight") return;
@@ -3339,6 +3955,8 @@ applyTypography();
 bootBank(function(){
   applyBrand();
   restoreFileHandle();
+  var hv = viewFromHash();          /* #/notes/… 로 열었으면 그 화면부터 */
+  if(hv){ view = hv; curMode = "notes"; }
   render();
   if(syncOn() && sync.auto) syncNow(true);
 });

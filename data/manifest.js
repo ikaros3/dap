@@ -77,5 +77,12 @@ window.DAP_MANIFEST = {
     { file: "4.데이터모델링.v2.js", collection: "v2" },
     { file: "5.데이터베이스설계와이용.v2.js", collection: "v2" },
     { file: "6.데이터품질관리이해.v2.js", collection: "v2" }
+  ],
+
+  /* 내용정리 — 과목별 교재 이론 정리. 그 과목을 처음 열 때 불러온다(시작 속도와 무관).
+     원고 tools/notes-src/chN.md 를 고치고 node tools/notes-build.js N --write 로 만든다.
+     여기 없는 과목은 내용정리 화면에 「준비 중」으로 나온다. */
+  notes: [
+    { ch: 3, file: "notes/3.데이터표준화.js" }
   ]
 };
