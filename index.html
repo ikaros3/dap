@@ -146,7 +146,10 @@ a{color:var(--accent)}
   position:sticky; top:var(--hdr); align-self:start; height:calc(100vh - var(--hdr)); overflow-y:auto;
   background:var(--surface); border-right:1px solid var(--line);
   display:flex; flex-direction:column; gap:2px; padding:16px 14px 22px;
+  /* 스크롤은 되지만 막대는 보이지 않는다(휠·터치·키보드로 움직인다) */
+  scrollbar-width:none;
 }
+.rail::-webkit-scrollbar{display:none}
 .rail-group{padding:14px 6px 6px}
 .nav{display:flex;flex-direction:column;gap:1px}
 .nav-item{
