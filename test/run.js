@@ -23,6 +23,7 @@ const SUITES = [
   ['내용정리',                 'test/notes.js'],
   ['형광펜',                   'test/highlight.js'],
   ['실기',                     'test/dm.js'],
+  ['동영상 강의',              'test/video.js'],
 ];
 
 let failed = [];

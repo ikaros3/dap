@@ -434,6 +434,23 @@ label.field{display:flex;flex-direction:column;gap:5px;font-size:calc(12.5px * v
 .dm-tbl td,.dm-tbl th{white-space:normal}
 .dm-cover{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;margin:12px 0 4px;padding:28px 16px;border:1.5px dashed var(--line-strong);border-radius:var(--radius);background:var(--surface-2)}
 .dm-hint{margin-top:10px;text-align:center}
+.vd-player{position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--radius);overflow:hidden;background:#000;border:1px solid var(--line)}
+.vd-player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vd-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.vd-links a.btn{text-decoration:none}
+.vd-hint{margin-top:8px}
+.vd-player video{position:absolute;inset:0;width:100%;height:100%;background:#000}
+.vd-rates{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px}
+.vd-rates-l{font-size:calc(12.5px * var(--fs));color:var(--muted);font-weight:600;margin-right:4px}
+.vd-rates button{min-width:52px;font-family:var(--font-mono)}
+.vd-rates button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.vd-local{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;padding:10px 14px;border:1px dashed var(--line-strong);border-radius:var(--radius);font-size:calc(13px * var(--fs));color:var(--ink-2)}
+.vd-no{color:var(--muted);white-space:nowrap;flex:none}
+.vd-min{color:var(--muted);font-size:.88em;white-space:nowrap}
+.vd-tag{color:var(--c5)}
+.vd-docs{display:flex;flex-direction:column;gap:2px;margin-top:auto;padding-top:8px;border-top:1px dashed var(--line)}
+.vd-docs a{font-size:calc(12.5px * var(--fs));color:var(--muted);text-decoration:none}
+.vd-docs a:hover{color:var(--accent);text-decoration:underline}
 /* 확대 보기 — 화면 가득, 그림은 transform 으로 움직인다 */
 body.dmz-open{overflow:hidden}
 .dmz{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;background:#111418;color:#fff}
@@ -1104,7 +1121,9 @@ function blank(){
            settings:{ timerMin:90, target:52, theme:"auto", bank:"",
                       fontId:FONTS[0].id, fontStack:FONTS[0].stack, fontScale:1,
                       hlHide:false, hlOnly:false,      /* 형광펜 가리기 · 형광만 보기 */
-                      dmHide:false } };                 /* 실기 — 모범 답안 먼저 가리기 */
+                      dmHide:false,                     /* 실기 — 모범 답안 먼저 가리기 */
+                      vdLast:"",                        /* 동영상 강의 — 마지막으로 연 강의 id ([이어 보기]) */
+                      vdRate:1 } };                     /* 동영상 강의 — 재생 속도(로컬 재생) */
 }
 function normalize(o){
   var b = blank();
@@ -1490,12 +1509,12 @@ var CATS = [
 ];
 var catLast = {};   /* 카테고리 → 마지막으로 쓴 모드 */
 function catOf(mode){ return CATS.filter(function(c){ return c.modes.indexOf(mode) >= 0; })[0] || CATS[3]; }
-function isSoonView(name){ return name === "video" || name === "slides"; }
+function isSoonView(name){ return name === "slides"; }
 /* 화면이 속한 모드. 설정은 모드가 없다(null) */
 function modeOf(v){
   if(isNoteView(v.name)) return "n" + (v.ed || "2020");
   if(isDmView(v.name)) return "dm";
-  if(v.name === "video") return "video";
+  if(isVdView(v.name)) return "video";
   if(v.name === "slides") return "slide";
   return v.name === "settings" ? null : "bank";
 }
@@ -1809,7 +1828,8 @@ function renderCats(){
 }
 function renderRail(){
   renderCats();
-  if(curMode === "video" || curMode === "slide"){ renderSoonRail(); return; }
+  if(curMode === "video"){ renderVdRail(); return; }
+  if(curMode === "slide"){ renderSoonRail(); return; }
   if(curMode === "dm"){ renderDmRail(); return; }
   if(curMode !== "bank"){ renderNoteRail(); return; }
   $("#chapLabel").textContent = "과목";
@@ -3163,6 +3183,7 @@ function viewHash(v){
   if(v.name === "dm")  return "#/dm";
   if(v.name === "dmq") return "#/dm/" + v.id;
   if(v.name === "video")  return "#/video";
+  if(v.name === "vdq")    return "#/video/" + v.id;
   if(v.name === "slides") return "#/slides";
   var p = "#/" + (v.ed || "2020");
   if(v.name === "notes")   return p;
@@ -3174,6 +3195,8 @@ function viewHash(v){
 function viewFromHash(){
   var d = /^#\/dm(?:\/([\w-]+))?\/?$/.exec(location.hash || "");
   if(d) return d[1] ? { name:"dmq", id:d[1] } : { name:"dm" };
+  var vq = /^#\/video\/([\w-]+)\/?$/.exec(location.hash || "");
+  if(vq) return { name:"vdq", id:vq[1] };
   var z = /^#\/(video|slides)\/?$/.exec(location.hash || "");
   if(z) return { name:z[1] };
   var m = /^#\/(notes|2020|2013)(?:\/(search|marks)|\/(\d+)\/(\d+)\/(\d+))?\/?$/.exec(location.hash || "");
@@ -3192,7 +3215,7 @@ function syncHash(){
 window.addEventListener("popstate", function(){
   var v = viewFromHash();
   if(v) go(v.name, v, true);
-  else if(isNoteView(view.name) || isDmView(view.name) || isSoonView(view.name)) go(lastView.bank.name, lastView.bank, true);
+  else if(isNoteView(view.name) || isDmView(view.name) || isVdView(view.name) || isSoonView(view.name)) go(lastView.bank.name, lastView.bank, true);
 });
 /* 해설의 [내용정리에서 보기] — 절 화면을 열고 그 소제목으로 */
 function scrollToNote(id){
@@ -3838,17 +3861,310 @@ function viewNoteMarks(){
   return h;
 }
 
-/* ═══════════ 동영상 강의 · 요약 슬라이드 ═══════════
-   자리만 잡아 둔 화면이다. 내용은 기획한 뒤 채운다. 주소 #/video · #/slides */
+/* ═══════════ 동영상 강의 ═══════════
+   구글 드라이브 「DAP/2. DAP 영상 강의」 과목 폴더 1 ~ 5 의 mp4 (data/video/video.js — 드라이브 파일 id 목록).
+   영상은 저장소에 두지 않고 드라이브 미리보기 플레이어(iframe)로 재생한다. 파일이 소유자 전용이면
+   그 구글 계정으로 로그인한 브라우저에서만 나온다 — 안 나올 때를 위해 [드라이브에서 열기]를 함께 둔다.
+   과목 → 강의. 화면 주소 #/video · #/video/4-7. 처음 이 화면을 열 때 데이터를 읽는다.
+   「봤음」 표시는 실기와 같이 S.notesRead 에 "vd:4-7" 로 둔다 — 동기화 병합·전체 초기화가 그대로 적용된다.
+   마지막으로 연 강의는 S.settings.vdLast 에 두고 개요의 [이어 보기]로 쓴다.
+   iframe 은 다시 그리면 처음부터 다시 읽히므로, 같은 강의를 다시 그릴 때는 플레이어를 두고 위·아래만 바꾼다(vdPatch). */
+var VD = null, VD_WAIT = null, VD_FAIL = false;
+var VD_FILE = (window.DAP_MANIFEST && window.DAP_MANIFEST.video) || "";
+window.DAP_VIDEO = { add: function(b){ if(b && b.items) VD = b; } };
+function isVdView(name){ return name === "video" || name === "vdq"; }
+function loadVd(done){
+  if(VD || !VD_FILE || VD_FAIL){ if(done) done(); return; }
+  if(VD_WAIT){ if(done) VD_WAIT.push(done); return; }
+  VD_WAIT = done ? [done] : [];
+  var el = document.createElement("script");
+  el.src = "data/" + VD_FILE;
+  el.charset = "UTF-8";
+  el.onload = el.onerror = function(){
+    var cbs = VD_WAIT; VD_WAIT = null;
+    if(!VD){ VD_FAIL = true; toast("강의 목록 파일을 불러오지 못했습니다 · " + VD_FILE); }
+    cbs.forEach(function(f){ f(); });
+  };
+  document.head.appendChild(el);
+}
+function needVd(){
+  if(VD || VD_FAIL || !VD_FILE) return true;
+  loadVd(function(){ if(isVdView(view.name)) render(); });
+  return false;
+}
+function vdKey(id){ return "vd:" + id; }
+function vdDone(id){ return !!(S.notesRead && S.notesRead[vdKey(id)]); }
+function vdFind(id){ return VD ? VD.items.filter(function(x){ return x.id === id; })[0] || null : null; }
+function vdSub(ch){ return VD ? VD.subjects.filter(function(s){ return s.ch === ch; })[0] || null : null; }
+function vdItems(ch){ return VD.items.filter(function(x){ return x.ch === ch; }); }
+function vdMin(sec){ return Math.round(sec / 60) + "분"; }
+function vdHours(sec){ var m = Math.round(sec / 60); return m < 60 ? m + "분" : Math.floor(m / 60) + "시간" + (m % 60 ? " " + (m % 60) + "분" : ""); }
+function vdCount(xs){
+  xs = xs || (VD ? VD.items : []);
+  var d = xs.filter(function(x){ return vdDone(x.id); });
+  return { done:d.length, total:xs.length,
+           sec:xs.reduce(function(a, x){ return a + (x.sec || 0); }, 0),
+           dsec:d.reduce(function(a, x){ return a + (x.sec || 0); }, 0) };
+}
+function vdUrl(drive, preview){ return "https://drive.google.com/file/d/" + encodeURIComponent(drive) + (preview ? "/preview" : "/view"); }
+function vdLabel(x){ return (x.tag ? "[" + x.tag + "] " : "") + x.title; }
+
+/* ---- 레일: 과목별 강의 목록 ----
+   과목마다 접고 편다. 처음엔 모두 접혀 있고, 강의를 열면 그 과목이 펴진다(실기 DM_OPEN 과 같다) */
+var VD_OPEN = {}, vdAutoId = "";
+function renderVdRail(){
+  $("#bankBox").innerHTML = "";
+  $("#navMain").innerHTML = '<button class="nav-item" data-go="video" aria-current="'+(view.name==="video")+'">'+
+    '<span class="nav-ico">◈</span><span>개요</span>'+
+    (VD ? '<span class="nav-count">'+vdCount().done+'/'+vdCount().total+'</span>' : '')+'</button>';
+  $("#chapLabel").textContent = "과목";
+  if(!VD){
+    if(VD_FILE && !VD_FAIL) loadVd(renderRail);
+    $("#navChap").innerHTML = '<div class="nt-ch">'+(VD_FAIL || !VD_FILE ? '강의 목록을 불러오지 못했습니다' : '불러오는 중…')+'</div>';
+    return;
+  }
+  var cq = view.name === "vdq" && vdFind(view.id);
+  if(cq && vdAutoId !== cq.id){ vdAutoId = cq.id; VD_OPEN[cq.ch] = true; }
+  var h = "";
+  VD.subjects.forEach(function(sub){
+    var xs = vdItems(sub.ch), grp = "";
+    if(!xs.length) return;
+    var open = !!VD_OPEN[sub.ch], c = vdCount(xs);
+    h += '<button class="nt-sub" data-act="vdtoggle" data-ch="'+sub.ch+'" aria-expanded="'+open+'">'+
+      '<span class="nt-caret">▶</span><span class="nt-rom">'+ROMAN[sub.ch]+'</span><span class="chap-name">'+esc(sub.name)+'</span>'+
+      '<span class="nav-count">'+c.done+'/'+c.total+'</span></button>';
+    if(!open) return;
+    h += '<div class="nt-tree">';
+    xs.forEach(function(x){
+      if((x.grp || "") !== grp){ grp = x.grp || ""; if(grp) h += '<div class="nt-ch">'+esc(grp)+'</div>'; }
+      h += '<button class="nt-sec" data-go="vdq" data-id="'+esc(x.id)+'" aria-current="'+(view.name==="vdq" && view.id===x.id)+'">'+
+        '<span class="nt-no">'+esc(x.tag || x.id)+'</span><span>'+esc(x.title)+'</span>'+
+        (vdDone(x.id) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
+    });
+    h += '</div>';
+  });
+  $("#navChap").innerHTML = h;
+}
+
+/* ---- 개요 ---- */
+var VD_WIDE = 10;
+function viewVdHome(){
+  var h = '<div class="page-head"><div><div class="eyebrow">Lectures · 동영상 강의</div><h1 class="page-title">동영상 강의</h1>'+
+    '<p class="page-desc">과목별 강의 영상을 봅니다. 영상은 구글 드라이브에 있고, 그 구글 계정으로 로그인한 브라우저에서 재생됩니다. '+
+    '다 본 강의는 [봤음 표시]로 체크해 두면 진도와 함께 동기화됩니다.</p></div></div>';
+  if(!needVd()) return h + '<div class="card"><div class="empty"><b>강의 목록을 불러오는 중…</b></div></div>';
+  if(!VD) return h + '<div class="card"><div class="empty"><b>강의 목록을 불러오지 못했습니다</b>data/manifest.js 의 video 항목과 data/video/video.js 를 확인하세요.</div></div>';
+  var c = vdCount(), last = vdFind(S.settings.vdLast);
+  h += '<div class="card dm-prog"><div class="sec-head"><span class="sec-title">본 강의</span>'+
+    '<span class="nav-count">'+c.done+' / '+c.total+' · '+vdHours(c.dsec)+' / '+vdHours(c.sec)+'</span></div>'+
+    '<div class="meter-track"><div class="meter-fill" style="width:'+(c.total ? Math.round(c.done/c.total*100) : 0)+'%"></div></div>'+
+    (last ? '<div class="btn-row" style="margin-top:12px"><button class="btn btn-primary" data-go="vdq" data-id="'+esc(last.id)+'">▶ 이어 보기</button>'+
+      '<span class="note">'+ROMAN[last.ch]+'. '+esc(vdLabel(last))+'</span></div>' : '')+'</div>';
+  if(vdLocalSupported()){
+    var st = vdDir ? (vdDirOk ? '연결됨 · 「'+esc(vdDir.name)+'」 폴더에서 바로 재생합니다' : '연결돼 있지만 이번에 다시 허용이 필요합니다') : '연결 안 됨 · 드라이브 플레이어로 재생합니다';
+    h += '<div class="card dm-prog"><div class="sec-head"><span class="sec-title">PC 로컬 재생</span><span class="nav-count">'+st+'</span></div>'+
+      '<p class="note">이 PC 의 「2. DAP 영상 강의」 폴더(G:\\내 드라이브\\DAP\\…)를 연결하면 앱이 직접 재생해 '+
+      '1.1 · 1.15배속 같은 세밀한 속도를 쓸 수 있고, 강의마다 보던 위치에서 이어서 재생합니다. 이 기기에만 적용됩니다.</p>'+
+      '<div class="btn-row" style="margin-top:10px">'+
+      (vdDir && !vdDirOk ? '<button class="btn btn-primary" data-act="vdperm">로컬 재생 켜기</button>' : '')+
+      '<button class="btn'+(vdDir ? '' : ' btn-primary')+'" data-act="vdpick">'+(vdDir ? '폴더 바꾸기' : '강의 폴더 연결')+'</button>'+
+      (vdDir ? '<button class="btn" data-act="vdunlink">연결 해제</button>' : '')+'</div></div>';
+  }
+  h += '<div class="nh-grid">';
+  VD.subjects.forEach(function(sub){
+    var xs = vdItems(sub.ch), grp = "";
+    if(!xs.length) return;
+    var sc = vdCount(xs), wide = xs.length > VD_WIDE;
+    h += '<div class="card nh-card'+(wide ? ' wide' : '')+'"><div class="nh-head"><span class="nh-rom">'+ROMAN[sub.ch]+'</span><span class="nh-title">'+esc(sub.name)+'</span>'+
+      '<span class="nav-count">'+sc.done+'/'+sc.total+' · '+vdHours(sc.sec)+'</span></div>'+(wide ? '<div class="nh-cols">' : '')+'<div class="nh-secs">';
+    xs.forEach(function(x){
+      if((x.grp || "") !== grp){ grp = x.grp || ""; if(grp) h += '</div><div class="nh-ch">'+esc(grp)+'</div><div class="nh-secs">'; }
+      h += '<button data-go="vdq" data-id="'+esc(x.id)+'"><span class="mono vd-no">'+esc(x.tag || x.id)+'</span>'+
+        '<span>'+esc(x.title)+' <span class="vd-min">'+vdMin(x.sec)+'</span></span>'+(vdDone(x.id) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
+    });
+    h += '</div>'+(wide ? '</div>' : '');
+    if(sub.docs && sub.docs.length) h += '<div class="vd-docs">'+sub.docs.map(function(d){
+      return '<a href="'+vdUrl(d.drive)+'" target="_blank" rel="noopener">'+esc(d.t)+' ↗</a>';
+    }).join("")+'</div>';
+    h += '</div>';
+  });
+  return h + '</div>';
+}
+
+/* ---- 강의 화면 ----
+   플레이어 위(vdTop)·아래(vdBot)를 나눠 만들어, 같은 강의를 다시 그릴 때는 플레이어를 그대로 둔다 */
+function vdTop(it){
+  var sub = vdSub(it.ch), done = vdDone(it.id);
+  return '<div class="note-crumb"><button data-go="video">동영상 강의</button><span>›</span><span>'+ROMAN[it.ch]+'. '+esc(sub ? sub.name : "")+'</span>'+
+    (it.grp ? '<span>›</span><span>'+esc(it.grp)+'</span>' : '')+'</div>'+
+    '<div class="page-head" style="margin-bottom:14px"><div><h1 class="page-title">'+(it.tag ? '<span class="dm-id vd-tag">['+esc(it.tag)+']</span> ' : '')+esc(it.title)+'</h1>'+
+    '<p class="page-desc">'+vdMin(it.sec)+'</p></div>'+
+    '<button class="btn'+(done ? ' btn-primary' : '')+'" data-act="vddone">'+(done ? '✓ 봤음' : '봤음 표시')+'</button></div>';
+}
+function vdPlayer(it){
+  if(vdLocal(it)) return '<div class="vd-player" data-drive="'+esc(it.drive)+'" data-mode="local">'+
+    '<video controls preload="metadata" playsinline title="'+esc(it.title)+'"></video></div>';
+  return '<div class="vd-player" data-drive="'+esc(it.drive)+'" data-mode="drive"><iframe src="'+vdUrl(it.drive, true)+'" title="'+esc(it.title)+'" '+
+    'allow="autoplay; fullscreen; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
+}
+function vdRateBar(){
+  var cur = S.settings.vdRate || 1;
+  return '<div class="vd-rates" role="group" aria-label="재생 속도"><span class="vd-rates-l">속도</span>'+VD_RATES.map(function(r){
+    return '<button class="btn btn-sm" data-act="vdrate" data-rate="'+r+'" aria-pressed="'+(r === cur)+'">'+r+'×</button>';
+  }).join("")+'</div>';
+}
+/* 로컬 재생을 켤 수 있는데 아직 안 켠 기기에는 강의 화면에서도 안내한다 */
+function vdLocalNote(it){
+  if(!vdLocalSupported() || !it.file) return "";
+  if(VD_MISS[it.id]) return '<div class="vd-local">로컬 폴더에서 이 강의 파일을 찾지 못해 드라이브 플레이어로 엽니다. '+
+    '<button class="btn btn-sm" data-act="vdpick">폴더 다시 고르기</button></div>';
+  if(vdDir && !vdDirOk) return '<div class="vd-local">이 PC 의 강의 폴더가 연결돼 있습니다. 1.1·1.15배속으로 보려면 '+
+    '<button class="btn btn-sm btn-primary" data-act="vdperm">로컬 재생 켜기</button></div>';
+  if(!vdDir) return '<div class="vd-local">1.1·1.15배속 같은 세밀한 속도로 보려면 이 PC 의 「2. DAP 영상 강의」 폴더를 연결하세요. '+
+    '<button class="btn btn-sm" data-act="vdpick">강의 폴더 연결</button></div>';
+  return "";
+}
+function vdBot(it){
+  var sub = vdSub(it.ch);
+  var h = (vdLocal(it) ? vdRateBar() : vdLocalNote(it)) + '<div class="vd-links">'+
+    '<a class="btn btn-sm" href="'+vdUrl(it.drive)+'" target="_blank" rel="noopener">드라이브에서 열기 ↗</a>'+
+    (sub && sub.docs ? sub.docs.map(function(d){ return '<a class="btn btn-sm" href="'+vdUrl(d.drive)+'" target="_blank" rel="noopener">'+esc(d.t)+' ↗</a>'; }).join("") : '')+
+    '<button class="btn btn-sm" data-go="note" data-ed="2020" data-ch="'+it.ch+'" data-c="1" data-s="1">'+ROMAN[it.ch]+'과목 이론 보기</button>'+
+    '<button class="btn btn-sm" data-go="chapter" data-ch="'+it.ch+'">'+ROMAN[it.ch]+'과목 문제 풀기</button></div>'+
+    (vdLocal(it) ? '<p class="note vd-hint">이 PC 의 강의 폴더에서 바로 재생합니다. 고른 속도와 강의별 재생 위치는 이 기기에 기억됩니다.</p>' :
+    '<p class="note vd-hint">재생되지 않으면 이 브라우저에서 영상을 올린 구글 계정으로 로그인했는지 확인하세요. '+
+    '사파리처럼 다른 사이트 쿠키를 막는 브라우저에서는 [드라이브에서 열기]로 보면 됩니다.</p>');
+  var all = VD.items, k = all.indexOf(it), pv = all[k-1], nx = all[k+1];
+  h += '<div class="note-pager">'+
+    (pv ? '<button data-go="vdq" data-id="'+esc(pv.id)+'"><small>← 이전 강의</small><span>'+esc(vdLabel(pv))+'</span></button>' : '')+
+    (nx ? '<button class="nx" data-go="vdq" data-id="'+esc(nx.id)+'"><small>다음 강의 →</small><span>'+esc(vdLabel(nx))+'</span></button>' : '')+
+    '</div>';
+  return h;
+}
+function viewVdQ(){
+  if(!needVd()) return '<div class="card"><div class="empty"><b>강의 목록을 불러오는 중…</b></div></div>';
+  var it = vdFind(view.id);
+  if(!it) return '<div class="card"><div class="empty"><b>해당 강의가 없습니다</b>'+
+    '<button class="btn" data-go="video" style="margin-top:12px">강의 개요로</button></div></div>';
+  if(S.settings.vdLast !== it.id){ S.settings.vdLast = it.id; save(); }
+  return '<div id="vdTop">'+vdTop(it)+'</div>'+vdPlayer(it)+'<div id="vdBot">'+vdBot(it)+'</div>';
+}
+/* 지금 화면에 같은 강의의 플레이어가 있으면 위·아래만 바꾸고 true */
+function vdPatch(m){
+  if(view.name !== "vdq" || !VD) return false;
+  var it = vdFind(view.id), p = m.querySelector(".vd-player"), top = m.querySelector("#vdTop"), bot = m.querySelector("#vdBot");
+  if(!it || !p || !top || !bot || p.getAttribute("data-drive") !== it.drive ||
+     p.getAttribute("data-mode") !== (vdLocal(it) ? "local" : "drive")) return false;
+  top.innerHTML = vdTop(it);
+  bot.innerHTML = vdBot(it);
+  return true;
+}
+
+/* ---- PC 로컬 폴더 재생 ----
+   드라이브 플레이어는 다른 사이트(iframe)라 속도를 0.25 단위로밖에 못 고른다. Chrome·Edge(PC)에서
+   「2. DAP 영상 강의」 폴더(구글 드라이브 데스크톱으로 동기화된 G:\내 드라이브\DAP\…)를 한 번 골라 두면
+   앱이 <video> 로 직접 재생해 1.1 · 1.15배속 같은 속도를 쓸 수 있다. 각 강의의 위치는 video.js 의 file.
+   폴더 핸들은 진도 파일 핸들과 같은 IndexedDB 에 "video" 로 둔다. 다시 열면 브라우저가 권한을 다시 물을 수 있어
+   (queryPermission 이 prompt) 그때는 [로컬 재생 켜기]를 눌러야 한다 — 권한 요청은 사용자 클릭 안에서만 된다.
+   속도는 S.settings.vdRate(동기화), 강의별 재생 위치는 이 기기 localStorage(VD_POS)에만 둔다. */
+var VD_RATES = [1, 1.1, 1.15, 1.25, 1.5, 1.75, 2];
+var VD_HKEY = "video", VD_POS = "dap750:vdpos";
+var vdDir = null, vdDirOk = false, vdObjUrl = "", VD_MISS = {};
+function vdLocalSupported(){ return typeof window.showDirectoryPicker === "function"; }
+function vdLocal(it){ return !!(vdDir && vdDirOk && it && it.file && !VD_MISS[it.id]); }
+function vdRestoreDir(){
+  if(!vdLocalSupported()) return;
+  idbGet(function(h){
+    if(!h || h.kind !== "directory") return;
+    vdDir = h;
+    vdPerm(false, function(){ if(isVdView(view.name)) render(); });
+  }, VD_HKEY);
+}
+function vdPerm(ask, done){
+  var o = { mode:"read" };
+  Promise.resolve().then(function(){ return ask ? vdDir.requestPermission(o) : vdDir.queryPermission(o); })
+    .then(function(p){ vdDirOk = p === "granted"; }, function(){ vdDirOk = false; })
+    .then(function(){ if(done) done(); });
+}
+function vdFileOf(it){
+  var parts = it.file.split("/"), d = Promise.resolve(vdDir);
+  parts.slice(0, -1).forEach(function(p){ d = d.then(function(h){ return h.getDirectoryHandle(p); }); });
+  return d.then(function(h){ return h.getFileHandle(parts[parts.length - 1]); }).then(function(fh){ return fh.getFile(); });
+}
+/* 폴더를 고르면 첫 강의 파일이 있는지로 맞는 폴더인지 본다 */
+function vdPick(){
+  if(!vdLocalSupported() || !VD) return;
+  window.showDirectoryPicker({ id:"dap-video", mode:"read" }).then(function(h){
+    var prev = [vdDir, vdDirOk];
+    vdDir = h; vdDirOk = true;
+    vdFileOf(VD.items[0]).then(function(){
+      VD_MISS = {};
+      idbPut(h, VD_HKEY);
+      toast("강의 폴더를 연결했습니다 — 이 기기에서는 앱이 직접 재생합니다");
+      render();
+    }, function(){
+      vdDir = prev[0]; vdDirOk = prev[1];
+      toast("강의 파일을 찾지 못했습니다 · 「2. DAP 영상 강의」 폴더를 골라 주세요");
+    });
+  }, function(){});
+}
+function vdUnlink(){
+  vdDir = null; vdDirOk = false; VD_MISS = {};
+  idbDel(VD_HKEY);
+  toast("강의 폴더 연결을 해제했습니다 — 드라이브 플레이어로 재생합니다");
+  render();
+}
+function vdPosAll(){ try{ return JSON.parse(localStorage.getItem(VD_POS)) || {}; }catch(e){ return {}; } }
+function vdPosSet(id, t){
+  var o = vdPosAll();
+  if(t > 0) o[id] = Math.round(t); else delete o[id];
+  try{ localStorage.setItem(VD_POS, JSON.stringify(o)); }catch(e){}
+}
+function vdRateMark(){
+  var cur = S.settings.vdRate || 1;
+  $$(".vd-rates button").forEach(function(b){ b.setAttribute("aria-pressed", String(+b.getAttribute("data-rate") === cur)); });
+}
+/* 그린 뒤 로컬 플레이어에 파일을 물린다. 파일이 없으면 그 강의만 드라이브 플레이어로 */
+function vdAttach(){
+  var it = vdFind(view.id), v = $(".vd-player video");
+  if(!it || !v) return;
+  vdFileOf(it).then(function(f){
+    if(!v.isConnected) return;
+    if(vdObjUrl) URL.revokeObjectURL(vdObjUrl);
+    vdObjUrl = URL.createObjectURL(f);
+    var rate = S.settings.vdRate || 1, last = 0;
+    v.defaultPlaybackRate = rate;
+    v.addEventListener("loadedmetadata", function(){
+      v.playbackRate = rate;
+      var p = vdPosAll()[it.id] || 0;
+      if(p > 15 && p < v.duration - 30){ v.currentTime = p; toast("지난번 위치 " + fmtTime(p) + " 부터 이어서 재생합니다"); }
+    }, { once:true });
+    v.addEventListener("ratechange", function(){
+      if(v.playbackRate !== (S.settings.vdRate || 1)){ S.settings.vdRate = v.playbackRate; save(); }
+      vdRateMark();
+    });
+    v.addEventListener("timeupdate", function(){
+      if(Math.abs(v.currentTime - last) >= 5){ last = v.currentTime; vdPosSet(it.id, v.currentTime); }
+    });
+    v.addEventListener("pause", function(){ vdPosSet(it.id, v.currentTime); });
+    v.addEventListener("ended", function(){ vdPosSet(it.id, 0); });
+    v.src = vdObjUrl;
+  }, function(){
+    VD_MISS[it.id] = true;
+    toast("로컬 폴더에서 강의 파일을 찾지 못했습니다 · 드라이브 플레이어로 엽니다");
+    if(view.name === "vdq" && view.id === it.id) render();
+  });
+}
+
+/* ═══════════ 요약 슬라이드 ═══════════
+   자리만 잡아 둔 화면이다. 내용은 기획한 뒤 채운다. 주소 #/slides */
 var SOON = {
-  video:  { eyebrow:"Lectures · 동영상 강의", title:"동영상 강의",
-            desc:"과목별 강의 영상을 보고, 이어 보기와 진도를 확인하는 화면입니다." },
   slides: { eyebrow:"Theory · 요약 슬라이드", title:"요약 슬라이드",
             desc:"과목별 핵심 이론을 슬라이드로 요약해 넘겨 보는 화면입니다." }
 };
 function renderSoonRail(){
   $("#bankBox").innerHTML = "";
-  var nm = curMode === "video" ? "video" : "slides";
+  var nm = "slides";
   $("#navMain").innerHTML = '<button class="nav-item" data-go="'+nm+'" aria-current="'+(view.name===nm)+'">'+
     '<span class="nav-ico">◈</span><span>개요</span></button>';
   $("#chapLabel").textContent = "과목";
@@ -3884,13 +4200,16 @@ function render(){
     case "nhl": h = viewNoteMarks(); break;
     case "dm": h = viewDmHome(); break;
     case "dmq": h = viewDmQ(); break;
-    case "video": case "slides": h = viewSoon(view.name); break;
+    case "video": h = viewVdHome(); break;
+    case "vdq": if(vdPatch(m)){ hlAfterRender(); return; } h = viewVdQ(); break;
+    case "slides": h = viewSoon(view.name); break;
     case "quiz": h = session ? viewQuiz() : viewDash(); break;
     case "result": h = viewResult(); break;
     default: h = viewDash();
   }
   m.innerHTML = h;
   hlAfterRender();
+  if(view.name === "vdq") vdAttach();
   if(view.name==="quiz" && session && session.limitSec) startTimer();
   if(view.name==="search"){ var i=$("#q"); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
   if(view.name==="nsearch"){ var ni=$("#nq"); if(ni){ ni.focus(); ni.setSelectionRange(ni.value.length,ni.value.length); } }
@@ -3921,6 +4240,7 @@ document.addEventListener("click", function(ev){
     if(dest==="note") return go("note", { ed:t.getAttribute("data-ed") || "", ch:+t.getAttribute("data-ch"), c:+t.getAttribute("data-c"), s:+t.getAttribute("data-s"),
                                           h:t.getAttribute("data-h") || "", topic:t.getAttribute("data-topic") || "" });
     if(dest==="dmq") return go("dmq", { id:t.getAttribute("data-id") });
+    if(dest==="vdq") return go("vdq", { id:t.getAttribute("data-id") });
     if(dest==="randomexam"){
       return startSession({ key:"rand", mode:"exam", title:"랜덤 모의고사", ids:randomExamIds(),
                             limitSec:S.settings.timerMin*60, setNo:0 });
@@ -3958,6 +4278,30 @@ document.addEventListener("click", function(ev){
     case "dmtoggle": {
       var dl = +t.getAttribute("data-lv");
       DM_OPEN[dl] = !DM_OPEN[dl];
+      renderRail();
+      break;
+    }
+    /* ── 동영상 강의 ── */
+    case "vddone": {
+      S.notesRead = S.notesRead || {};
+      var vk = vdKey(view.id);
+      if(S.notesRead[vk]) delete S.notesRead[vk]; else S.notesRead[vk] = Date.now();
+      save(); render();
+      break;
+    }
+    case "vdrate": {
+      var rr = +t.getAttribute("data-rate"), vv = $(".vd-player video");
+      S.settings.vdRate = rr; save();
+      if(vv){ vv.defaultPlaybackRate = rr; vv.playbackRate = rr; }
+      vdRateMark();
+      break;
+    }
+    case "vdpick": vdPick(); break;
+    case "vdperm": vdPerm(true, render); break;
+    case "vdunlink": vdUnlink(); break;
+    case "vdtoggle": {
+      var vc = +t.getAttribute("data-ch");
+      VD_OPEN[vc] = !VD_OPEN[vc];
       renderRail();
       break;
     }
@@ -4212,26 +4556,27 @@ function idb(cb){
     rq.onerror = function(){ cb(null); };
   }catch(e){ cb(null); }
 }
-function idbPut(val){
+/* key 를 주지 않으면 진도 파일 핸들(HKEY). 동영상 강의 폴더 핸들은 "video" 로 둔다 */
+function idbPut(val, key){
   idb(function(db){
     if(!db) return;
-    try{ db.transaction(HSTORE, "readwrite").objectStore(HSTORE).put(val, HKEY); }catch(e){}
+    try{ db.transaction(HSTORE, "readwrite").objectStore(HSTORE).put(val, key || HKEY); }catch(e){}
   });
 }
-function idbGet(cb){
+function idbGet(cb, key){
   idb(function(db){
     if(!db) return cb(null);
     try{
-      var rq = db.transaction(HSTORE, "readonly").objectStore(HSTORE).get(HKEY);
+      var rq = db.transaction(HSTORE, "readonly").objectStore(HSTORE).get(key || HKEY);
       rq.onsuccess = function(){ cb(rq.result || null); };
       rq.onerror = function(){ cb(null); };
     }catch(e){ cb(null); }
   });
 }
-function idbDel(){
+function idbDel(key){
   idb(function(db){
     if(!db) return;
-    try{ db.transaction(HSTORE, "readwrite").objectStore(HSTORE).delete(HKEY); }catch(e){}
+    try{ db.transaction(HSTORE, "readwrite").objectStore(HSTORE).delete(key || HKEY); }catch(e){}
   });
 }
 
@@ -4959,6 +5304,7 @@ applyTypography();
 bootBank(function(){
   applyBrand();
   restoreFileHandle();
+  vdRestoreDir();
   var hv = viewFromHash();          /* #/2020/… · #/2013/… · #/dm/… 로 열었으면 그 화면부터 */
   if(hv){ view = hv; curMode = modeOf(hv); catLast[catOf(curMode).id] = curMode; }
   render();

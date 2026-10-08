@@ -1,0 +1,93 @@
+/* 동영상 강의 — 구글 드라이브 「DAP/2. DAP 영상 강의」의 과목 폴더 1 ~ 5 에 있는 mp4.
+   영상은 저장소에 올리지 않는다. 드라이브 파일 id 로 드라이브 미리보기 플레이어를 띄운다.
+   파일 권한이 소유자 전용이면 그 구글 계정으로 로그인한 브라우저에서만 재생된다.
+   sec = 재생 시간(초, mp4 헤더에서 읽음). tag = 원래 파일 이름의 장·절 표시.
+   file = 「2. DAP 영상 강의」 폴더 안의 경로 — PC 에서 그 폴더를 골라 두면 앱이 직접 재생한다(배속 1.1 · 1.15 등).
+          드라이브에서 파일 이름을 바꾸면 여기도 고칠 것.
+   영상을 더하거나 바꾸면 이 파일만 고친다 — id 는 주소(#/video/4-7)와 시청 표시에 쓰이니 바꾸지 말 것. */
+DAP_VIDEO.add({
+  title: "DAP 동영상 강의",
+  folder: "1q6_NWH6yFbkRjEmUp91JLqcUnQ_ClcCE",
+  subjects: [
+    { ch: 1, name: "전사아키텍처 이해",
+      docs: [ { t: "1과목 강의자료(PDF)", drive: "1SGPFrMR61cD_6KCOwvkpXrTkCTNFv7aJ" } ] },
+    { ch: 2, name: "데이터 요건 분석",
+      docs: [ { t: "2과목 강의자료(PDF)", drive: "16IraJicTLN7AX9T1bHy87VX9jm7XV8np" } ] },
+    { ch: 3, name: "데이터 표준화",
+      docs: [ { t: "3과목 강의자료(PDF)", drive: "1CgrJOKIT16cnzp4x0liDyMEW1N44Pcvt" },
+              { t: "[참고] 엔터티 및 표준화 정의서 작성 전략(PDF)", drive: "1GkWpuYFV4aIghxxFZKr_8IXSoBN-2x7z" } ] },
+    { ch: 4, name: "데이터 모델링",
+      docs: [ { t: "4과목 강의자료(PDF)", drive: "1SiN_OpnnNuEQA4152Xzr-ErwMo-M_0q6" },
+              { t: "[참고] 엔터티 및 표준화 정의서 작성 전략(PDF)", drive: "1GkWpuYFV4aIghxxFZKr_8IXSoBN-2x7z" } ] },
+    { ch: 5, name: "데이터베이스 설계와 이용",
+      docs: [ { t: "5과목 강의자료(PDF)", drive: "1cIUFTYBUpUn6HqrFCxupZrU1dCetn5hh" } ] }
+  ],
+  items: [
+    { id: "1-1",  ch: 1, tag: "1장 1절",   title: "아키텍처 개요",                              sec: 2359, drive: "1tKgK8SwtHCQT-fzgecP4W_pjETap-MlU",
+      file: "1. 전사아키텍처의 이해/(I.전사아키텍처의 이해) - (1장 1절) 아키텍처 개요.mp4" },
+    { id: "1-2",  ch: 1, tag: "1장 2~3절", title: "아키텍처 프레임워크, DRM",                   sec: 1742, drive: "1nwyHPnECNmtDA5CSVTdhtmIpQ-VVt4Vt",
+      file: "1. 전사아키텍처의 이해/(I.전사아키텍처의 이해) - (1장 2절~3절) 아키텍처 프레임워크, DRM.mp4" },
+    { id: "1-3",  ch: 1, tag: "1장 4~5절", title: "데이터아키텍처 프로세스, 데이터아키텍트",    sec: 1051, drive: "1sr2jpwjSsz8S7gnD9Iv4X_e0NxZBRjpM",
+      file: "1. 전사아키텍처의 이해/(I.전사아키텍처의 이해) - (1장 4절~5절) 데이터아키텍처 프로세스, 데이터아키텍트.mp4" },
+    { id: "1-4",  ch: 1, tag: "2장",       title: "데이터아키텍처 구축",                        sec: 2416, drive: "1jXjSVoCzWrmz8oafCw4SlfXw3OTXbJZ7",
+      file: "1. 전사아키텍처의 이해/(I.전사아키텍처의 이해) - (2장) 데이터아키텍처 구축.mp4" },
+    { id: "1-5",  ch: 1, tag: "3장",       title: "데이터 거버넌스",                            sec: 2260, drive: "1NujbrJ6u61JcN91-GFAC_A11smBAkeNl",
+      file: "1. 전사아키텍처의 이해/(I.전사아키텍처의 이해) - (3장) 데이터거버넌스.mp4" },
+
+    { id: "2-1",  ch: 2, tag: "1장",       title: "정보 요구사항 개요",                         sec: 1516, drive: "1Ko53CbFiV-CvWNCdcHEAzyDnCD4cAtAv",
+      file: "2 데이터 요건 분석/(II. 데이터 요건 정의) - 1장. 정복 요구사항 개요.mp4" },
+    { id: "2-2",  ch: 2, tag: "2장",       title: "정보 요구사항 조사",                         sec: 2037, drive: "1TzSQj3zainR9TTzKi7lLrnT-3e4Fjubs",
+      file: "2 데이터 요건 분석/(II. 데이터 요건 정의) - 2장. 정복 요구사항 조사.mp4" },
+    { id: "2-3",  ch: 2, tag: "3장",       title: "정보 요구사항 분석",                         sec: 1486, drive: "1Fw9qWw8O6rPaLZpE6RW7VEycaloom1Zz",
+      file: "2 데이터 요건 분석/(II. 데이터 요건 정의) - 3장. 정보 요구사항 분석.mp4" },
+    { id: "2-4",  ch: 2, tag: "4~5장",     title: "정보 요구사항 명세화, 검증 및 변경관리",     sec: 1486, drive: "1s2GKWcGbwnX7mIlH2UqIViQNDhN1k8_L",
+      file: "2 데이터 요건 분석/(II. 데이터 요건 정의) - 4장~5장. 정보 요구사항 명세화, 검증 및 변경관리.mp4" },
+
+    { id: "3-1",  ch: 3, tag: "1장",       title: "데이터 표준화 개요",                         sec: 2026, drive: "1XoEm1WDn0rvlSLhh0RitT6BXjgjr2vEu",
+      file: "3. 데이터 표준화/(III. 데이터표준화) - (1장) 데이터 표준화 개요.mp4" },
+    { id: "3-2",  ch: 3, tag: "2~3장",     title: "데이터 표준 수립, 데이터 표준 관리",         sec: 3473, drive: "1_bBixEKByFfqJEDv3bfFrUbjrmJ1yiGc",
+      file: "3. 데이터 표준화/(III. 데이터표준화) - (2장~3장) 데이터 표준수립, 데이터 표준 관리.mp4" },
+
+    { id: "4-1",  ch: 4, grp: "1. 데이터모델링의 이해", tag: "1-1", title: "OT, 소개",                        sec: 3368, drive: "1PKsLb3jjxg4sB6Th2qTkMv5gIXz1pRpT",
+      file: "4. 데이터 모델링/(1. 데이터모델링의 이해) - 1. OT, 소개.mp4" },
+    { id: "4-2",  ch: 4, grp: "1. 데이터모델링의 이해", tag: "1-2", title: "데이터모델링의 이해",             sec: 2141, drive: "1r3gaDtZpB4OdYREF9MfuF55TDiRaAKpm",
+      file: "4. 데이터 모델링/(1. 데이터모델링의 이해) - 2. 데이터모델링의 이해.mp4" },
+    { id: "4-3",  ch: 4, grp: "1. 데이터모델링의 이해", tag: "1-3", title: "데이터모델링 기법 이해",          sec: 1791, drive: "12g2oQAlW5vW6LPJ1lqiKQDTRR7e75ILP",
+      file: "4. 데이터 모델링/(1. 데이터모델링의 이해) - 3. 데이터모델링 기법 이해.mp4" },
+    { id: "4-4",  ch: 4, grp: "2. 개념 데이터모델링",   tag: "2-1", title: "이해, 주제영역 정의",             sec: 1529, drive: "1ZXy7ekFmretAw9MnhR538B1IUFIJBR11",
+      file: "4. 데이터 모델링/(2. 개념 데이터모델링) - 1. 이해, 주제영역 정의.mp4" },
+    { id: "4-5",  ch: 4, grp: "2. 개념 데이터모델링",   tag: "2-2", title: "후보 엔터티 선정",                sec: 1747, drive: "13BxzjX0xD_lVF12hCt66xp_LqabEpUIp",
+      file: "4. 데이터 모델링/(2. 개념 데이터모델링) - 2. 후보 엔터티 선정.mp4" },
+    { id: "4-6",  ch: 4, grp: "2. 개념 데이터모델링",   tag: "2-3", title: "핵심 엔터티 정의",                sec: 1992, drive: "1t5mTzHrYYEDI3rvUqk_ovrCmQr5JarBb",
+      file: "4. 데이터 모델링/(2. 개념 데이터모델링) - 3. 핵심 엔터티 정의.mp4" },
+    { id: "4-7",  ch: 4, grp: "2. 개념 데이터모델링",   tag: "2-4", title: "관계·식별자 맛보기",              sec: 1869, drive: "1narXwNcynof4IV-HX2cHNzB3X9TkVdvM",
+      file: "4. 데이터 모델링/(2. 개념 데이터모델링) - 4. 관계-식별자 맛보기.mp4" },
+    { id: "4-8",  ch: 4, grp: "2. 개념 데이터모델링",   tag: "2-5", title: "관계의 이해",                     sec: 1991, drive: "1K1lG7r-vQ_lGx6QeibC7EkoAX0-W_BJa",
+      file: "4. 데이터 모델링/(2. 개념 데이터모델링) - 5. 관계의 이해.mp4" },
+    { id: "4-9",  ch: 4, grp: "2. 개념 데이터모델링",   tag: "2-6", title: "관계의 형태",                     sec: 1725, drive: "1WoJIbDA6t6zjrIID9jV4FufBkxWIZB7P",
+      file: "4. 데이터 모델링/(2. 개념 데이터모델링) - 6. 관계의 형태.mp4" },
+    { id: "4-10", ch: 4, grp: "2. 개념 데이터모델링",   tag: "2-7", title: "ERD 표기법",                      sec: 663,  drive: "1VtUgx-Y53dO1guVOUynRR5Pfme1DGmQg",
+      file: "4. 데이터 모델링/(2. 개념 데이터모델링) - 7. ERD 표기법.mp4" },
+    { id: "4-11", ch: 4, grp: "3. 논리 데이터모델링",   tag: "3-1", title: "논리 데이터모델링 이해, 속성 정의", sec: 1736, drive: "1y_U2GFFzDd8ep7v3w3764o7SB67cZqLm",
+      file: "4. 데이터 모델링/(3. 논리데이터 모델링) - 1. 논리데이터모델링 이해, 속성 정의 .mp4" },
+    { id: "4-12", ch: 4, grp: "3. 논리 데이터모델링",   tag: "3-2", title: "엔터티 상세화(식별자 확정)",      sec: 1272, drive: "1abyP_2v_Vk862ULDfJw49bIbsan3EPkl",
+      file: "4. 데이터 모델링/(3. 논리데이터 모델링) - 2. 엔터티 상세화(식별자 확정).mp4" },
+    { id: "4-13", ch: 4, grp: "3. 논리 데이터모델링",   tag: "3-3", title: "엔터티 상세화(정규화)",           sec: 1584, drive: "1qAhdKJkvQfegWU5aNJNdahsYKmpy25TA",
+      file: "4. 데이터 모델링/(3. 논리데이터 모델링) - 3. 엔터티 상세화(정규화).mp4" },
+    { id: "4-14", ch: 4, grp: "3. 논리 데이터모델링",   tag: "3-4", title: "엔터티 상세화(M:M 관계 해소, 참조무결성 정의)", sec: 2663, drive: "1hKaJ7MuowWm1EcLx8wVfDWyNXkCDAt2z",
+      file: "4. 데이터 모델링/(3. 논리데이터 모델링) - 4. 엔터티 상세화_MM관계의 해소 및 참조무결성 정의.mp4" },
+    { id: "4-15", ch: 4, grp: "3. 논리 데이터모델링",   tag: "3-5", title: "논리 데이터모델링 리뷰",          sec: 2956, drive: "1_Eswq8cBDA5NAZfGABzeAZ6BzRjXL3j_",
+      file: "4. 데이터 모델링/(3. 논리데이터 모델링) - 5. 논리 데이터 모델링 리뷰.mp4" },
+    { id: "4-16", ch: 4, grp: "4. 물리 데이터모델링",   tag: "4-1", title: "물리 데이터모델링의 이해",        sec: 1327, drive: "1oWqB2bpWfiWvySA-7_YFcjr0bEghgC-M",
+      file: "4. 데이터 모델링/(4. 물리데이터 모델링) - 1. 물리 데이터 모델링의 이해.mp4" },
+    { id: "4-17", ch: 4, grp: "4. 물리 데이터모델링",   tag: "4-2", title: "반정규화",                        sec: 1487, drive: "1IC-FMGZA7fDs7uafNHZs9mwcyc6wuHlS",
+      file: "4. 데이터 모델링/(4. 물리데이터 모델링) - 2. 반정규화.mp4" },
+
+    { id: "5-1",  ch: 5, grp: "인덱스 구성과 활용 — 네이버 카페 「데이터와사람들」", tag: "1/3", title: "인덱스 구성과 활용 (1)", sec: 1696, drive: "1_Degj40fb3cW2otoRSjkVn1Xz7CpcgIH",
+      file: "5. 데이터베이스 설계와 이용/네이버카페 데이터와사람들) 인덱스구성과 활용 - 1-3.mp4" },
+    { id: "5-2",  ch: 5, grp: "인덱스 구성과 활용 — 네이버 카페 「데이터와사람들」", tag: "2/3", title: "인덱스 구성과 활용 (2)", sec: 1493, drive: "1Ghbmlao8EYTP66BY7gqOiEp4iMUovBoK",
+      file: "5. 데이터베이스 설계와 이용/네이버카페 데이터와사람들) 인덱스구성과 활용 - 2-3.mp4" },
+    { id: "5-3",  ch: 5, grp: "인덱스 구성과 활용 — 네이버 카페 「데이터와사람들」", tag: "3/3", title: "인덱스 구성과 활용 (3)", sec: 1238, drive: "16qaCtLp6cDt5yh4n7X6nndlIRwy1Ohx4",
+      file: "5. 데이터베이스 설계와 이용/네이버카페 데이터와사람들) 인덱스구성과 활용 - 3-3.mp4" }
+  ]
+});
