@@ -227,6 +227,24 @@ data/notes/
 해설의 원천 줄에 [2020 Edition 에서 보기]가 붙는다. `node test/notes.js` 가 이 연결을 전수 대조한다.
 2013 판은 장·절 번호 체계가 요약본과 달라 문항과 잇지 않는다.
 
+## 실기 (`data/dm/`)
+
+「실기」 화면의 데이터 — Data Modeling(실기) 실습문제 30개의 요구 사항 지문과 모범 답안 ERD.
+`manifest.js` 의 `dm: "dm/dm.js"` 가 가리키고, 「실기」 화면을 처음 열 때 읽는다.
+
+```
+data/dm/
+  dm.js            DAP_DM.add({ title, levels:[기초…특급], images:{ 키:{src,w,h} },
+                     items:[{ id, lv, grp, title, stars, q:[블록], a:[블록] }] })
+  img/dm-01.png …  ERD. 원본 크기 그대로(확대 보기에서 키워 보므로 줄이지 않는다)
+```
+
+블록은 `{p}` 문단 · `{h}` 소제목 · `{img, cap}` 그림 · `{tbl, kv}` 표 · `{task}` 함께 작성할 것(지문 끝).
+`q` 가 지문, `a` 가 모범 답안이다. `dm.js` 는 손으로 고치지 않는다 —
+`data_source/Data Modeling(실기)/Modeling 실습문제.hwpx` → `node tools/dm-build.js --write`.
+원문 오타 수정·그림 제목 등 원본과 다르게 둔 것은 도구 머리의 `FIX`·`ANSWER_AT`·`CAPTION` 에 있다.
+`node test/dm.js` 가 파일·그림·그리기를 점검한다.
+
 ## 새 과목 추가
 
 `manifest.js` 의 `chapters` 에 항목을 추가하고 팩 파일을 만들면 된다.

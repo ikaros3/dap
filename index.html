@@ -360,18 +360,58 @@ label.field{display:flex;flex-direction:column;gap:5px;font-size:calc(12.5px * v
   .score-big{font-size:calc(42px * var(--fs))}
   .qtext{font-size:calc(15.5px * var(--fs))}
 }
-/* ============ 모드 탭 (문제은행 / 2020 Edition / 2013 Edition) ============ */
-.mode-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;margin:0 2px 10px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+/* ============ 모드 탭 (문제은행 / 2020 Edition / 2013 Edition / 실기) ============ */
+.mode-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;margin:0 2px 10px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
 .mode-tab{--tc:var(--muted);padding:8px 4px 7px;border-radius:9px;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;line-height:1.15;text-align:center;min-width:0}
 .mode-tab .mt-ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--tc);background:color-mix(in srgb,var(--tc) 12%,transparent);transition:background .15s,color .15s}
 .mode-tab .mt-ico svg{width:17px;height:17px}
 .mode-tab b{font-size:calc(13px * var(--fs));font-weight:600;white-space:nowrap;letter-spacing:-.01em}
 .mode-tab small{font-size:calc(10.5px * var(--fs));font-weight:500;opacity:.75;white-space:nowrap;letter-spacing:.02em}
-.mode-tab[data-mode="bank"]{--tc:var(--c1)} .mode-tab[data-mode="n2020"]{--tc:var(--c2)} .mode-tab[data-mode="n2013"]{--tc:var(--c4)}
+.mode-tab[data-mode="bank"]{--tc:var(--c1)} .mode-tab[data-mode="n2020"]{--tc:var(--c2)} .mode-tab[data-mode="n2013"]{--tc:var(--c4)} .mode-tab[data-mode="dm"]{--tc:var(--c3)}
 .mode-tab:hover{color:var(--ink)}
 .mode-tab[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
 .mode-tab[aria-pressed="true"] .mt-ico{background:var(--tc);color:var(--surface)}
 .mode-tab[aria-pressed="true"] small{color:var(--tc);opacity:1}
+
+/* ============ Data Modeling(실기) ============ */
+.dm-lv{padding-top:10px;color:var(--ink-2)}
+.dm-prog{margin-bottom:16px}
+.dm-id{font-family:var(--font-mono);color:var(--c3);font-size:.8em;font-weight:600}
+.dm-stars{color:var(--c3);font-size:.78em;letter-spacing:1px;vertical-align:1px}
+.dm-doc + .dm-doc{margin-top:16px}
+.dm-p{line-height:1.85}
+.dm-ans-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.dm-ans-head .n-h3{margin-bottom:4px}
+.dm-fig{margin:14px 0 16px;text-align:center}
+.dm-fig figcaption{font-size:calc(12.5px * var(--fs));color:var(--muted);font-weight:600;margin-top:6px}
+.dm-figbtn{position:relative;display:inline-block;max-width:100%;padding:0;border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden;cursor:zoom-in;vertical-align:top}
+.dm-figbtn img{display:block;max-width:100%;height:auto}
+.dm-figbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dm-zoomhint{position:absolute;right:8px;bottom:8px;padding:3px 9px;border-radius:99px;font-size:calc(11.5px * var(--fs));font-weight:600;
+  color:#fff;background:rgba(20,24,28,.72);opacity:.85;transition:opacity .15s;pointer-events:none}
+.dm-figbtn:hover .dm-zoomhint{opacity:1}
+.dm-tbl td,.dm-tbl th{white-space:normal}
+.dm-cover{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;margin:12px 0 4px;padding:28px 16px;border:1.5px dashed var(--line-strong);border-radius:var(--radius);background:var(--surface-2)}
+.dm-hint{margin-top:10px;text-align:center}
+/* 확대 보기 — 화면 가득, 그림은 transform 으로 움직인다 */
+body.dmz-open{overflow:hidden}
+.dmz{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;background:#111418;color:#fff}
+.dmz-bar{display:flex;align-items:center;gap:10px;padding:8px 10px 8px 16px;background:rgba(0,0,0,.35);flex-wrap:wrap}
+.dmz-title{flex:1;min-width:0;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dmz-pct{font-size:12px;opacity:.7;min-width:44px;text-align:right}
+.dmz-btns{display:flex;gap:4px}
+.dmz-btns button{min-width:38px;height:34px;padding:0 10px;border-radius:8px;color:#fff;background:rgba(255,255,255,.1);font-size:14px;font-weight:600}
+.dmz-btns button:hover{background:rgba(255,255,255,.2)}
+.dmz-btns button:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.dmz-stage{position:relative;flex:1;overflow:hidden;touch-action:none;cursor:grab}
+.dmz-stage.drag{cursor:grabbing}
+.dmz-img{position:absolute;left:0;top:0;max-width:none;transform-origin:0 0;background:#fff;border-radius:2px;user-select:none;-webkit-user-select:none;box-shadow:0 6px 30px rgba(0,0,0,.5)}
+@media (max-width:600px){
+  .dmz-bar{padding:6px 8px}
+  .dmz-title{flex-basis:100%;font-size:13px}
+  .dmz-pct{text-align:left}
+  .dmz-btns button{min-width:34px;padding:0 8px}
+}
 
 /* ============ 내용정리 ============ */
 /* 레일의 목차 트리: 과목 → 장 → 절 */
@@ -991,7 +1031,8 @@ function blank(){
               실기에서 23점을 얻는다고 보면 필기 52점이 목표가 된다. */
            settings:{ timerMin:90, target:52, theme:"auto", bank:"",
                       fontId:FONTS[0].id, fontStack:FONTS[0].stack, fontScale:1,
-                      hlHide:false, hlOnly:false } };   /* 형광펜 가리기 · 형광만 보기 */
+                      hlHide:false, hlOnly:false,      /* 형광펜 가리기 · 형광만 보기 */
+                      dmHide:false } };                 /* 실기 — 모범 답안 먼저 가리기 */
 }
 function normalize(o){
   var b = blank();
@@ -1362,16 +1403,16 @@ function rollbackExam(e){
 
 /* ─────────── 라우팅 ─────────── */
 var view = { name:"dash" }, session = null, timerH = null;
-/* 화면은 크게 셋이다 — 문제은행(bank)과 내용정리 두 판(n2020 · n2013). 설정은 모두가 함께 쓰므로
+/* 화면은 크게 넷이다 — 문제은행(bank), 내용정리 두 판(n2020 · n2013), Data Modeling 실기(dm). 설정은 모두가 함께 쓰므로
    들어가도 지금 모드를 유지한다. 모드 탭으로 오가면 그 모드에서 마지막으로 보던 화면으로 돌아간다.
    내용정리 화면은 view.ed 로 판을 안다. 판을 주지 않으면 지금 보던 판을 잇고, 문제은행에서 오면 2020 이다. */
-var curMode = "bank", lastView = { bank:{ name:"dash" }, n2020:{ name:"notes", ed:"2020" }, n2013:{ name:"notes", ed:"2013" } };
+var curMode = "bank", lastView = { bank:{ name:"dash" }, n2020:{ name:"notes", ed:"2020" }, n2013:{ name:"notes", ed:"2013" }, dm:{ name:"dm" } };
 
 function go(name, opt, fromHistory){
   if(view && !/^(quiz|result|settings)$/.test(view.name)) lastView[curMode] = view;
   var ed = isNoteView(name) ? ((opt && opt.ed) || (curMode === "n2013" ? "2013" : "2020")) : "";
   view = Object.assign({ name:name }, opt||{});
-  if(ed){ view.ed = ed; curMode = "n" + ed; } else if(name !== "settings") curMode = "bank";
+  if(ed){ view.ed = ed; curMode = "n" + ed; } else if(isDmView(name)) curMode = "dm"; else if(name !== "settings") curMode = "bank";
   if(name!=="quiz" && timerH){ clearInterval(timerH); timerH=null; }
   /* 퀴즈를 벗어나면 진도를 저장하고 세션 핸들만 놓는다 (기록은 남아 이어풀기 가능) */
   if(name!=="quiz" && session){ session.idx = firstUnsolved(session); save(); session = null; }
@@ -1638,9 +1679,10 @@ var NAVS = [
   { id:"search",ico:"⌕", label:"문항 검색" },
   { id:"settings", ico:"⚙", label:"설정" }
 ];
-/* 화면 구분 탭 — 아이콘 위, 이름, 보조 글 순으로 세 칸을 같은 폭으로 */
+/* 화면 구분 탭 — 아이콘 위, 이름, 보조 글 순으로 네 칸을 같은 폭으로 */
 var MODE_ICO = {
   bank:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8.5 8.5l1.5 1.5 3-3M8.5 15h7"/></svg>',
+  erd:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="9" height="7" rx="1.5"/><rect x="12.5" y="13.5" width="9" height="7" rx="1.5"/><path d="M7 10.5V17h5.5M10 14.5l2.5 2.5-2.5 2.5"/></svg>',
   book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.3 5 7.6 4.5 4 4.5v14c3.6 0 6.3.5 8 2 1.7-1.5 4.4-2 8-2v-14c-3.6 0-6.3.5-8 2z"/><path d="M12 6.5v14"/></svg>'
 };
 function modeTab(mode, ico, name, sub, tip){
@@ -1649,8 +1691,10 @@ function modeTab(mode, ico, name, sub, tip){
 }
 function renderRail(){
   $("#modeTabs").innerHTML =
-    modeTab("bank", MODE_ICO.bank, "문제은행", "Question Bank", "기출·연습·실전 문항 풀이")+
-    NOTE_EDS.map(function(e){ return modeTab("n"+e.id, MODE_ICO.book, e.id, "Edition", e.desc); }).join("");
+    modeTab("bank", MODE_ICO.bank, "문제은행", "Questions", "기출·연습·실전 문항 풀이")+
+    NOTE_EDS.map(function(e){ return modeTab("n"+e.id, MODE_ICO.book, e.id, "Edition", e.desc); }).join("")+
+    modeTab("dm", MODE_ICO.erd, "실기", "Modeling", "Data Modeling(실기) — 지문을 읽고 모델을 그려 본 뒤 모범 답안 ERD 와 비교");
+  if(curMode === "dm"){ renderDmRail(); return; }
   if(curMode !== "bank"){ renderNoteRail(); return; }
   $("#chapLabel").textContent = "과목";
   $("#navMain").innerHTML = NAVS.map(function(n){
@@ -3000,6 +3044,8 @@ function renderNoteRail(){
 /* ---- 화면 주소 ---- */
 /* #/2020/3/2/2 · #/2013/1/2/3 — 판이 주소 맨 앞에 온다. 예전 주소 #/notes/… 는 2020 판으로 읽는다 */
 function viewHash(v){
+  if(v.name === "dm")  return "#/dm";
+  if(v.name === "dmq") return "#/dm/" + v.id;
   var p = "#/" + (v.ed || "2020");
   if(v.name === "notes")   return p;
   if(v.name === "nsearch") return p + "/search";
@@ -3008,6 +3054,8 @@ function viewHash(v){
   return "";
 }
 function viewFromHash(){
+  var d = /^#\/dm(?:\/([\w-]+))?\/?$/.exec(location.hash || "");
+  if(d) return d[1] ? { name:"dmq", id:d[1] } : { name:"dm" };
   var m = /^#\/(notes|2020|2013)(?:\/(search|marks)|\/(\d+)\/(\d+)\/(\d+))?\/?$/.exec(location.hash || "");
   if(!m) return null;
   var ed = m[1] === "2013" ? "2013" : "2020";
@@ -3015,16 +3063,16 @@ function viewFromHash(){
   if(m[3]) return { name:"note", ed:ed, ch:+m[3], c:+m[4], s:+m[5] };
   return { name:"notes", ed:ed };
 }
-/* 내용정리 화면을 오갈 때만 주소를 남긴다. 문제은행 화면끼리는 지금처럼 주소가 바뀌지 않는다 */
+/* 내용정리·실기 화면을 오갈 때만 주소를 남긴다. 문제은행 화면끼리는 지금처럼 주소가 바뀌지 않는다 */
 function syncHash(){
   var h = viewHash(view), cur = location.hash || "";
-  if(h === cur || (!h && !/^#\/(notes|2020|2013)/.test(cur))) return;
+  if(h === cur || (!h && !/^#\/(notes|2020|2013|dm)/.test(cur))) return;
   try{ history.pushState(null, "", h || (location.pathname + location.search)); }catch(e){}
 }
 window.addEventListener("popstate", function(){
   var v = viewFromHash();
   if(v) go(v.name, v, true);
-  else if(isNoteView(view.name)) go(lastView.bank.name, lastView.bank, true);
+  else if(isNoteView(view.name) || isDmView(view.name)) go(lastView.bank.name, lastView.bank, true);
 });
 /* 해설의 [내용정리에서 보기] — 절 화면을 열고 그 소제목으로 */
 function scrollToNote(id){
@@ -3033,6 +3081,307 @@ function scrollToNote(id){
   el.scrollIntoView({ block:"start" });
   el.classList.remove("n-flash"); void el.offsetWidth; el.classList.add("n-flash");
 }
+
+/* ═══════════ Data Modeling(실기) ═══════════
+   data_source 의 「Modeling 실습문제.hwpx」 30문제 — 요구 사항 지문과 모범 답안 ERD (tools/dm-build.js → data/dm/dm.js).
+   단계(기초 → 특급) → 문제. 화면 주소 #/dm · #/dm/4-7. 처음 이 화면을 열 때 데이터를 읽는다.
+   「풀어 봄」 표시는 내용정리 읽음 표시와 같은 S.notesRead 에 "dm:4-7" 로 둔다 — 동기화 병합·전체 초기화가 그대로 적용된다.
+   ERD 는 눌러서 확대 보기로 연다(dmz*): 휠·두 손가락으로 확대, 끌어서 이동, 두 번 눌러 맞춤 ↔ 확대. */
+var DM = null, DM_WAIT = null, DM_FAIL = false;
+var DM_FILE = (window.DAP_MANIFEST && window.DAP_MANIFEST.dm) || "";
+window.DAP_DM = { add: function(b){ if(b && b.items) DM = b; } };
+function isDmView(name){ return name === "dm" || name === "dmq"; }
+function loadDm(done){
+  if(DM || !DM_FILE || DM_FAIL){ if(done) done(); return; }
+  if(DM_WAIT){ if(done) DM_WAIT.push(done); return; }
+  DM_WAIT = done ? [done] : [];
+  var el = document.createElement("script");
+  el.src = "data/" + DM_FILE;
+  el.charset = "UTF-8";
+  el.onload = el.onerror = function(){
+    var cbs = DM_WAIT; DM_WAIT = null;
+    if(!DM){ DM_FAIL = true; toast("실기 문제 파일을 불러오지 못했습니다 · " + DM_FILE); }
+    cbs.forEach(function(f){ f(); });
+  };
+  document.head.appendChild(el);
+}
+/* 아직 안 읽었으면 읽은 뒤 다시 그린다. 지금 그릴 수 있으면 true */
+function needDm(){
+  if(DM || DM_FAIL || !DM_FILE) return true;
+  loadDm(function(){ if(isDmView(view.name)) render(); });
+  return false;
+}
+function dmKey(id){ return "dm:" + id; }
+function dmDone(id){ return !!(S.notesRead && S.notesRead[dmKey(id)]); }
+function dmFind(id){ return DM ? DM.items.filter(function(x){ return x.id === id; })[0] || null : null; }
+function dmLevelName(lv){ return lv + ". " + DM.levels[lv]; }
+function dmStars(n){ return n ? ' <span class="dm-stars" title="난이도 표시(원문)">'+"★".repeat(n)+'</span>' : ''; }
+function dmCount(){
+  var all = DM ? DM.items : [];
+  return { done: all.filter(function(x){ return dmDone(x.id); }).length, total: all.length };
+}
+
+/* ---- 레일: 단계별 문제 목록 ---- */
+var DM_NAVS = [ { id:"dm", ico:"◈", label:"개요" } ];
+function renderDmRail(){
+  $("#bankBox").innerHTML = "";
+  $("#navMain").innerHTML = DM_NAVS.map(function(n){
+    return '<button class="nav-item" data-go="'+n.id+'" aria-current="'+(view.name===n.id)+'">'+
+      '<span class="nav-ico">'+n.ico+'</span><span>'+n.label+'</span>'+
+      (DM ? '<span class="nav-count">'+dmCount().done+'/'+dmCount().total+'</span>' : '')+'</button>';
+  }).join("");
+  $("#chapLabel").textContent = "문제";
+  if(!DM){
+    if(DM_FILE && !DM_FAIL) loadDm(renderRail);
+    $("#navChap").innerHTML = '<div class="nt-ch">'+(DM_FAIL || !DM_FILE ? '실기 문제를 불러오지 못했습니다' : '불러오는 중…')+'</div>';
+    return;
+  }
+  var h = "";
+  DM.levels.forEach(function(L, lv){
+    var xs = DM.items.filter(function(x){ return x.lv === lv; }), grp = "";
+    if(!xs.length) return;
+    h += '<div class="nt-ch dm-lv">'+esc(dmLevelName(lv))+'</div><div class="nt-tree">';
+    xs.forEach(function(x){
+      if(x.grp !== grp){ grp = x.grp; if(grp) h += '<div class="nt-ch">'+esc(grp)+'</div>'; }
+      h += '<button class="nt-sec" data-go="dmq" data-id="'+esc(x.id)+'" aria-current="'+(view.name==="dmq" && view.id===x.id)+'">'+
+        '<span class="nt-no">'+esc(x.id)+'</span><span>'+esc(x.title)+'</span>'+
+        (dmDone(x.id) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
+    });
+    h += '</div>';
+  });
+  $("#navChap").innerHTML = h;
+}
+
+/* ---- 개요 ---- */
+function viewDmHome(){
+  var h = '<div class="page-head"><div><div class="eyebrow">Data Modeling · 실기</div><h1 class="page-title">Data Modeling(실기)</h1>'+
+    '<p class="page-desc">요구 사항 지문을 읽고 직접 모델을 그려 본 뒤, 모범 답안 ERD 와 비교합니다. '+
+    '기초부터 특급까지 단계별로 나뉘어 있고, ERD 는 눌러서 크게 볼 수 있습니다.</p></div></div>';
+  if(!needDm()) return h + '<div class="card"><div class="empty"><b>실기 문제를 불러오는 중…</b></div></div>';
+  if(!DM) return h + '<div class="card"><div class="empty"><b>실기 문제를 불러오지 못했습니다</b>data/manifest.js 의 dm 항목과 data/dm/dm.js 를 확인하세요.</div></div>';
+  var c = dmCount();
+  h += '<div class="card dm-prog"><div class="sec-head"><span class="sec-title">풀어 본 문제</span><span class="nav-count">'+c.done+' / '+c.total+'</span></div>'+
+    '<div class="meter-track"><div class="meter-fill" style="width:'+(c.total ? Math.round(c.done/c.total*100) : 0)+'%"></div></div></div>';
+  h += '<div class="nh-grid">';
+  DM.levels.forEach(function(L, lv){
+    var xs = DM.items.filter(function(x){ return x.lv === lv; }), grp = "";
+    if(!xs.length) return;
+    var dn = xs.filter(function(x){ return dmDone(x.id); }).length;
+    h += '<div class="card nh-card"><div class="nh-head"><span class="nh-rom">'+lv+'</span><span class="nh-title">'+esc(L)+'</span>'+
+      '<span class="nav-count">'+dn+'/'+xs.length+'</span></div><div class="nh-secs">';
+    xs.forEach(function(x){
+      if(x.grp !== grp){ grp = x.grp; if(grp) h += '</div><div class="nh-ch">'+esc(grp)+'</div><div class="nh-secs">'; }
+      h += '<button data-go="dmq" data-id="'+esc(x.id)+'"><span class="mono" style="color:var(--muted)">'+esc(x.id)+'</span>'+
+        '<span>'+esc(x.title)+dmStars(x.stars)+'</span>'+(dmDone(x.id) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
+    });
+    h += '</div></div>';
+  });
+  return h + '</div>';
+}
+
+/* ---- 문제 화면 ---- */
+function dmText(s){ return esc(s).replace(/\n/g, "<br>"); }
+function dmFig(b){
+  var im = DM.images[b.img] || {};
+  return '<figure class="dm-fig"><button type="button" class="dm-figbtn" data-act="dmzoom" data-img="'+esc(b.img)+'" title="눌러서 크게 보기">'+
+    '<img src="data/dm/'+esc(im.src || "")+'" alt="'+esc(b.cap || "ERD")+'"'+(im.w ? ' width="'+im.w+'" height="'+im.h+'"' : '')+' loading="lazy" draggable="false">'+
+    '<span class="dm-zoomhint">⤢ 확대</span></button>'+(b.cap ? '<figcaption>'+esc(b.cap)+'</figcaption>' : '')+'</figure>';
+}
+function dmTable(b){
+  return '<div class="n-tw"><table class="n-tbl dm-tbl">' + b.tbl.map(function(row, ri){
+    return '<tr>' + row.map(function(c, ci){
+      if(c === null) return "";
+      var o = typeof c === "string" ? { t:c } : c;
+      var tag = (b.kv ? ci === 0 : ri === 0) ? "th" : "td";
+      return '<'+tag+(o.cs > 1 ? ' colspan="'+o.cs+'"' : '')+(o.rs > 1 ? ' rowspan="'+o.rs+'"' : '')+'>'+dmText(o.t)+'</'+tag+'>';
+    }).join("") + '</tr>';
+  }).join("") + '</table></div>';
+}
+function dmBlocks(list){
+  return list.map(function(b){
+    if(b.p) return '<p class="n-p dm-p">'+dmText(b.p)+'</p>';
+    if(b.h) return '<h3 class="n-h4">'+esc(b.h)+'</h3>';
+    if(b.img) return dmFig(b);
+    if(b.tbl) return dmTable(b);
+    if(b.task) return '<div class="n-tip"><b>함께 작성할 것</b><ul class="n-ul">'+b.task.map(function(t){ return '<li>'+esc(t)+'</li>'; }).join("")+'</ul></div>';
+    return "";
+  }).join("");
+}
+function viewDmQ(){
+  if(!needDm()) return '<div class="card"><div class="empty"><b>실기 문제를 불러오는 중…</b></div></div>';
+  var it = dmFind(view.id);
+  if(!it) return '<div class="card"><div class="empty"><b>해당 문제가 없습니다</b>'+
+    '<button class="btn" data-go="dm" style="margin-top:12px">실기 개요로</button></div></div>';
+  var done = dmDone(it.id), hide = S.settings.dmHide && !view.show;
+  var h = '<div class="note-crumb"><button data-go="dm">Data Modeling(실기)</button><span>›</span><span>'+esc(dmLevelName(it.lv))+'</span>'+
+    (it.grp ? '<span>›</span><span>'+esc(it.grp)+'</span>' : '')+'</div>';
+  h += '<div class="page-head" style="margin-bottom:16px"><div><h1 class="page-title"><span class="dm-id">['+esc(it.id)+']</span> '+esc(it.title)+dmStars(it.stars)+'</h1></div>'+
+    '<button class="btn'+(done ? ' btn-primary' : '')+'" data-act="dmdone">'+(done ? '✓ 풀어 봄' : '풀어 봄 표시')+'</button></div>';
+
+  h += '<article class="note-doc dm-doc"><h2 class="n-h3"><span class="n-no">Q</span><span>요구 사항</span></h2>' + dmBlocks(it.q) + '</article>';
+
+  var nImg = it.a.filter(function(b){ return b.img; }).length;
+  h += '<article class="note-doc dm-doc dm-ans"><div class="dm-ans-head"><h2 class="n-h3"><span class="n-no">A</span><span>모범 답안 ERD</span></h2>'+
+    '<button class="btn btn-sm'+(S.settings.dmHide ? ' btn-primary' : '')+'" data-act="dmhide" aria-pressed="'+!!S.settings.dmHide+'" '+
+    'title="켜 두면 문제를 열 때마다 답안을 가려 두고, 직접 그려 본 뒤 펼칩니다">답안 먼저 가리기</button></div>';
+  if(hide) h += '<div class="dm-cover"><b>답안이 가려져 있습니다</b><span class="note">지문을 보고 먼저 모델을 그려 본 뒤 펼쳐 보세요. '+
+    (nImg > 1 ? 'ERD '+nImg+'장' : 'ERD')+(it.a.some(function(b){ return b.tbl; }) ? '과 정의서 표' : '')+'가 있습니다.</span>'+
+    '<button class="btn btn-primary" data-act="dmshow">답안 보기</button></div>';
+  else h += dmBlocks(it.a) + '<p class="note dm-hint">ERD 를 누르면 크게 봅니다 — 휠·두 손가락으로 확대, 끌어서 이동, 두 번 눌러 맞춤.</p>';
+  h += '</article>';
+
+  var all = DM.items, k = all.indexOf(it), pv = all[k-1], nx = all[k+1];
+  h += '<div class="note-pager">'+
+    (pv ? '<button data-go="dmq" data-id="'+esc(pv.id)+'"><small>← 이전 문제</small><span>['+esc(pv.id)+'] '+esc(pv.title)+'</span></button>' : '')+
+    (nx ? '<button class="nx" data-go="dmq" data-id="'+esc(nx.id)+'"><small>다음 문제 →</small><span>['+esc(nx.id)+'] '+esc(nx.title)+'</span></button>' : '')+
+    '</div>';
+  return h;
+}
+
+/* ---- ERD 확대 보기 ----
+   그림 하나를 화면 가득 띄우고 transform(translate · scale)으로 움직인다. 한 문제에 그림이 여럿이면 ‹ › 로 넘긴다.
+   확대 범위는 맞춤 크기의 절반 ~ 원본의 6배. */
+var dmz = null;
+function dmzOpen(key){
+  var it = dmFind(view.id);
+  var list = it ? it.q.concat(it.a).filter(function(b){ return b.img; }) : [];
+  if(S.settings.dmHide && !view.show) list = it.q.filter(function(b){ return b.img; });
+  var idx = Math.max(0, list.map(function(b){ return b.img; }).indexOf(key));
+  if(!list.length) return;
+  var el = document.createElement("div");
+  el.className = "dmz";
+  el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", "ERD 크게 보기");
+  el.innerHTML = '<div class="dmz-bar"><span class="dmz-title"></span><span class="dmz-pct mono"></span>'+
+    '<span class="dmz-btns">'+
+    '<button data-z="prev" title="이전 그림 (←)">‹</button><button data-z="next" title="다음 그림 (→)">›</button>'+
+    '<button data-z="out" title="축소 (−)">−</button><button data-z="in" title="확대 (+)">＋</button>'+
+    '<button data-z="fit" title="화면에 맞춤 (0)">맞춤</button><button data-z="one" title="원본 크기 (1)">1:1</button>'+
+    '<button data-z="close" class="dmz-x" title="닫기 (Esc)">✕</button></span></div>'+
+    '<div class="dmz-stage"><img class="dmz-img" alt="" draggable="false"></div>';
+  document.body.appendChild(el);
+  document.body.classList.add("dmz-open");
+  dmz = { el:el, stage:el.querySelector(".dmz-stage"), img:el.querySelector(".dmz-img"), list:list, idx:idx, title:it.title,
+          s:1, x:0, y:0, fit:1, pts:{}, pinch:null, moved:false, back:document.activeElement };
+  dmzBind();
+  dmzShow(idx);
+  el.querySelector(".dmz-x").focus();
+}
+function dmzClose(){
+  if(!dmz) return;
+  dmz.el.remove();
+  document.body.classList.remove("dmz-open");
+  window.removeEventListener("resize", dmzResize);
+  var back = dmz.back; dmz = null;
+  if(back && back.focus) back.focus();
+}
+function dmzShow(i){
+  var b = dmz.list[i], im = DM.images[b.img] || {};
+  dmz.idx = i;
+  dmz.w = im.w || 1000; dmz.h = im.h || 700;
+  dmz.img.src = "data/dm/" + im.src;
+  dmz.img.style.width = dmz.w + "px"; dmz.img.style.height = dmz.h + "px";
+  dmz.el.querySelector(".dmz-title").textContent = dmz.title + (b.cap ? " · " + b.cap : "") + (dmz.list.length > 1 ? "  (" + (i+1) + "/" + dmz.list.length + ")" : "");
+  dmz.el.querySelector('[data-z="prev"]').hidden = dmz.el.querySelector('[data-z="next"]').hidden = dmz.list.length < 2;
+  dmzFit();
+}
+function dmzFit(){
+  var r = dmz.stage.getBoundingClientRect();
+  dmz.fit = Math.min((r.width - 24) / dmz.w, (r.height - 24) / dmz.h, 2);
+  dmz.s = dmz.fit;
+  dmz.x = (r.width - dmz.w * dmz.s) / 2; dmz.y = (r.height - dmz.h * dmz.s) / 2;
+  dmzApply();
+}
+function dmzApply(){
+  dmz.img.style.transform = "translate(" + dmz.x + "px," + dmz.y + "px) scale(" + dmz.s + ")";
+  dmz.el.querySelector(".dmz-pct").textContent = Math.round(dmz.s * 100) + "%";
+}
+/* (px, py) = 화면(stage) 좌표. 그 점이 제자리에 있도록 확대한다 */
+function dmzZoom(f, px, py){
+  var r = dmz.stage.getBoundingClientRect();
+  if(px === undefined){ px = r.width / 2; py = r.height / 2; }
+  var ns = Math.min(6, Math.max(dmz.fit / 2, dmz.s * f));
+  dmz.x = px - (px - dmz.x) * ns / dmz.s;
+  dmz.y = py - (py - dmz.y) * ns / dmz.s;
+  dmz.s = ns;
+  dmzApply();
+}
+function dmzResize(){ if(dmz) dmzFit(); }
+function dmzBind(){
+  var st = dmz.stage;
+  window.addEventListener("resize", dmzResize);
+  dmz.el.addEventListener("click", function(e){
+    var b = e.target.closest("[data-z]"); if(!b) return;
+    var z = b.getAttribute("data-z");
+    if(z === "close") dmzClose();
+    else if(z === "in") dmzZoom(1.4);
+    else if(z === "out") dmzZoom(1 / 1.4);
+    else if(z === "fit") dmzFit();
+    else if(z === "one") dmzZoom(1 / dmz.s);
+    else if(z === "prev") dmzShow((dmz.idx - 1 + dmz.list.length) % dmz.list.length);
+    else if(z === "next") dmzShow((dmz.idx + 1) % dmz.list.length);
+  });
+  st.addEventListener("wheel", function(e){
+    e.preventDefault();
+    var r = st.getBoundingClientRect();
+    dmzZoom(Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0018)), e.clientX - r.left, e.clientY - r.top);
+  }, { passive:false });
+  st.addEventListener("dblclick", function(e){
+    var r = st.getBoundingClientRect();
+    if(dmz.s > dmz.fit * 1.2) dmzFit(); else dmzZoom(Math.max(1, dmz.fit * 2.2) / dmz.s, e.clientX - r.left, e.clientY - r.top);
+  });
+  st.addEventListener("pointerdown", function(e){
+    st.setPointerCapture(e.pointerId);
+    dmz.pts[e.pointerId] = { x:e.clientX, y:e.clientY };
+    st.classList.add("drag");
+    dmz.pinch = null;
+  });
+  st.addEventListener("pointermove", function(e){
+    var p = dmz.pts[e.pointerId]; if(!p) return;
+    var ids = Object.keys(dmz.pts);
+    if(ids.length === 1){
+      dmz.x += e.clientX - p.x; dmz.y += e.clientY - p.y;
+      p.x = e.clientX; p.y = e.clientY;
+      dmzApply();
+      return;
+    }
+    /* 두 손가락 — 거리 비율로 확대, 가운데 점의 움직임으로 이동 */
+    p.x = e.clientX; p.y = e.clientY;
+    var a = dmz.pts[ids[0]], b = dmz.pts[ids[1]], r = st.getBoundingClientRect();
+    var d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+    if(dmz.pinch && dmz.pinch.d > 0){
+      dmz.x += mx - dmz.pinch.mx; dmz.y += my - dmz.pinch.my;
+      dmzZoom(d / dmz.pinch.d, mx, my);
+    }
+    dmz.pinch = { d:d, mx:mx, my:my };
+  });
+  function up(e){
+    delete dmz.pts[e.pointerId];
+    dmz.pinch = null;
+    if(!Object.keys(dmz.pts).length) st.classList.remove("drag");
+  }
+  st.addEventListener("pointerup", up);
+  st.addEventListener("pointercancel", up);
+}
+/* 확대 보기가 열려 있으면 키 입력을 먼저 가로챈다 (캡처 단계 — 화면의 ← → 문제 넘기기보다 앞선다) */
+document.addEventListener("keydown", function(e){
+  if(!dmz) return;
+  var k = e.key, used = true;
+  if(k === "Escape") dmzClose();
+  else if(k === "+" || k === "=") dmzZoom(1.4);
+  else if(k === "-" || k === "_") dmzZoom(1 / 1.4);
+  else if(k === "0") dmzFit();
+  else if(k === "1") dmzZoom(1 / dmz.s);
+  else if(k === "ArrowLeft" && dmz.list.length > 1) dmzShow((dmz.idx - 1 + dmz.list.length) % dmz.list.length);
+  else if(k === "ArrowRight" && dmz.list.length > 1) dmzShow((dmz.idx + 1) % dmz.list.length);
+  else if(k === "Tab"){
+    /* 초점을 확대 보기 안에 가둔다 */
+    var bs = [].filter.call(dmz.el.querySelectorAll("button"), function(b){ return !b.hidden; });
+    var i = bs.indexOf(document.activeElement), n = (i + (e.shiftKey ? -1 : 1) + bs.length) % bs.length;
+    bs[n].focus();
+  }
+  else used = false;
+  if(used){ e.preventDefault(); e.stopPropagation(); }
+}, true);
 
 /* ═══════════ 형광펜 ═══════════
    내용정리 본문에서 글자를 선택해 칠한다. 기록은 S.hl = { id: 형광펜 } 이다.
@@ -3375,6 +3724,8 @@ function render(){
     case "note": h = viewNote(); break;
     case "nsearch": h = viewNoteSearch(); break;
     case "nhl": h = viewNoteMarks(); break;
+    case "dm": h = viewDmHome(); break;
+    case "dmq": h = viewDmQ(); break;
     case "quiz": h = session ? viewQuiz() : viewDash(); break;
     case "result": h = viewResult(); break;
     default: h = viewDash();
@@ -3410,6 +3761,7 @@ document.addEventListener("click", function(ev){
     if(dest==="chapter") return go("chapter", { ch:+t.getAttribute("data-ch") });
     if(dest==="note") return go("note", { ed:t.getAttribute("data-ed") || "", ch:+t.getAttribute("data-ch"), c:+t.getAttribute("data-c"), s:+t.getAttribute("data-s"),
                                           h:t.getAttribute("data-h") || "", topic:t.getAttribute("data-topic") || "" });
+    if(dest==="dmq") return go("dmq", { id:t.getAttribute("data-id") });
     if(dest==="randomexam"){
       return startSession({ key:"rand", mode:"exam", title:"랜덤 모의고사", ids:randomExamIds(),
                             limitSec:S.settings.timerMin*60, setNo:0 });
@@ -3426,6 +3778,17 @@ document.addEventListener("click", function(ev){
       go(lv.name, lv);
       break;
     }
+    /* ── 실기 ── */
+    case "dmdone": {
+      S.notesRead = S.notesRead || {};
+      var dk = dmKey(view.id);
+      if(S.notesRead[dk]) delete S.notesRead[dk]; else S.notesRead[dk] = Date.now();
+      save(); render();
+      break;
+    }
+    case "dmhide": S.settings.dmHide = !S.settings.dmHide; view.show = false; save(); render(); break;
+    case "dmshow": view.show = true; render(); break;
+    case "dmzoom": dmzOpen(t.getAttribute("data-img")); break;
     case "ntoggle": {
       var nc = nk("", +t.getAttribute("data-ch"));
       NOTE_OPEN[nc] = !NOTE_OPEN[nc];
@@ -4312,6 +4675,12 @@ function nextQ(){
 document.addEventListener("keydown", function(e){
   if(e.key==="Enter" && e.target.id==="nq"){ e.preventDefault(); go("nsearch", { kw: e.target.value }); return; }
   if(e.target.tagName==="INPUT" || e.target.tagName==="TEXTAREA" || e.target.tagName==="SELECT") return;
+  /* 실기 문제 화면 — 좌우 화살표로 이전·다음 문제 */
+  if(view.name==="dmq" && DM && (e.key==="ArrowLeft" || e.key==="ArrowRight") && !e.altKey && !e.ctrlKey && !e.metaKey){
+    var dk = DM.items.indexOf(dmFind(view.id)), dt = dk >= 0 && DM.items[dk + (e.key==="ArrowRight" ? 1 : -1)];
+    if(dt){ e.preventDefault(); go("dmq", { id:dt.id }); }
+    return;
+  }
   /* 내용정리 절 화면 — 좌우 화살표로 이전·다음 절 */
   if(view.name==="note" && (e.key==="ArrowLeft" || e.key==="ArrowRight") && !e.altKey && !e.ctrlKey && !e.metaKey){
     var all = noteFlat(view.ch), k = noteIndex(all, view.c, view.s), to = k >= 0 && all[k + (e.key==="ArrowRight" ? 1 : -1)];
@@ -4425,8 +4794,8 @@ applyTypography();
 bootBank(function(){
   applyBrand();
   restoreFileHandle();
-  var hv = viewFromHash();          /* #/2020/… · #/2013/… 로 열었으면 그 화면부터 */
-  if(hv){ view = hv; curMode = "n" + hv.ed; }
+  var hv = viewFromHash();          /* #/2020/… · #/2013/… · #/dm/… 로 열었으면 그 화면부터 */
+  if(hv){ view = hv; curMode = hv.ed ? "n" + hv.ed : "dm"; }
   render();
   if(syncOn() && sync.auto) syncNow(true);
 });

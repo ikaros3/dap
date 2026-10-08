@@ -99,5 +99,9 @@ window.DAP_MANIFEST = {
     { ed: "2013", ch: 4, file: "notes/2013/4.데이터모델링.js" },
     { ed: "2013", ch: 5, file: "notes/2013/5.데이터베이스설계와이용.js" },
     { ed: "2013", ch: 6, file: "notes/2013/6.데이터품질관리이해.js" }
-  ]
+  ],
+
+  /* Data Modeling(실기) — 요구 사항 지문과 모범 답안 ERD 30문제. 「실기」 화면을 처음 열 때 불러온다.
+     data_source/Data Modeling(실기)/Modeling 실습문제.hwpx → node tools/dm-build.js --write */
+  dm: "dm/dm.js"
 };
