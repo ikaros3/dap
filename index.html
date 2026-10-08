@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DAP 문제은행</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DAPath</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%230B6B63'/%3E%3Cpath d='M10 29H17V20H24V12H29' fill='none' stroke='%23fff' stroke-opacity='.55' stroke-width='2' stroke-linejoin='round'/%3E%3Crect x='7' y='26' width='6' height='6' rx='1.5' fill='%23fff'/%3E%3Crect x='14' y='17' width='6' height='6' rx='1.5' fill='%23fff'/%3E%3Crect x='21' y='9' width='6' height='6' rx='1.5' fill='%23fff'/%3E%3Ccircle cx='30' cy='12' r='4.5' fill='%23F0B33A'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -37,6 +38,7 @@
   --shadow:0 1px 2px rgba(16,26,30,.05), 0 8px 24px -14px rgba(16,26,30,.28);
   --radius:10px;
   --rail:284px;
+  --hdr:56px;                   /* 웹 상단 헤더 높이. 모바일에서는 0 */
 
   /* ---- 타이포그래피 (설정에서 변경) ---- */
   --fs:1;                       /* 전체 글자 크기 배율 */
@@ -96,24 +98,55 @@ a{color:var(--accent)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* ============ shell ============ */
-.shell{display:grid; grid-template-columns:var(--rail) minmax(0,1fr); min-height:100vh}
+/* 웹: 맨 위 헤더(로고 · 카테고리 탭) + 왼쪽 사이드바 + 본문. 모바일(≤900px): 상단바 + 하단 탭바, 사이드바는 ☰ 메뉴로 */
+.shell{display:grid; grid-template-columns:var(--rail) minmax(0,1fr); min-height:calc(100vh - var(--hdr))}
+
+/* ---- 상단 헤더 ---- */
+.topbar{
+  position:sticky; top:0; z-index:50; height:var(--hdr);
+  display:flex; align-items:center; gap:28px; padding:0 18px;
+  background:var(--surface); border-bottom:1px solid var(--line);
+}
+.topbar .brand{flex:none; width:calc(var(--rail) - 18px - 28px); padding:0}
+.brand{display:flex; align-items:center; gap:10px; min-width:0}
+.brand-mark{width:30px;height:30px;flex:none;display:block}
+.brand-name{font-weight:700; font-size:calc(16px * var(--fs)); letter-spacing:-.02em; line-height:1.15}
+.brand-sub{font-size:calc(11px * var(--fs)); color:var(--muted); line-height:1.3; white-space:nowrap}
+.top-tools{margin-left:auto; display:flex; gap:4px; flex:none}
+.icon-btn{width:34px;height:34px;border-radius:8px;color:var(--muted);display:grid;place-items:center;font-size:calc(15px * var(--fs))}
+.icon-btn:hover{background:var(--surface-2);color:var(--ink)}
+
+/* ---- 카테고리 (헤더 탭 · 하단 탭바 · 사이드바 머리가 같은 색을 쓴다) ---- */
+[data-cat="video"]{--tc:var(--c5)} [data-cat="theory"]{--tc:var(--c2)} [data-cat="dm"]{--tc:var(--c3)} [data-cat="bank"]{--tc:var(--c1)}
+.cat-tabs{display:flex; gap:2px; height:100%; min-width:0}
+.cat-tab{display:flex;align-items:center;gap:8px;padding:0 14px;height:100%;color:var(--muted);font-weight:500;font-size:calc(14px * var(--fs));position:relative;white-space:nowrap}
+.ct-ico{width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;color:var(--tc);background:color-mix(in srgb,var(--tc) 12%,transparent);transition:background .15s,color .15s}
+.ct-ico svg{width:15px;height:15px}
+.cat-tab:hover{color:var(--ink)}
+.cat-tab[aria-current="true"]{color:var(--ink);font-weight:600}
+.cat-tab[aria-current="true"] .ct-ico, .mb-btn[aria-current="true"] .ct-ico{background:var(--tc);color:var(--surface)}
+.cat-tab[aria-current="true"]::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:3px;border-radius:2px 2px 0 0;background:var(--tc)}
+.rail-head{display:flex;align-items:baseline;gap:8px;padding:2px 6px 10px}
+.rail-head b{font-size:calc(15px * var(--fs));font-weight:600;letter-spacing:-.02em}
+.rail-head small{font-family:var(--font-mono);font-size:calc(10.5px * var(--fs));letter-spacing:.08em;text-transform:uppercase;color:var(--tc);font-weight:500}
+.rail-stat{font-family:var(--font-mono);font-size:calc(11px * var(--fs));color:var(--muted);padding:0 6px 10px;margin-top:-6px}
+/* 하위 묶음 고르기 (이론: 2020 · 2013 · 슬라이드) */
+.cat-seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:3px;padding:3px;margin:0 2px 12px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px}
+.cat-seg:empty{display:none}
+.seg-btn{padding:6px 4px 5px;border-radius:7px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;min-width:0}
+.seg-btn b{font-size:calc(13px * var(--fs));font-weight:600;white-space:nowrap}
+.seg-btn small{font-size:calc(10px * var(--fs));opacity:.75;white-space:nowrap;letter-spacing:.02em}
+.seg-btn:hover{color:var(--ink)}
+.seg-btn[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.seg-btn[aria-pressed="true"] small{color:var(--tc);opacity:1}
+.m-seg, .m-bar{display:none}
 
 /* ---- rail ---- */
 .rail{
-  position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto;
+  position:sticky; top:var(--hdr); align-self:start; height:calc(100vh - var(--hdr)); overflow-y:auto;
   background:var(--surface); border-right:1px solid var(--line);
-  display:flex; flex-direction:column; gap:2px; padding:18px 14px 22px;
+  display:flex; flex-direction:column; gap:2px; padding:16px 14px 22px;
 }
-.brand{display:flex; align-items:center; gap:10px; padding:2px 6px 16px}
-.brand-mark{
-  width:30px;height:30px;border-radius:7px;flex:none;
-  background:var(--accent); color:#fff; display:grid; place-items:center;
-  font-family:var(--font-mono); font-weight:600; font-size:calc(13px * var(--fs)); letter-spacing:-.03em;
-}
-:root[data-theme="dark"] .brand-mark, :root:not([data-theme="light"]) .brand-mark{color:#07231F}
-@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .brand-mark{color:#fff}}
-.brand-name{font-weight:600; font-size:calc(15px * var(--fs)); letter-spacing:-.02em}
-.brand-sub{font-size:calc(11px * var(--fs)); color:var(--muted); line-height:1.3}
 .rail-group{padding:14px 6px 6px}
 .nav{display:flex;flex-direction:column;gap:1px}
 .nav-item{
@@ -135,7 +168,7 @@ a{color:var(--accent)}
 .chap-bar{width:38px;height:4px;border-radius:99px;background:var(--line);overflow:hidden;flex:none}
 .chap-bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
 
-.rail-foot{margin-top:auto;padding-top:14px;display:flex;gap:6px;align-items:center}
+.rail-foot{margin-top:auto;padding-top:14px;display:none;gap:6px;align-items:center}   /* 모바일 메뉴에서만. 웹은 헤더에 있다 */
 .ghost-btn{
   border:1px solid var(--line); background:var(--surface); border-radius:7px;
   padding:5px 9px; font-size:calc(12px * var(--fs)); color:var(--ink-2); display:inline-flex; align-items:center; gap:6px;
@@ -352,29 +385,34 @@ label.field{display:flex;flex-direction:column;gap:5px;font-size:calc(12.5px * v
 .mobile-top{display:none}
 
 @media (max-width:900px){
+  :root{--hdr:0px}
+  .topbar{display:none}
   .shell{grid-template-columns:1fr}
   .rail{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line);display:none}
   .rail.open{display:flex}
-  .mobile-top{display:flex;align-items:center;gap:10px;padding:11px 16px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
-  .main{padding:18px 16px 70px}
+  .rail .cat-seg{display:none}
+  .rail-foot{display:flex}
+  .mobile-top{display:flex;align-items:center;gap:9px;padding:10px 16px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
+  .mobile-top .brand-mark{width:26px;height:26px}
+  .mobile-top #mnav{margin-left:auto}
+  .m-seg{display:block;padding:12px 16px 0}
+  .m-seg .cat-seg{margin:0}
+  .m-bar{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;z-index:45;
+    background:var(--surface);border-top:1px solid var(--line);padding:5px 4px calc(6px + env(safe-area-inset-bottom,0px));
+  }
+  .mb-btn{display:flex;flex-direction:column;align-items:center;gap:2px;padding:3px 0;color:var(--muted);font-size:11.5px;font-weight:600;position:relative;min-width:0;white-space:nowrap}
+  .mb-btn .ct-ico{width:30px;height:28px;border-radius:8px}
+  .mb-btn .ct-ico svg{width:17px;height:17px}
+  .mb-btn[aria-current="true"]{color:var(--ink)}
+  .mb-btn[aria-current="true"]::before{content:"";position:absolute;top:-5px;left:32%;right:32%;height:3px;border-radius:0 0 3px 3px;background:var(--tc)}
+  .main{padding:18px 16px calc(96px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
   .score-big{font-size:calc(42px * var(--fs))}
   .qtext{font-size:calc(15.5px * var(--fs))}
 }
-/* ============ 모드 탭 (문제은행 / 2020 Edition / 2013 Edition / 실기) ============ */
-.mode-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:4px;margin:0 2px 10px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
-.mode-tab{--tc:var(--muted);padding:8px 4px 7px;border-radius:9px;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;line-height:1.15;text-align:center;min-width:0}
-.mode-tab .mt-ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--tc);background:color-mix(in srgb,var(--tc) 12%,transparent);transition:background .15s,color .15s}
-.mode-tab .mt-ico svg{width:17px;height:17px}
-.mode-tab b{font-size:calc(13px * var(--fs));font-weight:600;white-space:nowrap;letter-spacing:-.01em}
-.mode-tab small{font-size:calc(10.5px * var(--fs));font-weight:500;opacity:.75;white-space:nowrap;letter-spacing:.02em}
-.mode-tab[data-mode="bank"]{--tc:var(--c1)} .mode-tab[data-mode="n2020"]{--tc:var(--c2)} .mode-tab[data-mode="n2013"]{--tc:var(--c4)} .mode-tab[data-mode="dm"]{--tc:var(--c3)}
-.mode-tab:hover{color:var(--ink)}
-.mode-tab[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
-.mode-tab[aria-pressed="true"] .mt-ico{background:var(--tc);color:var(--surface)}
-.mode-tab[aria-pressed="true"] small{color:var(--tc);opacity:1}
 
 /* ============ Data Modeling(실기) ============ */
-.dm-lv{padding-top:10px;color:var(--ink-2)}
 .dm-prog{margin-bottom:16px}
 .dm-id{font-family:var(--font-mono);color:var(--c3);font-size:.8em;font-weight:600}
 .dm-stars{color:var(--c3);font-size:.78em;letter-spacing:1px;vertical-align:1px}
@@ -437,7 +475,7 @@ body.dmz-open{overflow:hidden}
 .note-crumb button{color:var(--muted)} .note-crumb button:hover{color:var(--accent);text-decoration:underline}
 .note-layout{display:grid;grid-template-columns:minmax(0,1fr) 228px;gap:22px;align-items:start}
 .note-doc{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px 30px 28px;line-height:1.75;min-width:0}
-.note-toc{position:sticky;top:20px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 10px;display:flex;flex-direction:column;gap:1px;max-height:calc(100vh - 40px);overflow-y:auto}
+.note-toc{position:sticky;top:calc(var(--hdr) + 20px);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 10px;display:flex;flex-direction:column;gap:1px;max-height:calc(100vh - var(--hdr) - 40px);overflow-y:auto}
 .note-toc .toc-h{padding:0 7px 6px;font-size:calc(11.5px * var(--fs));color:var(--muted);font-weight:600}
 .note-toc button{text-align:left;padding:5px 7px;border-radius:6px;font-size:calc(12.5px * var(--fs));color:var(--ink-2);line-height:1.4}
 .note-toc button:hover{background:var(--surface-2);color:var(--accent-ink)}
@@ -495,11 +533,22 @@ mark.n-hit{background:var(--key-soft);color:inherit;border-radius:2px;padding:0 
 .src-note{margin-top:4px;color:var(--accent);font-size:calc(12px * var(--fs));font-weight:500;padding:0}
 .src-note:hover{text-decoration:underline}
 /* 개요 */
-.nh-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;align-items:start}
+/* 카드는 같은 행에서 가장 긴 카드의 높이에 맞춘다(그리드 기본 stretch). 한 줄에 하나씩이면 내용 높이 그대로다.
+   분량이 많은 카드(.wide — 실기 특급)는 두 칸을 차지하고 목록을 2단으로 나눈다. 칸이 하나뿐일 만큼 좁으면
+   넓히지 않는다 — 창 폭이 아니라 그리드 자신의 폭으로 판단한다(사이드바가 있어 둘이 다르다) */
+.nh-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;container-type:inline-size}
+.nh-card.wide{grid-column:span 2}
+.nh-cols{column-count:2;column-gap:24px}
+.nh-cols .nh-secs{display:block}
+.nh-cols .nh-secs button{width:100%;break-inside:avoid}
+.nh-cols .nh-ch{break-after:avoid}
+.nh-cols > :first-child{margin-top:0}
+@container (max-width:613px){ .nh-card.wide{grid-column:auto} }
+@container (max-width:479px){ .nh-cols{column-count:1} }
 .nh-card{padding:16px 18px;display:flex;flex-direction:column;gap:8px}
 .nh-card.off{opacity:.62}
 .nh-head{display:flex;align-items:center;gap:10px}
-.nh-rom{font-family:var(--font-mono);font-weight:600;color:var(--accent);width:28px}
+.nh-rom{font-family:var(--font-mono);font-weight:600;color:var(--accent);width:34px;flex:none}
 .nh-title{font-weight:600;font-size:calc(15px * var(--fs));flex:1}
 .nh-ch{font-size:calc(12px * var(--fs));color:var(--muted);font-weight:600;margin-top:4px}
 .nh-secs{display:flex;flex-direction:column}
@@ -580,13 +629,7 @@ mark.hl-card{padding:1px 3px}
 }
 #boot.gone{opacity:0; pointer-events:none; transition:opacity .28s ease}
 .boot-box{width:min(420px,86vw); text-align:center}
-.boot-mark{
-  width:46px;height:46px;border-radius:11px;margin:0 auto 16px;
-  background:var(--accent); color:#fff; display:grid; place-items:center;
-  font-family:var(--font-mono); font-weight:600; font-size:calc(17px * var(--fs)); letter-spacing:-.03em;
-}
-:root[data-theme="dark"] .boot-mark, :root:not([data-theme="light"]) .boot-mark{color:#07231F}
-@media (prefers-color-scheme: light){:root:not([data-theme="dark"]) .boot-mark{color:#fff}}
+.boot-mark{width:46px;height:46px;margin:0 auto 16px;display:block}
 .boot-title{font-size:calc(16px * var(--fs)); font-weight:600; letter-spacing:-.02em; color:var(--ink)}
 .boot-msg{margin-top:6px; font-size:calc(12.5px * var(--fs)); color:var(--muted); font-family:var(--font-mono); min-height:1.4em}
 .boot-track{margin-top:16px; height:4px; border-radius:99px; background:var(--line); overflow:hidden}
@@ -631,32 +674,56 @@ mark.hl-card{padding:1px 3px}
 </head>
 <body>
 
+<!-- DAPath 로고 — 계단처럼 이어진 네 칸(이론 → 강의 → 실기 → 문제)과 마지막 합격 체크 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="dapathMark" viewBox="0 0 40 40">
+    <rect width="40" height="40" rx="10" fill="var(--accent)"/>
+    <path d="M10 29H17V20H24V12H29" fill="none" stroke="var(--surface)" stroke-opacity=".55" stroke-width="2" stroke-linejoin="round"/>
+    <rect x="7" y="26" width="6" height="6" rx="1.5" fill="var(--surface)"/>
+    <rect x="14" y="17" width="6" height="6" rx="1.5" fill="var(--surface)"/>
+    <rect x="21" y="9" width="6" height="6" rx="1.5" fill="var(--surface)"/>
+    <circle cx="30" cy="12" r="4.5" fill="#F0B33A"/>
+    <path d="M28 12l1.5 1.5 3-3" fill="none" stroke="#0B3B36" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
 <div id="boot" role="status" aria-live="polite">
   <div class="boot-box">
-    <div class="boot-mark">DA</div>
-    <div class="boot-title">DAP 문제은행</div>
+    <svg class="boot-mark" aria-hidden="true"><use href="#dapathMark"/></svg>
+    <div class="boot-title">DAPath</div>
     <div class="boot-msg" id="bootMsg">문제은행을 불러오는 중…</div>
     <div class="boot-track"><i id="bootBar"></i></div>
     <div class="boot-err" id="bootErr" style="display:none"></div>
   </div>
 </div>
 
+<header class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" role="img" aria-label="DAPath"><use href="#dapathMark"/></svg>
+    <div>
+      <div class="brand-name">DAPath</div>
+      <div class="brand-sub">데이터아키텍처 전문가 학습</div>
+    </div>
+  </div>
+  <nav class="cat-tabs" id="catTabs" aria-label="카테고리"></nav>
+  <div class="top-tools">
+    <button class="icon-btn js-theme" title="테마 전환">◐</button>
+    <button class="icon-btn" data-go="settings" title="설정">⚙</button>
+  </div>
+</header>
+
 <div class="mobile-top">
+  <svg class="brand-mark" role="img" aria-label="DAPath"><use href="#dapathMark"/></svg>
+  <strong class="brand-name">DAPath</strong>
   <button class="ghost-btn" id="mnav">☰ 메뉴</button>
-  <strong style="font-size:calc(14px * var(--fs))" id="brandTop">DAP 문제은행</strong>
 </div>
+<div class="m-seg" id="mSeg"></div>
 
 <div class="shell">
   <aside class="rail" id="rail">
-    <div class="brand">
-      <div class="brand-mark">DA</div>
-      <div>
-        <div class="brand-name" id="brandName">DAP 문제은행</div>
-        <div class="brand-sub mono" id="brandSub">로딩 중…</div>
-      </div>
-    </div>
-
-    <div class="mode-tabs" id="modeTabs" role="group" aria-label="화면 구분"></div>
+    <div class="rail-head" id="railHead"></div>
+    <div class="rail-stat" id="railStat" hidden></div>
+    <div class="cat-seg" id="catSeg" role="group" aria-label="이론 구분"></div>
 
     <div id="bankBox"></div>
 
@@ -666,13 +733,15 @@ mark.hl-card{padding:1px 3px}
     <div class="nav" id="navChap"></div>
 
     <div class="rail-foot">
-      <button class="ghost-btn" id="themeBtn" title="테마 전환">◐ 테마</button>
-      <button class="ghost-btn" id="resetHint" title="설정">⚙ 설정</button>
+      <button class="ghost-btn js-theme" title="테마 전환">◐ 테마</button>
+      <button class="ghost-btn" data-go="settings" title="설정">⚙ 설정</button>
     </div>
   </aside>
 
   <main class="main" id="main"></main>
 </div>
+
+<nav class="m-bar" id="mBar" aria-label="카테고리"></nav>
 
 <div class="toast" id="toast"></div>
 
@@ -1403,16 +1472,38 @@ function rollbackExam(e){
 
 /* ─────────── 라우팅 ─────────── */
 var view = { name:"dash" }, session = null, timerH = null;
-/* 화면은 크게 넷이다 — 문제은행(bank), 내용정리 두 판(n2020 · n2013), Data Modeling 실기(dm). 설정은 모두가 함께 쓰므로
-   들어가도 지금 모드를 유지한다. 모드 탭으로 오가면 그 모드에서 마지막으로 보던 화면으로 돌아간다.
+/* 화면(모드)은 여섯이다 — 내용정리 두 판(n2020 · n2013), 요약 슬라이드(slide), 동영상 강의(video), Data Modeling 실기(dm),
+   문제은행(bank). 모드는 카테고리 넷(CATS)으로 묶여 웹은 상단 탭, 모바일은 하단 탭바로 고른다. 이론처럼 모드가 여럿인
+   카테고리는 사이드바 위 세그먼트로 고른다. 설정은 모두가 함께 쓰므로 들어가도 지금 모드를 유지한다.
+   모드를 오가면 그 모드에서 마지막으로 보던 화면으로, 카테고리를 오가면 그 카테고리에서 마지막으로 쓴 모드로 돌아간다.
    내용정리 화면은 view.ed 로 판을 안다. 판을 주지 않으면 지금 보던 판을 잇고, 문제은행에서 오면 2020 이다. */
-var curMode = "bank", lastView = { bank:{ name:"dash" }, n2020:{ name:"notes", ed:"2020" }, n2013:{ name:"notes", ed:"2013" }, dm:{ name:"dm" } };
+var curMode = "bank", lastView = { bank:{ name:"dash" }, n2020:{ name:"notes", ed:"2020" }, n2013:{ name:"notes", ed:"2013" },
+                                   slide:{ name:"slides" }, dm:{ name:"dm" }, video:{ name:"video" } };
+var CATS = [
+  { id:"theory", name:"기본 이론",   short:"이론",     en:"Theory",    modes:["n2020", "n2013", "slide"] },
+  { id:"video",  name:"동영상 강의", short:"강의",     en:"Lectures",  modes:["video"] },
+  { id:"dm",     name:"모델링 실기", short:"실기",     en:"Modeling",  modes:["dm"] },
+  { id:"bank",   name:"문제은행",    short:"문제은행", en:"Questions", modes:["bank"] }
+];
+var catLast = {};   /* 카테고리 → 마지막으로 쓴 모드 */
+function catOf(mode){ return CATS.filter(function(c){ return c.modes.indexOf(mode) >= 0; })[0] || CATS[3]; }
+function isSoonView(name){ return name === "video" || name === "slides"; }
+/* 화면이 속한 모드. 설정은 모드가 없다(null) */
+function modeOf(v){
+  if(isNoteView(v.name)) return "n" + (v.ed || "2020");
+  if(isDmView(v.name)) return "dm";
+  if(v.name === "video") return "video";
+  if(v.name === "slides") return "slide";
+  return v.name === "settings" ? null : "bank";
+}
 
 function go(name, opt, fromHistory){
   if(view && !/^(quiz|result|settings)$/.test(view.name)) lastView[curMode] = view;
   var ed = isNoteView(name) ? ((opt && opt.ed) || (curMode === "n2013" ? "2013" : "2020")) : "";
   view = Object.assign({ name:name }, opt||{});
-  if(ed){ view.ed = ed; curMode = "n" + ed; } else if(isDmView(name)) curMode = "dm"; else if(name !== "settings") curMode = "bank";
+  if(ed) view.ed = ed;
+  curMode = modeOf(view) || curMode;
+  catLast[catOf(curMode).id] = curMode;
   if(name!=="quiz" && timerH){ clearInterval(timerH); timerH=null; }
   /* 퀴즈를 벗어나면 진도를 저장하고 세션 핸들만 놓는다 (기록은 남아 이어풀기 가능) */
   if(name!=="quiz" && session){ session.idx = firstUnsolved(session); save(); session = null; }
@@ -1429,7 +1520,7 @@ function renderBankBox(){
   if(!el) return;
   if(BANKS.length < 2){ el.innerHTML = ""; return; }   /* 묶음이 하나면 감춘다 */
   el.innerHTML =
-    '<div class="rail-group"><span class="eyebrow">문제은행</span></div>' +
+    '<div class="rail-group"><span class="eyebrow">묶음</span></div>' +
     '<div style="padding:0 14px 10px">' +
       '<select id="bankSel" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--line);' +
         'background:var(--surface-2);color:var(--ink);font:inherit;font-size:calc(12.5px * var(--fs))">' +
@@ -1679,21 +1770,43 @@ var NAVS = [
   { id:"search",ico:"⌕", label:"문항 검색" },
   { id:"settings", ico:"⚙", label:"설정" }
 ];
-/* 화면 구분 탭 — 아이콘 위, 이름, 보조 글 순으로 네 칸을 같은 폭으로 */
-var MODE_ICO = {
-  bank:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8.5 8.5l1.5 1.5 3-3M8.5 15h7"/></svg>',
-  erd:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="9" height="7" rx="1.5"/><rect x="12.5" y="13.5" width="9" height="7" rx="1.5"/><path d="M7 10.5V17h5.5M10 14.5l2.5 2.5-2.5 2.5"/></svg>',
-  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.3 5 7.6 4.5 4 4.5v14c3.6 0 6.3.5 8 2 1.7-1.5 4.4-2 8-2v-14c-3.6 0-6.3.5-8 2z"/><path d="M12 6.5v14"/></svg>'
+/* 카테고리 아이콘 */
+var CAT_ICO = {
+  video:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9.5v5l4.5-2.5z" fill="currentColor"/></svg>',
+  theory:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.3 5 7.6 4.5 4 4.5v14c3.6 0 6.3.5 8 2 1.7-1.5 4.4-2 8-2v-14c-3.6 0-6.3.5-8 2z"/><path d="M12 6.5v14"/></svg>',
+  dm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="9" height="7" rx="1.5"/><rect x="12.5" y="13.5" width="9" height="7" rx="1.5"/><path d="M7 10.5V17h5.5M10 14.5l2.5 2.5-2.5 2.5"/></svg>',
+  bank:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8.5 8.5l1.5 1.5 3-3M8.5 15h7"/></svg>'
 };
-function modeTab(mode, ico, name, sub, tip){
-  return '<button class="mode-tab" data-act="mode" data-mode="'+mode+'" aria-pressed="'+(curMode===mode)+'" title="'+esc(tip)+'">'+
-    '<span class="mt-ico">'+ico+'</span><b>'+esc(name)+'</b><small>'+esc(sub)+'</small></button>';
+/* 이론 세그먼트 — 이름, 보조 글 */
+var MODE_SEG = { n2020:["2020", "Edition"], n2013:["2013", "Edition"], slide:["슬라이드", "Summary"] };
+/* 헤더 탭(웹) · 하단 탭바(모바일) · 사이드바 머리 · 세그먼트 */
+function renderCats(){
+  var cur = catOf(curMode);
+  $("#catTabs").innerHTML = CATS.map(function(c){
+    return '<button class="cat-tab" data-act="cat" data-cat="'+c.id+'" aria-current="'+(c === cur)+'">'+
+      '<span class="ct-ico">'+CAT_ICO[c.id]+'</span>'+c.name+'</button>';
+  }).join("");
+  $("#mBar").innerHTML = CATS.map(function(c){
+    return '<button class="mb-btn" data-act="cat" data-cat="'+c.id+'" aria-current="'+(c === cur)+'">'+
+      '<span class="ct-ico">'+CAT_ICO[c.id]+'</span>'+c.short+'</button>';
+  }).join("");
+  var rh = $("#railHead");
+  rh.setAttribute("data-cat", cur.id);
+  rh.innerHTML = '<b>'+cur.name+'</b><small>'+cur.en+'</small>';
+  var st = $("#railStat");
+  st.hidden = cur.id !== "bank";
+  if(cur.id === "bank") st.textContent = DAP.questions.length+" Q · "+DAP.sets.length+" SETS · "+CHLIST.length+" CH";
+  var seg = cur.modes.length < 2 ? "" : cur.modes.map(function(m){
+    return '<button class="seg-btn" data-act="mode" data-mode="'+m+'" aria-pressed="'+(curMode === m)+'">'+
+      '<b>'+MODE_SEG[m][0]+'</b><small>'+MODE_SEG[m][1]+'</small></button>';
+  }).join("");
+  $("#catSeg").setAttribute("data-cat", cur.id);
+  $("#catSeg").innerHTML = seg;
+  $("#mSeg").innerHTML = seg ? '<div class="cat-seg" data-cat="'+cur.id+'" role="group" aria-label="'+cur.name+' 구분">'+seg+'</div>' : "";
 }
 function renderRail(){
-  $("#modeTabs").innerHTML =
-    modeTab("bank", MODE_ICO.bank, "문제은행", "Questions", "기출·연습·실전 문항 풀이")+
-    NOTE_EDS.map(function(e){ return modeTab("n"+e.id, MODE_ICO.book, e.id, "Edition", e.desc); }).join("")+
-    modeTab("dm", MODE_ICO.erd, "실기", "Modeling", "Data Modeling(실기) — 지문을 읽고 모델을 그려 본 뒤 모범 답안 ERD 와 비교");
+  renderCats();
+  if(curMode === "video" || curMode === "slide"){ renderSoonRail(); return; }
   if(curMode === "dm"){ renderDmRail(); return; }
   if(curMode !== "bank"){ renderNoteRail(); return; }
   $("#chapLabel").textContent = "과목";
@@ -3046,6 +3159,8 @@ function renderNoteRail(){
 function viewHash(v){
   if(v.name === "dm")  return "#/dm";
   if(v.name === "dmq") return "#/dm/" + v.id;
+  if(v.name === "video")  return "#/video";
+  if(v.name === "slides") return "#/slides";
   var p = "#/" + (v.ed || "2020");
   if(v.name === "notes")   return p;
   if(v.name === "nsearch") return p + "/search";
@@ -3056,6 +3171,8 @@ function viewHash(v){
 function viewFromHash(){
   var d = /^#\/dm(?:\/([\w-]+))?\/?$/.exec(location.hash || "");
   if(d) return d[1] ? { name:"dmq", id:d[1] } : { name:"dm" };
+  var z = /^#\/(video|slides)\/?$/.exec(location.hash || "");
+  if(z) return { name:z[1] };
   var m = /^#\/(notes|2020|2013)(?:\/(search|marks)|\/(\d+)\/(\d+)\/(\d+))?\/?$/.exec(location.hash || "");
   if(!m) return null;
   var ed = m[1] === "2013" ? "2013" : "2020";
@@ -3063,16 +3180,16 @@ function viewFromHash(){
   if(m[3]) return { name:"note", ed:ed, ch:+m[3], c:+m[4], s:+m[5] };
   return { name:"notes", ed:ed };
 }
-/* 내용정리·실기 화면을 오갈 때만 주소를 남긴다. 문제은행 화면끼리는 지금처럼 주소가 바뀌지 않는다 */
+/* 내용정리·실기·강의·슬라이드 화면을 오갈 때만 주소를 남긴다. 문제은행 화면끼리는 지금처럼 주소가 바뀌지 않는다 */
 function syncHash(){
   var h = viewHash(view), cur = location.hash || "";
-  if(h === cur || (!h && !/^#\/(notes|2020|2013|dm)/.test(cur))) return;
+  if(h === cur || (!h && !/^#\/(notes|2020|2013|dm|video|slides)/.test(cur))) return;
   try{ history.pushState(null, "", h || (location.pathname + location.search)); }catch(e){}
 }
 window.addEventListener("popstate", function(){
   var v = viewFromHash();
   if(v) go(v.name, v, true);
-  else if(isNoteView(view.name) || isDmView(view.name)) go(lastView.bank.name, lastView.bank, true);
+  else if(isNoteView(view.name) || isDmView(view.name) || isSoonView(view.name)) go(lastView.bank.name, lastView.bank, true);
 });
 /* 해설의 [내용정리에서 보기] — 절 화면을 열고 그 소제목으로 */
 function scrollToNote(id){
@@ -3121,8 +3238,11 @@ function dmCount(){
   return { done: all.filter(function(x){ return dmDone(x.id); }).length, total: all.length };
 }
 
-/* ---- 레일: 단계별 문제 목록 ---- */
+/* ---- 레일: 단계별 문제 목록 ----
+   단계(기초 ~ 특급)마다 접고 편다. 처음엔 모두 접혀 있고, 문제를 열면(← → 로 넘어가도) 그 문제의 단계가 펴진다.
+   펴고 접은 상태는 저장하지 않는다(이론 목차 NOTE_OPEN 과 같다) */
 var DM_NAVS = [ { id:"dm", ico:"◈", label:"개요" } ];
+var DM_OPEN = {}, dmAutoId = "";
 function renderDmRail(){
   $("#bankBox").innerHTML = "";
   $("#navMain").innerHTML = DM_NAVS.map(function(n){
@@ -3136,11 +3256,18 @@ function renderDmRail(){
     $("#navChap").innerHTML = '<div class="nt-ch">'+(DM_FAIL || !DM_FILE ? '실기 문제를 불러오지 못했습니다' : '불러오는 중…')+'</div>';
     return;
   }
+  var cq = view.name === "dmq" && dmFind(view.id);
+  if(cq && dmAutoId !== cq.id){ dmAutoId = cq.id; DM_OPEN[cq.lv] = true; }
   var h = "";
   DM.levels.forEach(function(L, lv){
     var xs = DM.items.filter(function(x){ return x.lv === lv; }), grp = "";
     if(!xs.length) return;
-    h += '<div class="nt-ch dm-lv">'+esc(dmLevelName(lv))+'</div><div class="nt-tree">';
+    var open = !!DM_OPEN[lv], done = xs.filter(function(x){ return dmDone(x.id); }).length;
+    h += '<button class="nt-sub" data-act="dmtoggle" data-lv="'+lv+'" aria-expanded="'+open+'">'+
+      '<span class="nt-caret">▶</span><span class="nt-rom">'+lv+'</span><span class="chap-name">'+esc(L)+'</span>'+
+      '<span class="nav-count">'+done+'/'+xs.length+'</span></button>';
+    if(!open) return;
+    h += '<div class="nt-tree">';
     xs.forEach(function(x){
       if(x.grp !== grp){ grp = x.grp; if(grp) h += '<div class="nt-ch">'+esc(grp)+'</div>'; }
       h += '<button class="nt-sec" data-go="dmq" data-id="'+esc(x.id)+'" aria-current="'+(view.name==="dmq" && view.id===x.id)+'">'+
@@ -3152,7 +3279,9 @@ function renderDmRail(){
   $("#navChap").innerHTML = h;
 }
 
-/* ---- 개요 ---- */
+/* ---- 개요 ----
+   단계 카드. 문제가 DM_WIDE 개를 넘는 단계(지금은 특급 15)는 두 칸 폭에 목록 2단으로 — 옆 카드와 높이가 비슷해진다 */
+var DM_WIDE = 10;
 function viewDmHome(){
   var h = '<div class="page-head"><div><div class="eyebrow">Data Modeling · 실기</div><h1 class="page-title">Data Modeling(실기)</h1>'+
     '<p class="page-desc">요구 사항 지문을 읽고 직접 모델을 그려 본 뒤, 모범 답안 ERD 와 비교합니다. '+
@@ -3166,15 +3295,15 @@ function viewDmHome(){
   DM.levels.forEach(function(L, lv){
     var xs = DM.items.filter(function(x){ return x.lv === lv; }), grp = "";
     if(!xs.length) return;
-    var dn = xs.filter(function(x){ return dmDone(x.id); }).length;
-    h += '<div class="card nh-card"><div class="nh-head"><span class="nh-rom">'+lv+'</span><span class="nh-title">'+esc(L)+'</span>'+
-      '<span class="nav-count">'+dn+'/'+xs.length+'</span></div><div class="nh-secs">';
+    var dn = xs.filter(function(x){ return dmDone(x.id); }).length, wide = xs.length > DM_WIDE;
+    h += '<div class="card nh-card'+(wide ? ' wide' : '')+'"><div class="nh-head"><span class="nh-rom">'+lv+'</span><span class="nh-title">'+esc(L)+'</span>'+
+      '<span class="nav-count">'+dn+'/'+xs.length+'</span></div>'+(wide ? '<div class="nh-cols">' : '')+'<div class="nh-secs">';
     xs.forEach(function(x){
       if(x.grp !== grp){ grp = x.grp; if(grp) h += '</div><div class="nh-ch">'+esc(grp)+'</div><div class="nh-secs">'; }
       h += '<button data-go="dmq" data-id="'+esc(x.id)+'"><span class="mono" style="color:var(--muted)">'+esc(x.id)+'</span>'+
         '<span>'+esc(x.title)+dmStars(x.stars)+'</span>'+(dmDone(x.id) ? '<span class="nt-ok">✓</span>' : '')+'</button>';
     });
-    h += '</div></div>';
+    h += '</div>'+(wide ? '</div>' : '')+'</div>';
   });
   return h + '</div>';
 }
@@ -3706,6 +3835,32 @@ function viewNoteMarks(){
   return h;
 }
 
+/* ═══════════ 동영상 강의 · 요약 슬라이드 ═══════════
+   자리만 잡아 둔 화면이다. 내용은 기획한 뒤 채운다. 주소 #/video · #/slides */
+var SOON = {
+  video:  { eyebrow:"Lectures · 동영상 강의", title:"동영상 강의",
+            desc:"과목별 강의 영상을 보고, 이어 보기와 진도를 확인하는 화면입니다." },
+  slides: { eyebrow:"Theory · 요약 슬라이드", title:"요약 슬라이드",
+            desc:"과목별 핵심 이론을 슬라이드로 요약해 넘겨 보는 화면입니다." }
+};
+function renderSoonRail(){
+  $("#bankBox").innerHTML = "";
+  var nm = curMode === "video" ? "video" : "slides";
+  $("#navMain").innerHTML = '<button class="nav-item" data-go="'+nm+'" aria-current="'+(view.name===nm)+'">'+
+    '<span class="nav-ico">◈</span><span>개요</span></button>';
+  $("#chapLabel").textContent = "과목";
+  $("#navChap").innerHTML = noteSubjects().map(function(sub){
+    return '<div class="chap-row"><span class="chap-num">'+ROMAN[sub.id]+'</span><span class="chap-name">'+esc(sub.name)+'</span>'+
+      '<span class="nt-soon">준비 중</span></div>';
+  }).join("");
+}
+function viewSoon(name){
+  var o = SOON[name];
+  return '<div class="page-head"><div><div class="eyebrow">'+o.eyebrow+'</div><h1 class="page-title">'+o.title+'</h1>'+
+    '<p class="page-desc">'+o.desc+'</p></div></div>'+
+    '<div class="card"><div class="empty"><b>준비 중입니다</b>구성을 기획한 뒤 내용을 채웁니다.</div></div>';
+}
+
 /* ─────────── 렌더 ─────────── */
 function render(){
   regradeByKey();   /* 정답을 바로잡은 문항이 있으면 응시 점수·오답노트를 맞춘다 */
@@ -3726,6 +3881,7 @@ function render(){
     case "nhl": h = viewNoteMarks(); break;
     case "dm": h = viewDmHome(); break;
     case "dmq": h = viewDmQ(); break;
+    case "video": case "slides": h = viewSoon(view.name); break;
     case "quiz": h = session ? viewQuiz() : viewDash(); break;
     case "result": h = viewResult(); break;
     default: h = viewDash();
@@ -3778,6 +3934,13 @@ document.addEventListener("click", function(ev){
       go(lv.name, lv);
       break;
     }
+    case "cat": {
+      var cg = CATS.filter(function(c){ return c.id === t.getAttribute("data-cat"); })[0];
+      var cm = catLast[cg.id] || cg.modes[0];
+      if(catOf(curMode) === cg && view.name !== "settings") break;
+      go(lastView[cm].name, lastView[cm]);
+      break;
+    }
     /* ── 실기 ── */
     case "dmdone": {
       S.notesRead = S.notesRead || {};
@@ -3789,6 +3952,12 @@ document.addEventListener("click", function(ev){
     case "dmhide": S.settings.dmHide = !S.settings.dmHide; view.show = false; save(); render(); break;
     case "dmshow": view.show = true; render(); break;
     case "dmzoom": dmzOpen(t.getAttribute("data-img")); break;
+    case "dmtoggle": {
+      var dl = +t.getAttribute("data-lv");
+      DM_OPEN[dl] = !DM_OPEN[dl];
+      renderRail();
+      break;
+    }
     case "ntoggle": {
       var nc = nk("", +t.getAttribute("data-ch"));
       NOTE_OPEN[nc] = !NOTE_OPEN[nc];
@@ -4745,16 +4914,9 @@ function setFontScale(v){
   return v;
 }
 
-/* ─────────── 상단 브랜드 라벨 ─────────── */
-function applyBrand(){
-  var n = DAP.questions.length,
-      sub = n + " Q · " + DAP.sets.length + " SETS · " + CHLIST.length + " CH";
-  var el;
-  if((el = $("#brandSub"))) el.textContent = sub;
-  if((el = $("#brandName"))) el.textContent = "DAP 문제은행";
-  if((el = $("#brandTop")))  el.textContent = "DAP 문제은행 " + n;
-  document.title = "DAP 문제은행 " + n;
-}
+/* ─────────── 브랜드 ───────────
+   서비스 이름은 DAPath 로 고정이다. 문제은행 규모(문항·세트·과목)는 문제은행 사이드바 머리에 보인다 */
+function applyBrand(){ document.title = "DAPath"; }
 
 /* 테마 */
 function applyTheme(){
@@ -4762,13 +4924,13 @@ function applyTheme(){
   if(t==="auto") document.documentElement.removeAttribute("data-theme");
   else document.documentElement.setAttribute("data-theme", t);
 }
-$("#themeBtn").addEventListener("click", function(){
+function cycleTheme(){
   var order = ["auto","light","dark"];
   S.settings.theme = order[(order.indexOf(S.settings.theme)+1)%3];
   applyTheme(); save();
   toast("테마: "+({auto:"시스템 설정",light:"라이트",dark:"다크"})[S.settings.theme]);
-});
-$("#resetHint").addEventListener("click", function(){ go("settings"); });
+}
+$$(".js-theme").forEach(function(b){ b.addEventListener("click", cycleTheme); });
 $("#mnav").addEventListener("click", function(){ $("#rail").classList.toggle("open"); });
 
 window.addEventListener("beforeunload", function(){
@@ -4795,7 +4957,7 @@ bootBank(function(){
   applyBrand();
   restoreFileHandle();
   var hv = viewFromHash();          /* #/2020/… · #/2013/… · #/dm/… 로 열었으면 그 화면부터 */
-  if(hv){ view = hv; curMode = hv.ed ? "n" + hv.ed : "dm"; }
+  if(hv){ view = hv; curMode = modeOf(hv); catLast[catOf(curMode).id] = curMode; }
   render();
   if(syncOn() && sync.auto) syncNow(true);
 });
