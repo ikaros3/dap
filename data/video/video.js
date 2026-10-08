@@ -83,6 +83,17 @@ DAP_VIDEO.add({
     { id: "4-17", ch: 4, grp: "4. 물리 데이터모델링",   tag: "4-2", title: "반정규화",                        sec: 1487, drive: "1IC-FMGZA7fDs7uafNHZs9mwcyc6wuHlS",
       file: "4. 데이터 모델링/(4. 물리데이터 모델링) - 2. 반정규화.mp4" },
 
+    { id: "5-4",  ch: 5, grp: "SQLP 강의", tag: "소개", title: "SQLP 강의 소개",            sec: 1847, drive: "1qkLC7MU-6xz2uT8tHbNHkEzrKWgtHUCB",
+      file: "5. 데이터베이스 설계와 이용/SQLP 강의 소개.mp4" },
+    { id: "5-5",  ch: 5, grp: "SQLP 강의", tag: "1",    title: "인덱스 구조",               sec: 2945, drive: "1mPItnb7rOZ-LC9M5_terbzQlJn817bhu",
+      file: "5. 데이터베이스 설계와 이용/1. 인덱스 구조.mp4" },
+    { id: "5-6",  ch: 5, grp: "SQLP 강의", tag: "2",    title: "인덱스 스캔 방식",          sec: 2350, drive: "1UuUbeclNBu9sQ9vvzRZaNz3u7dhRpFJW",
+      file: "5. 데이터베이스 설계와 이용/2. 인덱스 스캔 방식.mp4" },
+    { id: "5-7",  ch: 5, grp: "SQLP 강의", tag: "3",    title: "Oracle 데이터베이스 구조",  sec: 2156, drive: "1AMkg0zGtheDVmpe-cq73bq0Zmxs9uGou",
+      file: "5. 데이터베이스 설계와 이용/3.Oracle 데이터베이스 구조.mp4" },
+    { id: "5-8",  ch: 5, grp: "SQLP 강의", tag: "4",    title: "테이블 랜덤 액세스 부하의 원리", sec: 1269, drive: "1rTc1OfRTmxgofD_FD8bZv8j_S0R5DPDq",
+      file: "5. 데이터베이스 설계와 이용/4.테이블 랜덤 액세스 부하의 원리.mp4" },
+
     { id: "5-1",  ch: 5, grp: "인덱스 구성과 활용 — 네이버 카페 「데이터와사람들」", tag: "1/3", title: "인덱스 구성과 활용 (1)", sec: 1696, drive: "1_Degj40fb3cW2otoRSjkVn1Xz7CpcgIH",
       file: "5. 데이터베이스 설계와 이용/네이버카페 데이터와사람들) 인덱스구성과 활용 - 1-3.mp4" },
     { id: "5-2",  ch: 5, grp: "인덱스 구성과 활용 — 네이버 카페 「데이터와사람들」", tag: "2/3", title: "인덱스 구성과 활용 (2)", sec: 1493, drive: "1Ghbmlao8EYTP66BY7gqOiEp4iMUovBoK",
