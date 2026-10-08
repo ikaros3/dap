@@ -24,6 +24,7 @@ const SUITES = [
   ['형광펜',                   'test/highlight.js'],
   ['실기',                     'test/dm.js'],
   ['동영상 강의',              'test/video.js'],
+  ['강의 슬라이드',            'test/slides.js'],
 ];
 
 let failed = [];

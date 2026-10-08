@@ -451,6 +451,39 @@ label.field{display:flex;flex-direction:column;gap:5px;font-size:calc(12.5px * v
 .vd-docs{display:flex;flex-direction:column;gap:2px;margin-top:auto;padding-top:8px;border-top:1px dashed var(--line)}
 .vd-docs a{font-size:calc(12.5px * var(--fs));color:var(--muted);text-decoration:none}
 .vd-docs a:hover{color:var(--accent);text-decoration:underline}
+/* 강의 슬라이드 — PDF 뷰어는 화면 높이에 맞춘다(도구 막대·쪽 넘김이 뷰어 안에 있다) */
+.sd-viewer{position:relative;width:100%;height:calc(100vh - var(--hdr) - 210px);min-height:440px;border-radius:var(--radius);overflow:hidden;
+  background:var(--surface-2);border:1px solid var(--line)}
+.sd-viewer iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--surface-2)}
+.sd-viewer:fullscreen{border:0;border-radius:0}
+@media (max-width:900px){ .sd-viewer{height:auto;min-height:0;aspect-ratio:3/4} .sd-viewer.sd-pdf{aspect-ratio:1.2} }
+.sd-ok{margin-left:auto;color:var(--ok);font-size:calc(12px * var(--fs));font-weight:600;white-space:nowrap}
+.sd-acts{margin-top:auto}
+.sd-toc .nt-sec{padding-left:18px}
+.sd-toc .nt-sec.sd-tc{padding-left:8px;font-weight:600;color:var(--ink);margin-top:4px}
+.sd-toc .sd-pno{margin-left:auto;padding-left:6px}
+.sd-sub[aria-current="true"]{background:var(--accent-soft);color:var(--accent-ink)}
+.sd-sub .nt-ok{margin-left:auto;color:var(--ok);font-size:calc(11px * var(--fs));flex:none}
+/* 한 장씩 보기 — 무대(slide 하나를 가로·세로 중 먼저 닿는 쪽에 맞춰 가운데) + 아래 막대 */
+.sd-viewer.sd-pdf{display:flex;flex-direction:column;background:#26292c;border-color:#26292c}
+.sd-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y}
+.sd-stage canvas{display:block;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.45)}
+.sd-msg{position:absolute;color:#c9cdd1;font-size:calc(13px * var(--fs))}
+.sd-nav{position:absolute;top:0;bottom:0;width:14%;min-width:44px;display:flex;align-items:center;font-size:44px;color:#fff;opacity:0;transition:opacity .15s}
+.sd-prev{left:0;justify-content:flex-start;padding-left:14px;background:linear-gradient(90deg,rgba(0,0,0,.28),transparent)}
+.sd-next{right:0;justify-content:flex-end;padding-right:14px;background:linear-gradient(270deg,rgba(0,0,0,.28),transparent)}
+.sd-stage:hover .sd-nav:not(:disabled),.sd-nav:focus-visible{opacity:.85}
+.sd-nav:disabled{cursor:default;opacity:0 !important}
+.sd-bar{flex:none;display:flex;align-items:center;gap:10px;height:44px;padding:0 10px 0 14px;background:#1d2023;color:#d6d9dc;font-size:calc(12.5px * var(--fs))}
+.sd-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#aeb3b8}
+.sd-pg{display:flex;align-items:center;gap:6px;flex:none}
+.sd-bb{min-width:32px;height:30px;border-radius:6px;color:#e8eaec;font-size:18px;line-height:1}
+.sd-bb:hover:not(:disabled){background:rgba(255,255,255,.12)}
+.sd-bb:disabled{opacity:.35;cursor:default}
+.sd-fs{font-size:15px;flex:none}
+.sd-pin{width:56px;height:28px;border-radius:6px;border:1px solid #4a4f54;background:#2b2f33;color:#fff;text-align:center;font:inherit;font-family:var(--font-mono)}
+.sd-of{font-family:var(--font-mono);color:#aeb3b8;white-space:nowrap}
+.sd-viewer:fullscreen{height:100vh;aspect-ratio:auto}
 /* 확대 보기 — 화면 가득, 그림은 transform 으로 움직인다 */
 body.dmz-open{overflow:hidden}
 .dmz{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;background:#111418;color:#fff}
@@ -1494,7 +1527,7 @@ function rollbackExam(e){
 
 /* ─────────── 라우팅 ─────────── */
 var view = { name:"dash" }, session = null, timerH = null;
-/* 화면(모드)은 여섯이다 — 내용정리 두 판(n2020 · n2013), 요약 슬라이드(slide), 동영상 강의(video), Data Modeling 실기(dm),
+/* 화면(모드)은 여섯이다 — 내용정리 두 판(n2020 · n2013), 강의 슬라이드(slide), 동영상 강의(video), Data Modeling 실기(dm),
    문제은행(bank). 모드는 카테고리 넷(CATS)으로 묶여 웹은 상단 탭, 모바일은 하단 탭바로 고른다. 이론처럼 모드가 여럿인
    카테고리는 사이드바 위 세그먼트로 고른다. 설정은 모두가 함께 쓰므로 들어가도 지금 모드를 유지한다.
    모드를 오가면 그 모드에서 마지막으로 보던 화면으로, 카테고리를 오가면 그 카테고리에서 마지막으로 쓴 모드로 돌아간다.
@@ -1509,13 +1542,13 @@ var CATS = [
 ];
 var catLast = {};   /* 카테고리 → 마지막으로 쓴 모드 */
 function catOf(mode){ return CATS.filter(function(c){ return c.modes.indexOf(mode) >= 0; })[0] || CATS[3]; }
-function isSoonView(name){ return name === "slides"; }
+function isSdView(name){ return name === "slides" || name === "sdq"; }
 /* 화면이 속한 모드. 설정은 모드가 없다(null) */
 function modeOf(v){
   if(isNoteView(v.name)) return "n" + (v.ed || "2020");
   if(isDmView(v.name)) return "dm";
   if(isVdView(v.name)) return "video";
-  if(v.name === "slides") return "slide";
+  if(isSdView(v.name)) return "slide";
   return v.name === "settings" ? null : "bank";
 }
 
@@ -1800,7 +1833,7 @@ var CAT_ICO = {
   bank:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8.5 8.5l1.5 1.5 3-3M8.5 15h7"/></svg>'
 };
 /* 이론 세그먼트 — 이름, 보조 글 */
-var MODE_SEG = { n2020:["2020", "Edition"], n2013:["2013", "Edition"], slide:["슬라이드", "Summary"] };
+var MODE_SEG = { n2020:["2020", "Edition"], n2013:["2013", "Edition"], slide:["슬라이드", "Slides"] };
 /* 헤더 탭(웹) · 하단 탭바(모바일) · 사이드바 머리 · 세그먼트 */
 function renderCats(){
   var cur = catOf(curMode);
@@ -1829,7 +1862,7 @@ function renderCats(){
 function renderRail(){
   renderCats();
   if(curMode === "video"){ renderVdRail(); return; }
-  if(curMode === "slide"){ renderSoonRail(); return; }
+  if(curMode === "slide"){ renderSdRail(); return; }
   if(curMode === "dm"){ renderDmRail(); return; }
   if(curMode !== "bank"){ renderNoteRail(); return; }
   $("#chapLabel").textContent = "과목";
@@ -3185,6 +3218,7 @@ function viewHash(v){
   if(v.name === "video")  return "#/video";
   if(v.name === "vdq")    return "#/video/" + v.id;
   if(v.name === "slides") return "#/slides";
+  if(v.name === "sdq")    return "#/slides/" + v.id;
   var p = "#/" + (v.ed || "2020");
   if(v.name === "notes")   return p;
   if(v.name === "nsearch") return p + "/search";
@@ -3197,6 +3231,8 @@ function viewFromHash(){
   if(d) return d[1] ? { name:"dmq", id:d[1] } : { name:"dm" };
   var vq = /^#\/video\/([\w-]+)\/?$/.exec(location.hash || "");
   if(vq) return { name:"vdq", id:vq[1] };
+  var sq = /^#\/slides\/([\w-]+)\/?$/.exec(location.hash || "");
+  if(sq) return { name:"sdq", id:sq[1] };
   var z = /^#\/(video|slides)\/?$/.exec(location.hash || "");
   if(z) return { name:z[1] };
   var m = /^#\/(notes|2020|2013)(?:\/(search|marks)|\/(\d+)\/(\d+)\/(\d+))?\/?$/.exec(location.hash || "");
@@ -3215,7 +3251,7 @@ function syncHash(){
 window.addEventListener("popstate", function(){
   var v = viewFromHash();
   if(v) go(v.name, v, true);
-  else if(isNoteView(view.name) || isDmView(view.name) || isVdView(view.name) || isSoonView(view.name)) go(lastView.bank.name, lastView.bank, true);
+  else if(isNoteView(view.name) || isDmView(view.name) || isVdView(view.name) || isSdView(view.name)) go(lastView.bank.name, lastView.bank, true);
 });
 /* 해설의 [내용정리에서 보기] — 절 화면을 열고 그 소제목으로 */
 function scrollToNote(id){
@@ -4077,7 +4113,7 @@ function vdRestoreDir(){
   idbGet(function(h){
     if(!h || h.kind !== "directory") return;
     vdDir = h;
-    vdPerm(false, function(){ if(isVdView(view.name)) render(); });
+    vdPerm(false, function(){ if(isVdView(view.name) || isSdView(view.name)) render(); });
   }, VD_HKEY);
 }
 function vdPerm(ask, done){
@@ -4091,14 +4127,15 @@ function vdFileOf(it){
   parts.slice(0, -1).forEach(function(p){ d = d.then(function(h){ return h.getDirectoryHandle(p); }); });
   return d.then(function(h){ return h.getFileHandle(parts[parts.length - 1]); }).then(function(fh){ return fh.getFile(); });
 }
-/* 폴더를 고르면 첫 강의 파일이 있는지로 맞는 폴더인지 본다 */
+/* 폴더를 고르면 첫 강의 파일(슬라이드 화면에서 고르면 첫 PDF)이 있는지로 맞는 폴더인지 본다 */
 function vdPick(){
-  if(!vdLocalSupported() || !VD) return;
+  var probe = isSdView(view.name) && SD ? SD.items[0] : VD ? VD.items[0] : SD ? SD.items[0] : null;
+  if(!vdLocalSupported() || !probe) return;
   window.showDirectoryPicker({ id:"dap-video", mode:"read" }).then(function(h){
     var prev = [vdDir, vdDirOk];
     vdDir = h; vdDirOk = true;
-    vdFileOf(VD.items[0]).then(function(){
-      VD_MISS = {};
+    vdFileOf(probe).then(function(){
+      VD_MISS = {}; SD_MISS = {};
       idbPut(h, VD_HKEY);
       toast("강의 폴더를 연결했습니다 — 이 기기에서는 앱이 직접 재생합니다");
       render();
@@ -4109,7 +4146,7 @@ function vdPick(){
   }, function(){});
 }
 function vdUnlink(){
-  vdDir = null; vdDirOk = false; VD_MISS = {};
+  vdDir = null; vdDirOk = false; VD_MISS = {}; SD_MISS = {};
   idbDel(VD_HKEY);
   toast("강의 폴더 연결을 해제했습니다 — 드라이브 플레이어로 재생합니다");
   render();
@@ -4156,29 +4193,328 @@ function vdAttach(){
   });
 }
 
-/* ═══════════ 요약 슬라이드 ═══════════
-   자리만 잡아 둔 화면이다. 내용은 기획한 뒤 채운다. 주소 #/slides */
-var SOON = {
-  slides: { eyebrow:"Theory · 요약 슬라이드", title:"요약 슬라이드",
-            desc:"과목별 핵심 이론을 슬라이드로 요약해 넘겨 보는 화면입니다." }
-};
-function renderSoonRail(){
+/* ═══════════ 강의 슬라이드 ═══════════
+   구글 드라이브 「DAP/2. DAP 영상 강의」의 과목별 강의자료 PDF (data/slides/slides.js — 드라이브 파일 id 목록).
+   PDF 는 저장소에 두지 않고 드라이브 미리보기(iframe)로 연다. 동영상 강의와 같이 소유자 전용이면 그 구글 계정으로
+   로그인한 브라우저에서만 보이므로 [드라이브에서 열기]를 함께 둔다.
+   동영상 강의에서 PC 의 「2. DAP 영상 강의」 폴더를 연결해 두었으면(vdDir) 그 폴더의 PDF 를 pdf.js 로 읽어 한 장씩 화면에 꽉 차게
+   띄우고 넘겨 본다(목차로 쪽 이동도 이때만 된다). 폴더 연결·해제는 동영상 강의와 같은 것을 쓴다(vdPick · vdPerm · vdUnlink).
+   목록 → PDF. 화면 주소 #/slides · #/slides/3. 「읽음」 표시는 S.notesRead 에 "sd:3" 으로 둔다.
+   PDF 를 다시 그리면 첫 쪽부터 다시 읽히므로, 같은 PDF 를 다시 그릴 때는 뷰어를 두고 위·아래만 바꾼다(sdPatch). */
+var SD = null, SD_WAIT = null, SD_FAIL = false, SD_MISS = {};
+var SD_FILE = (window.DAP_MANIFEST && window.DAP_MANIFEST.slides) || "";
+window.DAP_SLIDES = { add: function(b){ if(b && b.items) SD = b; } };
+function loadSd(done){
+  if(SD || !SD_FILE || SD_FAIL){ if(done) done(); return; }
+  if(SD_WAIT){ if(done) SD_WAIT.push(done); return; }
+  SD_WAIT = done ? [done] : [];
+  var el = document.createElement("script");
+  el.src = "data/" + SD_FILE;
+  el.charset = "UTF-8";
+  el.onload = el.onerror = function(){
+    var cbs = SD_WAIT; SD_WAIT = null;
+    if(!SD){ SD_FAIL = true; toast("슬라이드 목록 파일을 불러오지 못했습니다 · " + SD_FILE); }
+    cbs.forEach(function(f){ f(); });
+  };
+  document.head.appendChild(el);
+}
+function needSd(){
+  if(SD || SD_FAIL || !SD_FILE) return true;
+  loadSd(function(){ if(isSdView(view.name)) render(); });
+  return false;
+}
+function sdKey(id){ return "sd:" + id; }
+function sdDone(id){ return !!(S.notesRead && S.notesRead[sdKey(id)]); }
+function sdFind(id){ return SD ? SD.items.filter(function(x){ return x.id === id; })[0] || null : null; }
+function sdNo(x){ return x.ch ? ROMAN[x.ch] : "참고"; }
+function sdLocal(it){ return !!(vdDir && vdDirOk && it && it.file && !SD_MISS[it.id] && !SD_LIBFAIL); }
+function sdMeta(x){ return x.pages + "쪽 · " + x.mb + "MB"; }
+/* 함께 볼 과목 — 과목 자료면 그 과목, 참고 자료면 rel */
+function sdChs(x){ return x.ch ? [x.ch] : (x.rel || []); }
+
+/* ---- 레일 ----
+   자료마다 접고 편다. 목차가 있는 자료(4·5과목)는 펴면 장 → 절 목차가 나온다. 처음엔 모두 접혀 있고, 자료를 열면 그 자료가 펴진다.
+   자료 이름을 누르면 그 자료를 연다(이미 보고 있으면 접고 편다). ▶ 만 누르면 열지 않고 접고 편다 */
+var SD_OPEN = {}, sdAutoId = "";
+function renderSdRail(){
   $("#bankBox").innerHTML = "";
-  var nm = "slides";
-  $("#navMain").innerHTML = '<button class="nav-item" data-go="'+nm+'" aria-current="'+(view.name===nm)+'">'+
-    '<span class="nav-ico">◈</span><span>개요</span></button>';
-  $("#chapLabel").textContent = "과목";
-  $("#navChap").innerHTML = noteSubjects().map(function(sub){
-    return '<div class="chap-row"><span class="chap-num">'+ROMAN[sub.id]+'</span><span class="chap-name">'+esc(sub.name)+'</span>'+
-      '<span class="nt-soon">준비 중</span></div>';
+  if(!SD && SD_FILE && !SD_FAIL) loadSd(renderRail);
+  var n = SD ? SD.items.filter(function(x){ return sdDone(x.id); }).length : 0;
+  $("#navMain").innerHTML = '<button class="nav-item" data-go="slides" aria-current="'+(view.name==="slides")+'">'+
+    '<span class="nav-ico">◈</span><span>개요</span>'+(SD ? '<span class="nav-count">'+n+'/'+SD.items.length+'</span>' : '')+'</button>';
+  $("#chapLabel").textContent = "강의자료";
+  if(!SD){
+    $("#navChap").innerHTML = '<div class="nt-ch">'+(SD_FAIL || !SD_FILE ? '슬라이드 목록을 불러오지 못했습니다' : '불러오는 중…')+'</div>';
+    return;
+  }
+  var cq = view.name === "sdq" && sdFind(view.id);
+  if(cq && sdAutoId !== cq.id){ sdAutoId = cq.id; SD_OPEN[cq.id] = true; }
+  $("#navChap").innerHTML = SD.items.map(function(x){
+    var cur = view.name === "sdq" && view.id === x.id, open = !!(x.toc && SD_OPEN[x.id]);
+    return '<button class="nt-sub sd-sub" data-act="sdopen" data-id="'+esc(x.id)+'" aria-current="'+cur+'"'+(x.toc ? ' aria-expanded="'+open+'"' : '')+'>'+
+      '<span class="nt-caret">'+(x.toc ? '▶' : '')+'</span><span class="nt-rom">'+sdNo(x)+'</span><span class="chap-name">'+esc(x.title)+'</span>'+
+      (sdDone(x.id) ? '<span class="nt-ok">✓</span>' : '')+'</button>'+(open ? sdTocHtml(x, cur) : '');
   }).join("");
 }
-function viewSoon(name){
-  var o = SOON[name];
-  return '<div class="page-head"><div><div class="eyebrow">'+o.eyebrow+'</div><h1 class="page-title">'+o.title+'</h1>'+
-    '<p class="page-desc">'+o.desc+'</p></div></div>'+
-    '<div class="card"><div class="empty"><b>준비 중입니다</b>구성을 기획한 뒤 내용을 채웁니다.</div></div>';
+/* 목차 — 장 → 절. 지금 보는 쪽이 속한 항목(시작 쪽이 지금 쪽 이하인 마지막 항목)을 표시한다. 누르면 그 쪽으로 */
+function sdTocHtml(x, cur){
+  var flat = [];
+  x.toc.forEach(function(c){ flat.push([c, " sd-tc"]); (c.s || []).forEach(function(s){ flat.push([s, ""]); }); });
+  var at = -1;
+  if(cur) flat.forEach(function(e, i){ if(e[0].p <= (view.p || 1)) at = i; });
+  return '<div class="nt-tree sd-toc">'+flat.map(function(e, i){
+    return '<button class="nt-sec'+e[1]+'" data-act="sdpage" data-id="'+esc(x.id)+'" data-p="'+e[0].p+'" aria-current="'+(i === at)+'">'+
+      '<span>'+esc(e[0].t)+'</span><span class="nt-no sd-pno">'+e[0].p+'</span></button>';
+  }).join("")+'</div>';
 }
+
+/* ---- 개요 ---- */
+function viewSdHome(){
+  var h = '<div class="page-head"><div><div class="eyebrow">Theory · 강의 슬라이드</div><h1 class="page-title">강의 슬라이드</h1>'+
+    '<p class="page-desc">동영상 강의에서 쓰는 과목별 강의자료(2020+2013) PDF 를 봅니다. 파일은 구글 드라이브에 있고, 그 구글 계정으로 로그인한 브라우저에서 열립니다. '+
+    '다 본 자료는 [읽음 표시]로 체크해 두면 진도와 함께 동기화됩니다.</p></div></div>';
+  if(!needSd()) return h + '<div class="card"><div class="empty"><b>슬라이드 목록을 불러오는 중…</b></div></div>';
+  if(!SD) return h + '<div class="card"><div class="empty"><b>슬라이드 목록을 불러오지 못했습니다</b>data/manifest.js 의 slides 항목과 data/slides/slides.js 를 확인하세요.</div></div>';
+  if(vdLocalSupported()){
+    var st = vdDir ? (vdDirOk ? '연결됨 · 「'+esc(vdDir.name)+'」 폴더의 PDF 를 바로 엽니다' : '연결돼 있지만 이번에 다시 허용이 필요합니다') : '연결 안 됨 · 드라이브 미리보기로 엽니다';
+    h += '<div class="card dm-prog"><div class="sec-head"><span class="sec-title">PC 로컬 열기</span><span class="nav-count">'+st+'</span></div>'+
+      '<p class="note">이 PC 의 「2. DAP 영상 강의」 폴더(G:\\내 드라이브\\DAP\\…)를 연결하면 슬라이드를 한 장씩 화면에 꽉 차게 띄워 '+
+      '넘겨 보고, 목차를 눌러 그 쪽으로 바로 갈 수 있습니다. 동영상 강의의 로컬 재생과 같은 연결이며 이 기기에만 적용됩니다.</p>'+
+      '<div class="btn-row" style="margin-top:10px">'+
+      (vdDir && !vdDirOk ? '<button class="btn btn-primary" data-act="vdperm">로컬 열기 켜기</button>' : '')+
+      '<button class="btn'+(vdDir ? '' : ' btn-primary')+'" data-act="vdpick">'+(vdDir ? '폴더 바꾸기' : '강의 폴더 연결')+'</button>'+
+      (vdDir ? '<button class="btn" data-act="vdunlink">연결 해제</button>' : '')+'</div></div>';
+  }
+  h += '<div class="nh-grid">';
+  SD.items.forEach(function(x){
+    h += '<div class="card nh-card"><div class="nh-head"><span class="nh-rom">'+sdNo(x)+'</span><span class="nh-title">'+esc(x.title)+'</span>'+
+      (sdDone(x.id) ? '<span class="sd-ok">✓ 읽음</span>' : '')+'</div>'+
+      '<p class="note">'+sdMeta(x)+(x.toc ? ' · 목차로 쪽 이동' : '')+(x.rel ? ' · '+x.rel.map(function(c){ return ROMAN[c]; }).join(" · ")+'과목과 함께' : '')+'</p>'+
+      '<div class="btn-row sd-acts"><button class="btn btn-primary btn-sm" data-go="sdq" data-id="'+esc(x.id)+'">슬라이드 보기</button>'+
+      (x.ch && x.ch <= 5 ? '<button class="btn btn-sm" data-go="vdq" data-id="'+x.ch+'-1">강의 영상</button>' : '')+'</div></div>';
+  });
+  return h + '</div>';
+}
+
+/* ---- 슬라이드 화면 ----
+   뷰어 위(sdTop)·아래(sdBot)를 나눠 만들어, 같은 PDF 를 다시 그릴 때는 뷰어를 그대로 둔다 */
+function sdTop(it){
+  var done = sdDone(it.id);
+  return '<div class="note-crumb"><button data-go="slides">강의 슬라이드</button><span>›</span><span>'+(it.ch ? ROMAN[it.ch]+'과목' : '참고 자료')+'</span></div>'+
+    '<div class="page-head" style="margin-bottom:14px"><div><h1 class="page-title">'+esc(it.title)+'</h1>'+
+    '<p class="page-desc">'+sdMeta(it)+'</p></div>'+
+    '<button class="btn'+(done ? ' btn-primary' : '')+'" data-act="sddone">'+(done ? '✓ 읽음' : '읽음 표시')+'</button></div>';
+}
+/* 로컬 — 한 쪽을 무대(sd-stage)에 꽉 차게 그리고 아래 막대에서 넘긴다. 드라이브 — 미리보기 iframe(스크롤) */
+function sdViewer(it){
+  if(sdLocal(it)) return '<div class="sd-viewer sd-pdf" data-drive="'+esc(it.drive)+'" data-mode="local">'+
+    '<div class="sd-stage"><canvas aria-label="'+esc(it.title)+' 슬라이드"></canvas><div class="sd-msg">슬라이드를 여는 중…</div>'+
+    '<button class="sd-nav sd-prev" data-act="sdprev" aria-label="이전 쪽">‹</button>'+
+    '<button class="sd-nav sd-next" data-act="sdnext" aria-label="다음 쪽">›</button></div>'+
+    '<div class="sd-bar"><span class="sd-name" title="'+esc(it.file)+'">'+esc(it.file)+'</span>'+
+    '<span class="sd-pg"><button class="sd-bb" data-act="sdprev" aria-label="이전 쪽">‹</button>'+
+    '<input class="sd-pin" type="number" min="1" max="'+it.pages+'" value="'+(view.p || 1)+'" aria-label="쪽 번호">'+
+    '<span class="sd-of">/ '+it.pages+'</span><button class="sd-bb" data-act="sdnext" aria-label="다음 쪽">›</button></span>'+
+    '<button class="sd-bb sd-fs" data-act="sdfull" title="전체 화면" aria-label="전체 화면">⛶</button></div></div>';
+  return '<div class="sd-viewer" data-drive="'+esc(it.drive)+'" data-mode="drive"><iframe src="'+vdUrl(it.drive, true)+'" title="'+esc(it.title)+'" '+
+    'allow="fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
+}
+function sdLocalNote(it){
+  if(!vdLocalSupported() || !it.file) return "";
+  if(SD_LIBFAIL) return '<div class="vd-local">슬라이드 뷰어(pdf.js)를 불러오지 못해 드라이브 미리보기로 엽니다. 인터넷 연결을 확인한 뒤 새로고침하세요.</div>';
+  if(SD_MISS[it.id]) return '<div class="vd-local">로컬 폴더에서 이 PDF 를 찾지 못해 드라이브 미리보기로 엽니다. '+
+    '<button class="btn btn-sm" data-act="vdpick">폴더 다시 고르기</button></div>';
+  if(vdDir && !vdDirOk) return '<div class="vd-local">이 PC 의 강의 폴더가 연결돼 있습니다. 한 장씩 넘겨 보려면 '+
+    '<button class="btn btn-sm btn-primary" data-act="vdperm">로컬 열기 켜기</button></div>';
+  if(!vdDir) return '<div class="vd-local">한 장씩 넘겨 보고 목차로 쪽을 옮기려면 이 PC 의 「2. DAP 영상 강의」 폴더를 연결하세요. '+
+    '<button class="btn btn-sm" data-act="vdpick">강의 폴더 연결</button></div>';
+  return "";
+}
+function sdBot(it){
+  var loc = sdLocal(it);
+  var h = (loc ? '' : sdLocalNote(it)) + '<div class="vd-links">'+
+    (loc ? '' : '<button class="btn btn-sm" data-act="sdfull">⛶ 전체 화면</button>')+
+    '<a class="btn btn-sm" href="'+vdUrl(it.drive)+'" target="_blank" rel="noopener">드라이브에서 열기 ↗</a>'+
+    sdChs(it).map(function(c){
+      return (c <= 5 ? '<button class="btn btn-sm" data-go="vdq" data-id="'+c+'-1">'+ROMAN[c]+'과목 강의 영상</button>' : '')+
+        '<button class="btn btn-sm" data-go="note" data-ed="2020" data-ch="'+c+'" data-c="1" data-s="1">'+ROMAN[c]+'과목 이론 보기</button>'+
+        '<button class="btn btn-sm" data-go="chapter" data-ch="'+c+'">'+ROMAN[c]+'과목 문제 풀기</button>';
+    }).join("")+'</div>'+
+    (loc ? '<p class="note vd-hint">← → 키 · 마우스 휠 · 좌우로 밀기 · 화면 양옆을 눌러 넘깁니다. 자료마다 마지막으로 본 쪽을 이 기기에 기억합니다.</p>' :
+    '<p class="note vd-hint">보이지 않으면 이 브라우저에서 PDF 를 올린 구글 계정으로 로그인했는지 확인하세요. '+
+    '사파리처럼 다른 사이트 쿠키를 막는 브라우저에서는 [드라이브에서 열기]로 보면 됩니다.</p>');
+  var all = SD.items, k = all.indexOf(it), pv = all[k-1], nx = all[k+1];
+  h += '<div class="note-pager">'+
+    (pv ? '<button data-go="sdq" data-id="'+esc(pv.id)+'"><small>← 이전 자료</small><span>'+esc(pv.title)+'</span></button>' : '')+
+    (nx ? '<button class="nx" data-go="sdq" data-id="'+esc(nx.id)+'"><small>다음 자료 →</small><span>'+esc(nx.title)+'</span></button>' : '')+
+    '</div>';
+  return h;
+}
+function viewSdQ(){
+  if(!needSd()) return '<div class="card"><div class="empty"><b>슬라이드 목록을 불러오는 중…</b></div></div>';
+  var it = sdFind(view.id);
+  if(!it) return '<div class="card"><div class="empty"><b>해당 자료가 없습니다</b>'+
+    '<button class="btn" data-go="slides" style="margin-top:12px">슬라이드 개요로</button></div></div>';
+  if(!view.p) view.p = sdPosAll()[it.id] || 1;
+  return '<div id="sdTop">'+sdTop(it)+'</div>'+sdViewer(it)+'<div id="sdBot">'+sdBot(it)+'</div>';
+}
+/* 지금 화면에 같은 PDF 의 뷰어가 있으면 위·아래만 바꾸고 true */
+function sdPatch(m){
+  if(view.name !== "sdq" || !SD) return false;
+  var it = sdFind(view.id), p = m.querySelector(".sd-viewer"), top = m.querySelector("#sdTop"), bot = m.querySelector("#sdBot");
+  if(!it || !p || !top || !bot || p.getAttribute("data-drive") !== it.drive ||
+     p.getAttribute("data-mode") !== (sdLocal(it) ? "local" : "drive")) return false;
+  top.innerHTML = sdTop(it);
+  bot.innerHTML = sdBot(it);
+  return true;
+}
+
+/* ---- 한 장씩 넘기는 뷰어 (로컬) ----
+   pdf.js(jsdelivr 의 pdfjs-dist 3.11)로 PDF 를 읽어 지금 쪽 하나만 무대 크기에 맞춰 canvas 에 그린다(가로·세로 중 먼저 닿는 쪽에 맞춤).
+   라이브러리는 이 화면을 처음 열 때만 읽는다. 못 읽으면(오프라인 등) 드라이브 미리보기로 돌아간다(SD_LIBFAIL).
+   다른 쪽을 그리는 동안 깜빡이지 않도록 보이지 않는 canvas 에 그린 뒤 옮긴다. 쪽은 view.p, 자료별 마지막 쪽은 이 기기 localStorage(SD_POS) */
+var PDFJS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/";
+var SD_POS = "dap750:sdpos", SD_LIBFAIL = false;
+var sdLibP = null, sdDoc = null, sdLoading = "", sdSeq = 0, sdDrawing = null, sdWheelAt = 0, sdTouchX = null, sdResizeT = 0;
+function sdPosAll(){ try{ return JSON.parse(localStorage.getItem(SD_POS)) || {}; }catch(e){ return {}; } }
+function sdPosSet(id, p){
+  var o = sdPosAll();
+  o[id] = p;
+  try{ localStorage.setItem(SD_POS, JSON.stringify(o)); }catch(e){}
+}
+function sdLib(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if(sdLibP) return sdLibP;
+  sdLibP = new Promise(function(ok, no){
+    var el = document.createElement("script");
+    el.src = PDFJS + "build/pdf.min.js";
+    el.onload = function(){
+      if(!window.pdfjsLib) return no(new Error("pdfjs"));
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + "build/pdf.worker.min.js";
+      ok(window.pdfjsLib);
+    };
+    el.onerror = function(){ sdLibP = null; no(new Error("pdfjs")); };
+    document.head.appendChild(el);
+  });
+  return sdLibP;
+}
+function sdBox(){ return $('.sd-viewer[data-mode="local"]'); }
+/* 그린 뒤 로컬 뷰어에 PDF 를 물린다. 같은 자료를 이미 읽어 두었으면 그대로 쓴다. 파일이 없으면 그 자료만 드라이브 미리보기로 */
+function sdAttach(){
+  var it = sdFind(view.id), box = sdBox();
+  if(!it || !box) return;
+  sdWire(box);
+  if(sdDoc && sdDoc.id === it.id){ sdShow(); return; }
+  if(sdLoading === it.id) return;
+  if(sdDoc){ sdDoc.pdf.destroy(); sdDoc = null; }
+  sdLoading = it.id;
+  var want = it.id;
+  vdFileOf(it).then(function(f){ return f.arrayBuffer(); }).then(function(buf){
+    return sdLib().then(function(lib){
+      return lib.getDocument({ data:new Uint8Array(buf), cMapUrl:PDFJS + "cmaps/", cMapPacked:true,
+                               standardFontDataUrl:PDFJS + "standard_fonts/" }).promise;
+    }, function(){
+      SD_LIBFAIL = true;
+      toast("슬라이드 뷰어를 불러오지 못했습니다 · 드라이브 미리보기로 엽니다");
+      throw null;
+    });
+  }, function(){
+    SD_MISS[want] = true;
+    toast("로컬 폴더에서 PDF 를 찾지 못했습니다 · 드라이브 미리보기로 엽니다");
+    throw null;
+  }).then(function(pdf){
+    sdLoading = "";
+    if(view.name !== "sdq" || view.id !== want){ pdf.destroy(); return; }
+    sdDoc = { id:want, pdf:pdf };
+    sdShow();
+  }, function(){
+    sdLoading = "";
+    if(view.name === "sdq" && view.id === want) render();
+  });
+}
+/* 지금 쪽(view.p)을 그린다. 쪽 표시·넘김 단추·레일 목차 표시도 맞춘다 */
+function sdShow(){
+  var box = sdBox();
+  if(!box || !sdDoc || sdDoc.id !== view.id) return;
+  var n = sdDoc.pdf.numPages, p = Math.min(Math.max(1, view.p || 1), n);
+  view.p = p;
+  sdPosSet(view.id, p);
+  var pin = box.querySelector(".sd-pin");
+  if(pin){ pin.value = p; pin.max = n; }
+  box.querySelector(".sd-of").textContent = "/ " + n;
+  [].forEach.call(box.querySelectorAll('[data-act="sdprev"]'), function(b){ b.disabled = p <= 1; });
+  [].forEach.call(box.querySelectorAll('[data-act="sdnext"]'), function(b){ b.disabled = p >= n; });
+  var stage = box.querySelector(".sd-stage"), cv = box.querySelector("canvas"), msg = box.querySelector(".sd-msg"), seq = ++sdSeq;
+  sdDoc.pdf.getPage(p).then(function(pg){
+    if(seq !== sdSeq) return;
+    var v1 = pg.getViewport({ scale:1 }), pad = 12,
+        s = Math.max(0.05, Math.min((stage.clientWidth - pad*2) / v1.width, (stage.clientHeight - pad*2) / v1.height)),
+        dpr = window.devicePixelRatio || 1, vp = pg.getViewport({ scale:s * dpr });
+    if(sdDrawing) sdDrawing.cancel();
+    var off = document.createElement("canvas");
+    off.width = Math.floor(vp.width); off.height = Math.floor(vp.height);
+    var task = sdDrawing = pg.render({ canvasContext:off.getContext("2d"), viewport:vp });
+    task.promise.then(function(){
+      if(sdDrawing === task) sdDrawing = null;
+      if(seq !== sdSeq || !cv.isConnected) return;
+      cv.width = off.width; cv.height = off.height;
+      cv.style.width = Math.floor(vp.width / dpr) + "px"; cv.style.height = Math.floor(vp.height / dpr) + "px";
+      cv.getContext("2d").drawImage(off, 0, 0);
+      if(msg) msg.hidden = true;
+    }, function(){});
+  });
+  renderRail();
+}
+/* 쪽 이동. 드라이브 미리보기는 쪽을 고를 수 없어 안내만 한다 */
+function sdGo(p){
+  if(window.innerWidth <= 900) $("#rail").classList.remove("open");
+  if(!sdBox()){ toast(p + "쪽 · 드라이브 미리보기에서는 쪽으로 바로 갈 수 없습니다. 강의 폴더를 연결하면 바로 이동합니다"); return; }
+  view.p = p;
+  if(sdDoc && sdDoc.id === view.id) sdShow();   /* 아직 읽는 중이면 다 읽은 뒤 view.p 쪽을 그린다 */
+}
+function sdStep(d){
+  if(!sdDoc || sdDoc.id !== view.id) return;
+  var p = (view.p || 1) + d;
+  if(p >= 1 && p <= sdDoc.pdf.numPages) sdGo(p);
+}
+/* 무대의 휠·밀기. 휠은 한 번 돌릴 때 한 쪽만 넘기도록 잠깐 쉰다 */
+function sdWire(box){
+  if(box.getAttribute("data-wired")) return;
+  box.setAttribute("data-wired", "1");
+  var st = box.querySelector(".sd-stage");
+  st.addEventListener("wheel", function(e){
+    if(e.ctrlKey || Math.abs(e.deltaY) < 4) return;
+    e.preventDefault();
+    var now = Date.now();
+    if(now - sdWheelAt < 350) return;
+    sdWheelAt = now;
+    sdStep(e.deltaY > 0 ? 1 : -1);
+  }, { passive:false });
+  st.addEventListener("touchstart", function(e){ sdTouchX = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive:true });
+  st.addEventListener("touchend", function(e){
+    if(sdTouchX === null) return;
+    var dx = e.changedTouches[0].clientX - sdTouchX;
+    sdTouchX = null;
+    if(Math.abs(dx) > 50) sdStep(dx < 0 ? 1 : -1);
+  }, { passive:true });
+}
+function sdFull(){
+  var el = $(".sd-viewer");
+  if(!el) return;
+  if(document.fullscreenElement) document.exitFullscreen();
+  else if(el.requestFullscreen) el.requestFullscreen().catch(function(){ toast("전체 화면으로 바꾸지 못했습니다"); });
+  else toast("이 브라우저는 전체 화면을 지원하지 않습니다");
+}
+/* 창 크기·전체 화면이 바뀌면 지금 쪽을 새 크기로 다시 그린다 */
+function sdRefit(){
+  clearTimeout(sdResizeT);
+  sdResizeT = setTimeout(function(){ if(view.name === "sdq") sdShow(); }, 120);
+}
+window.addEventListener("resize", sdRefit);
+document.addEventListener("fullscreenchange", sdRefit);
+document.addEventListener("change", function(e){
+  if(e.target.classList && e.target.classList.contains("sd-pin")) sdGo(Math.round(+e.target.value) || 1);
+});
 
 /* ─────────── 렌더 ─────────── */
 function render(){
@@ -4202,7 +4538,8 @@ function render(){
     case "dmq": h = viewDmQ(); break;
     case "video": h = viewVdHome(); break;
     case "vdq": if(vdPatch(m)){ hlAfterRender(); return; } h = viewVdQ(); break;
-    case "slides": h = viewSoon(view.name); break;
+    case "slides": h = viewSdHome(); break;
+    case "sdq": if(sdPatch(m)){ hlAfterRender(); return; } h = viewSdQ(); break;
     case "quiz": h = session ? viewQuiz() : viewDash(); break;
     case "result": h = viewResult(); break;
     default: h = viewDash();
@@ -4210,6 +4547,7 @@ function render(){
   m.innerHTML = h;
   hlAfterRender();
   if(view.name === "vdq") vdAttach();
+  if(view.name === "sdq") sdAttach();
   if(view.name==="quiz" && session && session.limitSec) startTimer();
   if(view.name==="search"){ var i=$("#q"); if(i){ i.focus(); i.setSelectionRange(i.value.length,i.value.length); } }
   if(view.name==="nsearch"){ var ni=$("#nq"); if(ni){ ni.focus(); ni.setSelectionRange(ni.value.length,ni.value.length); } }
@@ -4241,6 +4579,7 @@ document.addEventListener("click", function(ev){
                                           h:t.getAttribute("data-h") || "", topic:t.getAttribute("data-topic") || "" });
     if(dest==="dmq") return go("dmq", { id:t.getAttribute("data-id") });
     if(dest==="vdq") return go("vdq", { id:t.getAttribute("data-id") });
+    if(dest==="sdq") return go("sdq", { id:t.getAttribute("data-id") });
     if(dest==="randomexam"){
       return startSession({ key:"rand", mode:"exam", title:"랜덤 모의고사", ids:randomExamIds(),
                             limitSec:S.settings.timerMin*60, setNo:0 });
@@ -4299,6 +4638,28 @@ document.addEventListener("click", function(ev){
     case "vdpick": vdPick(); break;
     case "vdperm": vdPerm(true, render); break;
     case "vdunlink": vdUnlink(); break;
+    /* ── 강의 슬라이드 ── */
+    case "sddone": {
+      S.notesRead = S.notesRead || {};
+      var sk = sdKey(view.id);
+      if(S.notesRead[sk]) delete S.notesRead[sk]; else S.notesRead[sk] = Date.now();
+      save(); render();
+      break;
+    }
+    case "sdfull": sdFull(); break;
+    case "sdpage": {
+      var sp = +t.getAttribute("data-p"), sid = t.getAttribute("data-id");
+      if(view.name === "sdq" && view.id === sid) sdGo(sp); else go("sdq", { id:sid, p:sp });
+      break;
+    }
+    case "sdopen": {
+      var oid = t.getAttribute("data-id"), ox = sdFind(oid);
+      if(ox && ox.toc && (ev.target.closest(".nt-caret") || (view.name === "sdq" && view.id === oid))){ SD_OPEN[oid] = !SD_OPEN[oid]; renderRail(); }
+      else if(view.name !== "sdq" || view.id !== oid) go("sdq", { id:oid });
+      break;
+    }
+    case "sdprev": sdStep(-1); break;
+    case "sdnext": sdStep(1); break;
     case "vdtoggle": {
       var vc = +t.getAttribute("data-ch");
       VD_OPEN[vc] = !VD_OPEN[vc];
@@ -5197,6 +5558,14 @@ document.addEventListener("keydown", function(e){
     var dk = DM.items.indexOf(dmFind(view.id)), dt = dk >= 0 && DM.items[dk + (e.key==="ArrowRight" ? 1 : -1)];
     if(dt){ e.preventDefault(); go("dmq", { id:dt.id }); }
     return;
+  }
+  /* 강의 슬라이드(한 장씩 보기) — ← → · PageUp/Down 으로 쪽 넘김, Home/End 처음·끝 */
+  if(view.name==="sdq" && sdDoc && sdDoc.id===view.id && sdBox() && !e.altKey && !e.ctrlKey && !e.metaKey){
+    var sk = e.key, sn = sdDoc.pdf.numPages;
+    if(sk==="ArrowLeft" || sk==="PageUp"){ e.preventDefault(); sdStep(-1); return; }
+    if(sk==="ArrowRight" || sk==="PageDown"){ e.preventDefault(); sdStep(1); return; }
+    if(sk==="Home"){ e.preventDefault(); sdGo(1); return; }
+    if(sk==="End"){ e.preventDefault(); sdGo(sn); return; }
   }
   /* 내용정리 절 화면 — 좌우 화살표로 이전·다음 절 */
   if(view.name==="note" && (e.key==="ArrowLeft" || e.key==="ArrowRight") && !e.altKey && !e.ctrlKey && !e.metaKey){
