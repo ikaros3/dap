@@ -236,6 +236,7 @@ data/notes/
 data/dm/
   dm.js            DAP_DM.add({ title, levels:[기초…특급], images:{ 키:{src,w,h} },
                      items:[{ id, lv, grp, title, stars, q:[블록], a:[블록] }] })
+  dm-ex.js         DAP_DM.ex({ "4-1":[블록], … }) — 특급 4-1 ~ 4-12(4-7 제외) 작성 문제의 예시 답안. 손으로 고친다
   img/dm-01.png …  ERD. 원본 크기 그대로(확대 보기에서 키워 보므로 줄이지 않는다)
 ```
 
@@ -243,7 +244,9 @@ data/dm/
 `q` 가 지문, `a` 가 모범 답안이다. `dm.js` 는 손으로 고치지 않는다 —
 `data_source/Data Modeling(실기)/Modeling 실습문제.hwpx` → `node tools/dm-build.js --write`.
 원문 오타 수정·그림 제목 등 원본과 다르게 둔 것은 도구 머리의 `FIX`·`ANSWER_AT`·`CAPTION` 에 있다.
-`node test/dm.js` 가 파일·그림·그리기를 점검한다.
+`dm-ex.js`(manifest 의 `dmEx`)는 원문에 정의서 답안이 없는 특급 문제에 4-7 과 같은 꼴의 `[1] 엔터티 정의서`·`[2] 표준 정의서` 답안을 붙인다.
+각 문제의 ERD 와 지문을 보고 만든 **예시 답안**이며, 앱은 `dmMerge` 로 모범 답안 뒤에 붙이고 화면에 「예시 답안」이라 밝힌다.
+`node test/dm.js` 가 파일·그림·그리기와 예시 답안의 꼴(엔터티 4 · 용어 10 · 용어의 도메인이 도메인 표에 있는지)을 점검한다.
 
 ## 새 과목 추가
 

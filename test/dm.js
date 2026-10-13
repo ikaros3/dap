@@ -21,6 +21,17 @@ if (!fs.existsSync(full)) { console.log('FAIL  파일 없음: ' + full); process
 let DM = null;
 vm.runInContext(fs.readFileSync(full, 'utf8'), vm.createContext({ DAP_DM: { add: b => { DM = b; } } }));
 if (!DM || !Array.isArray(DM.items) || !DM.items.length) { console.log('FAIL  ' + full + ' 에 문제가 없다'); process.exit(1); }
+/* 예시 답안(dm-ex.js)을 앱의 dmMerge 로 붙인다 */
+let DMX = null;
+if (M.DAP_MANIFEST.dmEx) {
+  const fx = path.join('data', M.DAP_MANIFEST.dmEx);
+  if (!fs.existsSync(fx)) { console.log('FAIL  파일 없음: ' + fx); process.exit(1); }
+  vm.runInContext(fs.readFileSync(fx, 'utf8'), vm.createContext({ DAP_DM: { ex: m => { DMX = m; } } }));
+  if (!DMX) { console.log('FAIL  ' + fx + ' 에 예시 답안이 없다'); process.exit(1); }
+  const mx = vm.createContext({});
+  vm.runInContext(grab('dmMerge'), mx);
+  mx.dmMerge(DM, DMX);
+}
 
 const ctx = { console, DM };
 vm.createContext(ctx);
@@ -70,7 +81,35 @@ function tagsOk(w, html) {
   if (st.length) fail(w + '닫히지 않은 태그: ' + st.join(','));
 }
 const exIds = DM.items.filter(it => ctx.dmEx(it)).map(it => it.id);
-if (exIds.join() !== '4-7') fail('작성 문제가 있는 문제: ' + exIds.join() + ' (기대 4-7)');
+const want = DMX ? '4-1,4-2,4-3,4-4,4-5,4-6,4-7,4-8,4-9,4-10,4-11,4-12' : '4-7';
+if (exIds.join() !== want) fail('작성 문제가 있는 문제: ' + exIds.join() + ' (기대 ' + want + ')');
+if (DMX) Object.keys(DMX).forEach(id => { if (!DM.items.some(it => it.id === id)) fail('예시 답안의 문제가 없다: ' + id); });
+/* 예시 답안 — 4-7 과 같은 꼴인가, 표준 용어의 도메인이 도메인 표에 있는가, 빈 칸이 없는가 */
+DM.items.filter(it => it.made).forEach(it => {
+  const w = '[' + it.id + ' 예시 답안] ', e = ctx.dmEx(it);
+  if (!e) return fail(w + '작성 문제가 만들어지지 않음');
+  if (e.tasks.length !== 2) fail(w + '과제 수 ' + e.tasks.length);
+  const ps = [].concat(...e.tasks.map(t => t.parts));
+  const shape = ps.map(p => p.kind + ':' + (p.n || p.ents.length)).join(' ');
+  if (shape !== 'ent:4 grid:10 grid:10 grid:5') fail(w + '양식 구성 ' + shape);
+  if (!it.q.some(b => b.task && b.task.length === 2)) fail(w + '지문 끝 「함께 작성할 것」 없음');
+  if (e.pre.length !== it.a.filter(b => b.img).length) fail(w + 'A 에 ERD 외 블록이 섞임');
+  ps[0].ents.forEach(en => {
+    if (!en.name) fail(w + '엔터티 이름 없음');
+    if (en.rows.length !== 7 || en.rows.some(r => !r[1])) fail(w + en.name + ' 항목이 7개가 아니거나 비었음');
+  });
+  if (!ps[1].given || ps[1].given.length !== 10) fail(w + '표준 용어가 10개가 아님');
+  const doms = ps[3].ans.tbl.slice(1).map(r => ctx.dmCell(r[1]));
+  ps[1].ans.tbl.slice(1).forEach(r => {
+    if (!r[1]) fail(w + r[0] + ' 용어 설명 없음');
+    if (doms.indexOf(r[2]) < 0) fail(w + r[0] + ' 의 도메인 「' + r[2] + '」이 도메인 표에 없음');
+  });
+  const codeRows = ps[2].ans.tbl.length - 1;
+  if (codeRows < 10 || codeRows > 14) fail(w + '코드값 행 수 ' + codeRows);
+  if (doms.length < 4) fail(w + '도메인이 4개 미만');
+  ctx.S = { dmWork: {} };
+  ps.forEach(p => tagsOk(w, ctx.dmwPart(it, p) + ctx.dmcInner(it, p)));
+});
 const it47 = DM.items.filter(it => it.id === '4-7')[0];
 const ex = it47 && ctx.dmEx(it47);
 if (ex) {

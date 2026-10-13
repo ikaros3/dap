@@ -3305,9 +3305,22 @@ function scrollToNote(id){
    단계(기초 → 특급) → 문제. 화면 주소 #/dm · #/dm/4-7. 처음 이 화면을 열 때 데이터를 읽는다.
    「풀어 봄」 표시는 내용정리 읽음 표시와 같은 S.notesRead 에 "dm:4-7" 로 둔다 — 동기화 병합·전체 초기화가 그대로 적용된다.
    ERD 는 눌러서 확대 보기로 연다(dmz*): 휠·두 손가락으로 확대, 끌어서 이동, 두 번 눌러 맞춤 ↔ 확대. */
-var DM = null, DM_WAIT = null, DM_FAIL = false;
+var DM = null, DM_WAIT = null, DM_FAIL = false, DM_EX = null;
 var DM_FILE = (window.DAP_MANIFEST && window.DAP_MANIFEST.dm) || "";
-window.DAP_DM = { add: function(b){ if(b && b.items) DM = b; } };
+var DM_EX_FILE = (window.DAP_MANIFEST && window.DAP_MANIFEST.dmEx) || "";
+window.DAP_DM = { add: function(b){ if(b && b.items) DM = b; }, ex: function(m){ DM_EX = m; } };
+/* 예시 답안(dm-ex.js)을 문제에 붙인다 — 모범 답안 뒤에 과제 머리·정의서 표를, 지문 끝에 「함께 작성할 것」을.
+   원문에 이미 과제 머리가 있는 문제(4-7)는 건드리지 않는다. 붙인 문제는 made — 화면에 「예시 답안」이라 밝힌다 */
+function dmMerge(dm, ex){
+  Object.keys(ex || {}).forEach(function(id){
+    var it = dm.items.filter(function(x){ return x.id === id; })[0];
+    if(!it || it.a.some(function(b){ return b.h && /^\[\d+\]/.test(b.h); })) return;
+    var task = ex[id].filter(function(b){ return b.h && /^\[\d+\]/.test(b.h); }).map(function(b){ return b.h; });
+    if(!it.q.some(function(b){ return b.task; })) it.q = it.q.concat([{ task:task }]);
+    it.a = it.a.concat(ex[id]);
+    it.made = true;
+  });
+}
 function isDmView(name){ return name === "dm" || name === "dmq"; }
 function loadDm(done){
   if(DM || !DM_FILE || DM_FAIL){ if(done) done(); return; }
@@ -3316,10 +3329,20 @@ function loadDm(done){
   var el = document.createElement("script");
   el.src = "data/" + DM_FILE;
   el.charset = "UTF-8";
-  el.onload = el.onerror = function(){
+  function fin(){
     var cbs = DM_WAIT; DM_WAIT = null;
-    if(!DM){ DM_FAIL = true; toast("실기 문제 파일을 불러오지 못했습니다 · " + DM_FILE); }
+    if(DM) dmMerge(DM, DM_EX);
     cbs.forEach(function(f){ f(); });
+  }
+  el.onload = el.onerror = function(){
+    if(!DM){ DM_FAIL = true; toast("실기 문제 파일을 불러오지 못했습니다 · " + DM_FILE); fin(); return; }
+    if(!DM_EX_FILE){ fin(); return; }
+    /* 예시 답안은 없어도 문제는 보인다 — 실패해도 조용히 넘어간다 */
+    var ex = document.createElement("script");
+    ex.src = "data/" + DM_EX_FILE;
+    ex.charset = "UTF-8";
+    ex.onload = ex.onerror = fin;
+    document.head.appendChild(ex);
   };
   document.head.appendChild(el);
 }
@@ -3532,13 +3555,13 @@ function dmcInner(it, p){
     p.ents.forEach(function(m, j){
       var ek = "e"+p.i+"."+j;
       h += '<div class="dmc-ent"><h4>'+(j+1)+'. '+esc(m.name)+'</h4>'+
-        '<div class="n-tw"><table class="n-tbl dmc-cmp"><colgroup><col class="dmc-c0"><col><col></colgroup><thead><tr><th>항목</th><th>내 답안</th><th>모범 답안</th></tr></thead><tbody>'+
+        '<div class="n-tw"><table class="n-tbl dmc-cmp"><colgroup><col class="dmc-c0"><col><col></colgroup><thead><tr><th>항목</th><th>내 답안</th><th>'+(it.made ? '예시 답안' : '모범 답안')+'</th></tr></thead><tbody>'+
         m.rows.map(function(r, ri){
           var s = v[ek+"."+ri] || ""; tot++; if(s) fill++;
           return '<tr><th>'+dmText(dmCell(r[0]))+'</th><td>'+cell(s)+'</td><td>'+dmText(dmCell(r[1]))+'</td></tr>';
         }).join("")+'</tbody></table></div></div>';
     });
-    return '<div class="dmc-head"><span>모범 답안과 비교</span><span class="dmc-sum">적은 항목 '+fill+' / '+tot+'</span></div>' + h;
+    return '<div class="dmc-head"><span>'+(it.made ? '예시 답안과 비교' : '모범 답안과 비교')+'</span><span class="dmc-sum">적은 항목 '+fill+' / '+tot+'</span></div>' + h;
   }
   var g = "g"+p.i, mine = [], hit = 0, total = 0, mset = {}, uset = {}, mk = [];
   if(p.given){
@@ -3572,7 +3595,7 @@ function dmcInner(it, p){
     hit = Object.keys(mset).filter(function(k){ return uset[k]; }).length;
   }
   var lab = p.given ? p.head[p.chk] || "" : p.head[p.key];
-  var h2 = '<div class="dmc-head"><span>모범 답안과 비교</span><span class="dmc-sum">'+esc(lab)+' 일치 '+hit+' / '+total+'</span></div><div class="dmc-2"><div><p class="dmc-cap">내 답안</p>';
+  var h2 = '<div class="dmc-head"><span>'+(it.made ? '예시 답안과 비교' : '모범 답안과 비교')+'</span><span class="dmc-sum">'+esc(lab)+' 일치 '+hit+' / '+total+'</span></div><div class="dmc-2"><div><p class="dmc-cap">내 답안</p>';
   if(!mine.length) h2 += '<p class="dmc-none">아직 적은 내용이 없습니다.</p>';
   else h2 += '<div class="n-tw"><table class="n-tbl dm-tbl"><tr>'+p.cols.map(function(c){ return '<th>'+dmText(p.head[c])+'</th>'; }).join("")+'</tr>'+
     mine.map(function(m){
@@ -3581,7 +3604,7 @@ function dmcInner(it, p){
         return '<td'+(ok ? ' class="dmc-hit"' : '')+'>'+(s ? dmText(s) : '')+(ok ? '<span class="dmc-ok">✓</span>' : '')+'</td>';
       }).join("")+'</tr>';
     }).join("")+'</table></div>';
-  h2 += '</div><div><p class="dmc-cap">모범 답안</p>'+dmTable(p.ans, function(ri, ci){
+  h2 += '</div><div><p class="dmc-cap">'+(it.made ? '예시 답안' : '모범 답안')+'</p>'+dmTable(p.ans, function(ri, ci){
     return p.given ? ci === p.chk && mk[ri] : ci === p.key && mk[ri] && uset[mk[ri]];
   })+'</div></div>';
   return h2;
@@ -3593,7 +3616,9 @@ function dmWork(it, ex){
     '<div class="dmw-bar"><button class="btn btn-sm'+(on ? ' btn-primary' : '')+'" data-act="dmwcmp" aria-pressed="'+on+'">'+(on ? '비교 닫기' : '모범 답안과 비교')+'</button>'+
     ' <button class="btn btn-sm" data-act="dmwclear">지우기</button></div></div>'+
     '<p class="note">요구 사항을 읽고 아래 표를 직접 채워 보세요. 적은 내용은 저절로 저장되며, 동기화를 켜 두면 다른 기기에서 이어 씁니다. '+
-    '[모범 답안과 비교]를 누르면 표마다 모범 답안이 나란히 나옵니다 — 코드명·도메인이 같은 항목, 표준 용어는 표준 도메인이 같은 행을 초록으로 짚어 줍니다.</p>';
+    '[모범 답안과 비교]를 누르면 표마다 모범 답안이 나란히 나옵니다 — 코드명·도메인이 같은 항목, 표준 용어는 표준 도메인이 같은 행을 초록으로 짚어 줍니다.</p>'+
+    (it.made ? '<div class="n-tip"><b>예시 답안</b> 원문에는 이 문제의 정의서 답안이 없습니다. 비교에 쓰는 모범 답안은 이 문제의 ERD 와 지문을 바탕으로 '+
+      '4-7 복지 사업 관리 답안과 같은 방식으로 만든 예시이므로, 다르게 적어도 맞을 수 있습니다.</div>' : '');
   ex.tasks.forEach(function(t){
     h += '<h3 class="n-h4">'+esc(t.h)+'</h3>';
     t.parts.forEach(function(p){ h += dmwPart(it, p) + (on ? dmcPart(it, p) : ''); });

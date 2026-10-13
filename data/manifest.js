@@ -104,6 +104,8 @@ window.DAP_MANIFEST = {
   /* Data Modeling(실기) — 요구 사항 지문과 모범 답안 ERD 30문제. 「실기」 화면을 처음 열 때 불러온다.
      data_source/Data Modeling(실기)/Modeling 실습문제.hwpx → node tools/dm-build.js --write */
   dm: "dm/dm.js",
+  /* 실기 작성 문제 예시 답안 — 원문에 정의서 답안이 없는 특급 4-1 ~ 4-12 를 ERD 로 만든 것. dm.js 다음에 읽는다. 손으로 고친다 */
+  dmEx: "dm/dm-ex.js",
 
   /* 동영상 강의 — 과목별 강의 영상 목록(구글 드라이브 파일 id). 「동영상 강의」 화면을 처음 열 때 불러온다.
      영상 자체는 드라이브에 두고 미리보기 플레이어로 재생한다. 손으로 고친다 */
