@@ -434,6 +434,44 @@ label.field{display:flex;flex-direction:column;gap:5px;font-size:calc(12.5px * v
 .dm-tbl td,.dm-tbl th{white-space:normal}
 .dm-cover{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;margin:12px 0 4px;padding:28px 16px;border:1.5px dashed var(--line-strong);border-radius:var(--radius);background:var(--surface-2)}
 .dm-hint{margin-top:10px;text-align:center}
+/* 실기 작성 문제 — 빈 양식(dmw) · 모범 답안 비교(dmc) */
+.dm-work-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.dm-work-head .n-h3{margin-bottom:4px}
+.dmw-ents{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:12px;margin:8px 0 14px}
+.dmw-ent{border:1px solid var(--line);border-radius:10px;padding:10px 10px 2px;background:var(--surface-2);min-width:0}
+.dmw-ent .n-tw{margin-bottom:8px}
+.dmw-name{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.dmw-name .dm-id{flex:none}
+.dmw-name b{font-weight:650;font-size:calc(14.5px * var(--fs))}
+.dmw-tbl th.dmw-given{font-weight:600;vertical-align:middle;white-space:nowrap}
+.dmw-in{display:block;width:100%;font:inherit;font-size:calc(13.5px * var(--fs));color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:5px 8px;line-height:1.5}
+.dmw-in:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.dmw-in::placeholder{color:var(--muted);opacity:.75}
+textarea.dmw-in{resize:vertical;min-height:2.6em}
+.dmw-tbl{width:100%;min-width:0;margin:0}
+.dmw-grid{min-width:560px}
+.dmw-tbl td{padding:3px}
+.dmw-kv th{width:8.5em;font-size:calc(12.5px * var(--fs))}
+.dmw-tbl .dmw-no{width:2.4em;text-align:center;color:var(--muted);font-family:var(--font-mono);font-size:.85em;vertical-align:middle}
+.dmw-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:-6px 0 16px}
+.dmc{margin:2px 0 22px;padding:12px 14px 4px;border:1.5px dashed color-mix(in srgb,var(--c3) 55%,transparent);border-radius:var(--radius);background:color-mix(in srgb,var(--c3) 5%,transparent)}
+.dmc-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px;font-weight:650}
+.dmc-sum{font-size:calc(12.5px * var(--fs));color:var(--muted);font-weight:500}
+.dmc-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:4px 16px}
+.dmc-2 > div{min-width:0}
+.dmc-cap{font-size:calc(12.5px * var(--fs));font-weight:650;color:var(--muted);margin:0 0 4px}
+.dmc .n-tbl{width:100%;margin:0}
+.dmc-cmp{table-layout:fixed}
+.dmc-cmp .dmc-c0{width:8.5em}
+.dmc-cmp th{font-size:calc(12.5px * var(--fs))}
+.dmc-cmp thead th{text-align:center}
+@media (max-width:560px){ .dmc-cmp .dmc-c0{width:6.5em} }
+.dmc-hit{background:var(--ok-soft)}
+.dmc-ok{color:var(--ok);font-weight:700;margin-left:4px}
+.dmc-none{color:var(--muted);font-style:italic}
+.dmc-ent + .dmc-ent{margin-top:14px}
+.dmc-ent h4{font-size:calc(14px * var(--fs));font-weight:650;margin:0 0 5px}
+.dmc-ent h4 small{font-weight:500;color:var(--muted);margin-left:6px}
 .vd-player{position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--radius);overflow:hidden;background:#000;border:1px solid var(--line)}
 .vd-player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .vd-links{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
@@ -1148,6 +1186,7 @@ var S = load();
 function blank(){
   return { stats:{}, bookmarks:{}, wrong:{}, exams:[], sessions:{}, epoch:0, rev:0, by:"",
            notesRead:{},     /* 내용정리에서 읽음 표시한 절 { "3-2-2": 시각 } — 2013 판은 "13:1-2-3" */
+           dmWork:{},        /* 실기 직접 작성 { "4-7": { u:고친 시각, v:{ 칸 키: 글 } } } — 「실기 작성 문제」 */
            hl:{},            /* 내용정리 형광펜 { id: { k:절 키, c, q, pre, suf, o, m, t, u, del } } — 자세한 것은 「형광펜」 */
            /* target = 필기 60점 만점 중 목표 점수. 합격은 필기+실기(40점) 합산 75점이므로
               실기에서 23점을 얻는다고 보면 필기 52점이 목표가 된다. */
@@ -3378,13 +3417,14 @@ function dmFig(b){
     '<img src="data/dm/'+esc(im.src || "")+'" alt="'+esc(b.cap || "ERD")+'"'+(im.w ? ' width="'+im.w+'" height="'+im.h+'"' : '')+' loading="lazy" draggable="false">'+
     '<span class="dm-zoomhint">⤢ 확대</span></button>'+(b.cap ? '<figcaption>'+esc(b.cap)+'</figcaption>' : '')+'</figure>';
 }
-function dmTable(b){
+function dmTable(b, hit){
   return '<div class="n-tw"><table class="n-tbl dm-tbl">' + b.tbl.map(function(row, ri){
     return '<tr>' + row.map(function(c, ci){
       if(c === null) return "";
       var o = typeof c === "string" ? { t:c } : c;
       var tag = (b.kv ? ci === 0 : ri === 0) ? "th" : "td";
-      return '<'+tag+(o.cs > 1 ? ' colspan="'+o.cs+'"' : '')+(o.rs > 1 ? ' rowspan="'+o.rs+'"' : '')+'>'+dmText(o.t)+'</'+tag+'>';
+      return '<'+tag+(o.cs > 1 ? ' colspan="'+o.cs+'"' : '')+(o.rs > 1 ? ' rowspan="'+o.rs+'"' : '')+
+        (hit && ri && hit(ri, ci) ? ' class="dmc-hit"' : '')+'>'+dmText(o.t)+'</'+tag+'>';
     }).join("") + '</tr>';
   }).join("") + '</table></div>';
 }
@@ -3397,6 +3437,176 @@ function dmBlocks(list){
     if(b.task) return '<div class="n-tip"><b>함께 작성할 것</b><ul class="n-ul">'+b.task.map(function(t){ return '<li>'+esc(t)+'</li>'; }).join("")+'</ul></div>';
     return "";
   }).join("");
+}
+
+/* ---- 작성 문제 ----
+   모범 답안에 「[1] 엔터티 정의서 작성(…)」 같은 과제 머리가 있으면(지금은 4-7) 그 아래 표들로 빈 양식을 만든다.
+   - 항목|내용 표(kv)가 이어지면 엔터티 정의서 — 엔터티명은 모범 답안의 것으로 정해 두고 항목 내용만 쓴다
+   - 그 밖의 표는 머리 줄을 그대로 쓴 빈 행 — 작은 머리의 「(10개)」가 행 수. 「비고」 열은 양식에서 뺀다(모범 답안에는 둔다)
+     · 모범 답안의 행 수가 정확히 그만큼이고 병합 칸이 없으면(표준 용어) 이름 열을 모범 답안 그대로 채워 둔다
+     · 행 수는 정해져 있다. 코드 표만 코드 하나에 값이 여럿이라 [+ 행 추가]로 늘린다
+   과제 머리 앞의 답안(ERD · 데이터 예)은 [A 모범 답안]에 그대로 두고, 정의서 표는 [모범 답안과 비교]에서 내 답안 옆에 보인다.
+   적은 글은 S.dmWork[문제 id] = { u:고친 시각, v:{ 칸 키: 글 } } — 동기화는 문제마다 늦게 고친 쪽, 초기화(epoch)도 적용된다.
+   칸 키 : e0.3.2(엔터티 정의서 0 의 4번째 엔터티 3번째 항목) · g2.4.1(표 2의 5행 2열 — 열 번호는 모범 답안 표 기준) · g2.rows(늘린 행 수) */
+function dmCell(c){ return c && typeof c === "object" ? (c.t || "") : (c || ""); }
+function dmNorm(s){ return String(s || "").replace(/\s+/g, "").toLowerCase(); }
+function dmEx(it){
+  if(it._ex !== undefined) return it._ex;
+  var pre = [], tasks = [], t = null, h = "", np = 0;
+  it.a.forEach(function(b){
+    if(b.h && /^\[\d+\]/.test(b.h)){ t = { h:b.h, parts:[] }; tasks.push(t); h = ""; return; }
+    if(!t){ pre.push(b); return; }
+    if(b.h){ h = b.h; return; }
+    if(!b.tbl) return;
+    var last = t.parts[t.parts.length - 1];
+    if(b.kv){
+      if(!last || last.kind !== "ent"){ last = { kind:"ent", i:np++, ents:[] }; t.parts.push(last); }
+      last.ents.push({ name:h.replace(/^\d+\.\s*/, ""), rows:b.tbl });
+    } else {
+      var head = b.tbl[0].map(dmCell), kc = 0, nm = /(\d+)\s*개/.exec(h), body = b.tbl.slice(1);
+      /* 이름을 견줄 열 — 표준용어 · 코드명 · 도메인. 없으면 첫 열 */
+      head.some(function(x, i){ if(/^(표준용어|용어|코드명|도메인)$/.test(dmNorm(x))){ kc = i; return true; } });
+      var n = nm ? +nm[1] : body.length, merged = body.some(function(r){ return r.indexOf(null) >= 0; });
+      var given = body.length === n && !merged ? body.map(function(r){ return dmCell(r[kc]); }) : null;
+      /* 이름이 정해진 표는 다른 열로 견준다 — 표준 용어의 「표준 도메인」 */
+      var chk = -1;
+      if(given) head.some(function(x, i){ if(i !== kc && /도메인/.test(x)){ chk = i; return true; } });
+      t.parts.push({ kind:"grid", i:np++, title:h, head:head, key:kc, n:n, ans:b, merged:merged, given:given, chk:chk,
+                     cols:head.map(function(_, i){ return i; }).filter(function(i){ return dmNorm(head[i]) !== "비고"; }),
+                     grow:dmNorm(head[kc]) === "코드명" });
+    }
+    h = "";
+  });
+  tasks.forEach(function(t){ t.parts.forEach(function(p){
+    if(p.kind === "ent") p.labels = p.ents[0].rows.map(function(r){ return dmCell(r[0]); });
+  }); });
+  return (it._ex = tasks.length ? { pre:pre, tasks:tasks } : null);
+}
+function dmwAll(id){ return (S.dmWork && S.dmWork[id] && S.dmWork[id].v) || {}; }
+function dmwSet(id, k, val){
+  S.dmWork = S.dmWork || {};
+  var w = S.dmWork[id] || (S.dmWork[id] = { u:0, v:{} });
+  if(val) w.v[k] = val; else delete w.v[k];
+  w.u = Date.now();
+  save();
+}
+function dmwRows(p, v){ return p.grow ? Math.max(p.n, +(v["g"+p.i+".rows"]) || 0) : p.n; }
+function dmwPart(it, p){
+  var v = dmwAll(it.id), h = "";
+  if(p.kind === "ent"){
+    h += '<div class="dmw-ents">';
+    p.ents.forEach(function(m, e){
+      var ek = "e"+p.i+"."+e;
+      h += '<div class="dmw-ent"><div class="dmw-name"><span class="dm-id">'+(e+1)+'.</span><b>'+esc(m.name)+'</b></div>'+
+        '<div class="n-tw"><table class="n-tbl dmw-tbl dmw-kv">' + p.labels.map(function(lb, r){
+          return '<tr><th>'+dmText(lb)+'</th><td><textarea class="dmw-in" rows="2" data-dmw="'+ek+'.'+r+'" aria-label="'+esc(m.name)+' '+esc(lb.replace(/\n/g, " "))+'">'+
+            esc(v[ek+"."+r] || "")+'</textarea></td></tr>';
+        }).join("") + '</table></div></div>';
+    });
+    return h + '</div>';
+  }
+  var rows = dmwRows(p, v), g = "g"+p.i;
+  h += '<h4 class="n-h4">'+esc(p.title)+'</h4><div class="n-tw"><table class="n-tbl dmw-tbl dmw-grid"><thead><tr><th class="dmw-no">#</th>'+
+    p.cols.map(function(c){ return '<th>'+dmText(p.head[c])+'</th>'; }).join("")+'</tr></thead><tbody>';
+  for(var r = 0; r < rows; r++){
+    h += '<tr><td class="dmw-no">'+(r+1)+'</td>' + p.cols.map(function(c){
+      if(p.given && c === p.key) return '<th class="dmw-given">'+dmText(p.given[r])+'</th>';
+      var k = g+"."+r+"."+c;
+      return '<td><input class="dmw-in" type="text" data-dmw="'+k+'" value="'+esc(v[k] || "")+'" aria-label="'+
+        esc(p.given ? p.given[r] : (r+1)+'행')+' '+esc(p.head[c])+'" autocomplete="off"></td>';
+    }).join("") + '</tr>';
+  }
+  h += '</tbody></table></div>';
+  var hint = p.merged ? '첫 칸('+esc(p.head[0])+')이 위 행과 같으면 비워 두어도 됩니다.' : '';
+  if(hint || p.grow) h += '<div class="dmw-foot"><span class="note">'+hint+'</span>'+
+    (p.grow ? '<button class="btn btn-sm" data-act="dmwrow" data-p="'+p.i+'">+ 행 추가</button>' : '')+'</div>';
+  return h;
+}
+/* 비교 — 이름(표준용어 · 코드명 · 도메인)이 같은지, 이름이 정해진 표는 「표준 도메인」이 같은지만 짚는다.
+   설명·값은 맞는 답이 여럿일 수 있어 나란히 놓고 눈으로 견준다 */
+function dmcInner(it, p){
+  var v = dmwAll(it.id), none = '<span class="dmc-none">—</span>';
+  function cell(s){ return s ? dmText(s) : none; }
+  if(p.kind === "ent"){
+    var tot = 0, fill = 0, h = '';
+    p.ents.forEach(function(m, j){
+      var ek = "e"+p.i+"."+j;
+      h += '<div class="dmc-ent"><h4>'+(j+1)+'. '+esc(m.name)+'</h4>'+
+        '<div class="n-tw"><table class="n-tbl dmc-cmp"><colgroup><col class="dmc-c0"><col><col></colgroup><thead><tr><th>항목</th><th>내 답안</th><th>모범 답안</th></tr></thead><tbody>'+
+        m.rows.map(function(r, ri){
+          var s = v[ek+"."+ri] || ""; tot++; if(s) fill++;
+          return '<tr><th>'+dmText(dmCell(r[0]))+'</th><td>'+cell(s)+'</td><td>'+dmText(dmCell(r[1]))+'</td></tr>';
+        }).join("")+'</tbody></table></div></div>';
+    });
+    return '<div class="dmc-head"><span>모범 답안과 비교</span><span class="dmc-sum">적은 항목 '+fill+' / '+tot+'</span></div>' + h;
+  }
+  var g = "g"+p.i, mine = [], hit = 0, total = 0, mset = {}, uset = {}, mk = [];
+  if(p.given){
+    /* 이름이 정해진 표 — 행끼리 견준다 */
+    for(var r = 0; r < p.n; r++){
+      var cs = p.head.map(function(_, c){ return c === p.key ? p.given[r] : (v[g+"."+r+"."+c] || ""); });
+      var ok = p.chk >= 0 && cs[p.chk] && dmNorm(cs[p.chk]) === dmNorm(dmCell(p.ans.tbl[r+1][p.chk]));
+      if(ok){ hit++; mk[r+1] = 1; }
+      mine.push({ cs:cs, ok:ok ? p.chk : -1 });
+    }
+    total = p.n;
+  } else {
+    /* 이름 열은 병합 칸(null)·빈 칸이면 위 행의 이름을 이어 쓴다 */
+    var prev = "";
+    p.ans.tbl.forEach(function(row, ri){
+      if(!ri) return;
+      var c = row[p.key];
+      if(c !== null && dmCell(c)) prev = dmCell(c);
+      mk[ri] = c === null ? "" : dmNorm(prev);
+      if(prev) mset[dmNorm(prev)] = 1;
+    });
+    var up = "";
+    for(var r2 = 0; r2 < dmwRows(p, v); r2++){
+      var cs2 = p.head.map(function(_, c){ return v[g+"."+r2+"."+c] || ""; });
+      if(!cs2.some(Boolean)) continue;
+      if(cs2[p.key]) up = cs2[p.key];
+      if(up) uset[dmNorm(up)] = 1;
+      mine.push({ cs:cs2, ok:cs2[p.key] && mset[dmNorm(cs2[p.key])] ? p.key : -1 });
+    }
+    total = Object.keys(mset).length;
+    hit = Object.keys(mset).filter(function(k){ return uset[k]; }).length;
+  }
+  var lab = p.given ? p.head[p.chk] || "" : p.head[p.key];
+  var h2 = '<div class="dmc-head"><span>모범 답안과 비교</span><span class="dmc-sum">'+esc(lab)+' 일치 '+hit+' / '+total+'</span></div><div class="dmc-2"><div><p class="dmc-cap">내 답안</p>';
+  if(!mine.length) h2 += '<p class="dmc-none">아직 적은 내용이 없습니다.</p>';
+  else h2 += '<div class="n-tw"><table class="n-tbl dm-tbl"><tr>'+p.cols.map(function(c){ return '<th>'+dmText(p.head[c])+'</th>'; }).join("")+'</tr>'+
+    mine.map(function(m){
+      return '<tr>'+p.cols.map(function(c){
+        var s = m.cs[c], ok = c === m.ok;
+        return '<td'+(ok ? ' class="dmc-hit"' : '')+'>'+(s ? dmText(s) : '')+(ok ? '<span class="dmc-ok">✓</span>' : '')+'</td>';
+      }).join("")+'</tr>';
+    }).join("")+'</table></div>';
+  h2 += '</div><div><p class="dmc-cap">모범 답안</p>'+dmTable(p.ans, function(ri, ci){
+    return p.given ? ci === p.chk && mk[ri] : ci === p.key && mk[ri] && uset[mk[ri]];
+  })+'</div></div>';
+  return h2;
+}
+function dmcPart(it, p){ return '<div class="dmc" data-dmc="'+p.i+'">'+dmcInner(it, p)+'</div>'; }
+function dmWork(it, ex){
+  var on = !!view.cmp;
+  var h = '<article class="note-doc dm-doc dm-work"><div class="dm-work-head"><h2 class="n-h3"><span class="n-no">✎</span><span>작성 문제</span></h2>'+
+    '<div class="dmw-bar"><button class="btn btn-sm'+(on ? ' btn-primary' : '')+'" data-act="dmwcmp" aria-pressed="'+on+'">'+(on ? '비교 닫기' : '모범 답안과 비교')+'</button>'+
+    ' <button class="btn btn-sm" data-act="dmwclear">지우기</button></div></div>'+
+    '<p class="note">요구 사항을 읽고 아래 표를 직접 채워 보세요. 적은 내용은 저절로 저장되며, 동기화를 켜 두면 다른 기기에서 이어 씁니다. '+
+    '[모범 답안과 비교]를 누르면 표마다 모범 답안이 나란히 나옵니다 — 코드명·도메인이 같은 항목, 표준 용어는 표준 도메인이 같은 행을 초록으로 짚어 줍니다.</p>';
+  ex.tasks.forEach(function(t){
+    h += '<h3 class="n-h4">'+esc(t.h)+'</h3>';
+    t.parts.forEach(function(p){ h += dmwPart(it, p) + (on ? dmcPart(it, p) : ''); });
+  });
+  return h + '</article>';
+}
+var dmcT = null;
+function dmcRefresh(){
+  var it = view.name === "dmq" && view.cmp && DM && dmFind(view.id), ex = it && dmEx(it);
+  if(!ex) return;
+  var ps = {};
+  ex.tasks.forEach(function(t){ t.parts.forEach(function(p){ ps[p.i] = p; }); });
+  $$("[data-dmc]").forEach(function(el){ var p = ps[el.getAttribute("data-dmc")]; if(p) el.innerHTML = dmcInner(it, p); });
 }
 function viewDmQ(){
   if(!needDm()) return '<div class="card"><div class="empty"><b>실기 문제를 불러오는 중…</b></div></div>';
@@ -3411,15 +3621,18 @@ function viewDmQ(){
 
   h += '<article class="note-doc dm-doc"><h2 class="n-h3"><span class="n-no">Q</span><span>요구 사항</span></h2>' + dmBlocks(it.q) + '</article>';
 
-  var nImg = it.a.filter(function(b){ return b.img; }).length;
+  /* 작성 문제가 있으면 정의서 표는 [✎ 작성 문제]의 비교로 옮기고, 여기에는 ERD 와 데이터 예만 둔다 */
+  var ex = dmEx(it), aList = ex ? ex.pre : it.a;
+  var nImg = aList.filter(function(b){ return b.img; }).length;
   h += '<article class="note-doc dm-doc dm-ans"><div class="dm-ans-head"><h2 class="n-h3"><span class="n-no">A</span><span>모범 답안 ERD</span></h2>'+
     '<button class="btn btn-sm'+(S.settings.dmHide ? ' btn-primary' : '')+'" data-act="dmhide" aria-pressed="'+!!S.settings.dmHide+'" '+
     'title="켜 두면 문제를 열 때마다 답안을 가려 두고, 직접 그려 본 뒤 펼칩니다">답안 먼저 가리기</button></div>';
   if(hide) h += '<div class="dm-cover"><b>답안이 가려져 있습니다</b><span class="note">지문을 보고 먼저 모델을 그려 본 뒤 펼쳐 보세요. '+
-    (nImg > 1 ? 'ERD '+nImg+'장' : 'ERD')+(it.a.some(function(b){ return b.tbl; }) ? '과 정의서 표' : '')+'가 있습니다.</span>'+
+    (nImg > 1 ? 'ERD '+nImg+'장' : 'ERD')+(aList.some(function(b){ return b.tbl; }) ? (ex ? '과 표' : '과 정의서 표') : '')+'가 있습니다.</span>'+
     '<button class="btn btn-primary" data-act="dmshow">답안 보기</button></div>';
-  else h += dmBlocks(it.a) + '<p class="note dm-hint">ERD 를 누르면 크게 봅니다 — 휠·두 손가락으로 확대, 끌어서 이동, 두 번 눌러 맞춤.</p>';
+  else h += dmBlocks(aList) + '<p class="note dm-hint">ERD 를 누르면 크게 봅니다 — 휠·두 손가락으로 확대, 끌어서 이동, 두 번 눌러 맞춤.</p>';
   h += '</article>';
+  if(ex) h += dmWork(it, ex);
 
   var all = DM.items, k = all.indexOf(it), pv = all[k-1], nx = all[k+1];
   h += '<div class="note-pager">'+
@@ -4613,6 +4826,27 @@ document.addEventListener("click", function(ev){
     }
     case "dmhide": S.settings.dmHide = !S.settings.dmHide; view.show = false; save(); render(); break;
     case "dmshow": view.show = true; render(); break;
+    case "dmwcmp": {
+      view.cmp = !view.cmp; render();
+      var fc = view.cmp && $(".dmc"); if(fc) fc.scrollIntoView({ block:"nearest" });
+      break;
+    }
+    case "dmwrow": {
+      var wp = t.getAttribute("data-p"), wpart = null;
+      dmEx(dmFind(view.id)).tasks.forEach(function(x){ x.parts.forEach(function(q){ if(String(q.i) === wp) wpart = q; }); });
+      var wr = dmwRows(wpart, dmwAll(view.id));
+      dmwSet(view.id, "g"+wp+".rows", String(wr + 1));
+      render();
+      var wn = $('[data-dmw="g'+wp+'.'+wr+'.0"]'); if(wn) wn.focus();
+      break;
+    }
+    case "dmwclear": {
+      if(!confirm("이 문제에 직접 작성한 내용을 모두 지울까요?")) break;
+      S.dmWork = S.dmWork || {};
+      S.dmWork[view.id] = { u:Date.now(), v:{} };
+      save(); render(); toast("작성한 내용을 지웠습니다");
+      break;
+    }
     case "dmzoom": dmzOpen(t.getAttribute("data-img")); break;
     case "dmtoggle": {
       var dl = +t.getAttribute("data-lv");
@@ -5043,6 +5277,13 @@ function downloadFallback(text){
 }
 /* 파일 선택 → 읽기 → 교체 또는 병합 */
 document.addEventListener("input", function(ev){
+  /* 실기 작성 문제 — 칸마다 바로 저장(다시 그리지 않아 커서가 그대로). 비교가 열려 있으면 비교만 고쳐 그린다 */
+  var dw = ev.target && ev.target.getAttribute && ev.target.getAttribute("data-dmw");
+  if(dw && view.name === "dmq"){
+    dmwSet(view.id, dw, ev.target.value.trim() ? ev.target.value : "");
+    if(view.cmp){ clearTimeout(dmcT); dmcT = setTimeout(dmcRefresh, 250); }
+    return;
+  }
   if(!ev.target || ev.target.id!=="fsBar") return;
   render_fs(setFontScale(parseFloat(ev.target.value)));
 });
@@ -5099,6 +5340,7 @@ function applyEpoch(o, epoch){
   });
   Object.keys(o.notesRead||{}).forEach(function(k){ if((o.notesRead[k]||0) < epoch) delete o.notesRead[k]; });
   Object.keys(o.hl||{}).forEach(function(id){ if(((o.hl[id]||{}).u||0) < epoch) delete o.hl[id]; });
+  Object.keys(o.dmWork||{}).forEach(function(k){ if(((o.dmWork[k]||{}).u||0) < epoch) delete o.dmWork[k]; });
   /* 북마크에는 시각이 없어 초기화 이전 것을 가려낼 수 없다. 통째로 지운다. */
   o.bookmarks = {};
   o.epoch = epoch;
@@ -5153,6 +5395,11 @@ function mergeState(cur, inc){
   Object.keys(inc.hl||{}).forEach(function(id){
     var a = out.hl[id], b = inc.hl[id];
     if(b && (!a || (b.u||0) > (a.u||0))) out.hl[id] = b;
+  });
+  /* 실기 직접 작성: 문제마다 늦게 고친 쪽. 지운 것도 빈 v 와 시각으로 남아 되살아나지 않는다 */
+  Object.keys(inc.dmWork||{}).forEach(function(k){
+    var a = out.dmWork[k], b = inc.dmWork[k];
+    if(b && (!a || (b.u||0) > (a.u||0))) out.dmWork[k] = b;
   });
   /* 진행 중 세션: 같은 키면 더 최근에 손댄 쪽 */
   Object.keys(inc.sessions).forEach(function(k){
