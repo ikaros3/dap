@@ -2,7 +2,8 @@
    index.html 의 hlFind / blank / normalize / applyEpoch / clone / mergeState 원문을 꺼내 돌린다.
    - 칠한 글자를 앞뒤 글자로 다시 찾는가 (같은 글자가 여러 곳, 원고가 바뀐 경우, 사라진 경우)
    - 두 기기 병합: 늦게 고친 쪽이 이기고, 지운 것이 되살아나지 않는가
-   - 전체 초기화(epoch) 이전 형광펜이 걸러지는가, 오래된 지움 표시가 정리되는가 */
+   - 전체 초기화(epoch) 이전 형광펜이 걸러지는가, 오래된 지움 표시가 정리되는가
+   - 강의 슬라이드 형광펜: 끈 자리가 알맞은 네모가 되는가, 내용정리 판과 섞이지 않는가, 병합되는가 */
 const fs = require('fs'), vm = require('vm');
 const src = fs.readFileSync('index.html', 'utf8');
 function grab(name, re) {
@@ -10,9 +11,9 @@ function grab(name, re) {
   if (!m) { console.error('추출 실패: ' + name); process.exit(1); }
   return m[0];
 }
-const ctx = { console, Date, FONTS: [{ id: 'pretendard', stack: 'x' }], FONT_MAP: { pretendard: { id: 'pretendard', stack: 'x' } }, FS_MIN: 0.8, FS_MAX: 1.4 };
+const ctx = { console, Date, Math, SD_LINE: 0.032, FONTS: [{ id: 'pretendard', stack: 'x' }], FONT_MAP: { pretendard: { id: 'pretendard', stack: 'x' } }, FS_MIN: 0.8, FS_MAX: 1.4 };
 vm.createContext(ctx);
-['hlFind', 'blank', 'normalize', 'applyEpoch', 'mergeState'].forEach(n => vm.runInContext(grab(n), ctx));
+['hlFind', 'hlEdOf', 'sdRectOf', 'blank', 'normalize', 'applyEpoch', 'mergeState'].forEach(n => vm.runInContext(grab(n), ctx));
 vm.runInContext(grab('clone', /function clone\(o\)\{.*\n/), ctx);
 
 let bad = 0;
@@ -62,6 +63,23 @@ aged.hl.bad = { c: 'y' };
 r = ctx.normalize(aged);
 chk('반년 지난 지움 표시와 깨진 기록은 정리', Object.keys(r.hl), ['d2']);
 chk('옛 진도 파일(hl 없음)도 읽힌다', Object.keys(ctx.normalize({ stats: {}, settings: {} }).hl), []);
+
+console.log('── 4. 강의 슬라이드 ──');
+chk('판 구분 — 슬라이드', ctx.hlEdOf('sd:3:12'), 'sd');
+chk('판 구분 — 2013', ctx.hlEdOf('13:3-1-2'), '2013');
+chk('판 구분 — 2020', ctx.hlEdOf('3-1-2'), '2020');
+chk('비스듬히 끌면 끈 만큼의 네모', ctx.sdRectOf(0.6, 0.5, 0.2, 0.3, 1000, 750), [0.2, 0.3, 0.4, 0.2]);
+chk('옆으로 그으면 한 줄 굵기로', ctx.sdRectOf(0.1, 0.5, 0.5, 0.505, 1000, 750), [0.1, 0.4865, 0.4, 0.032]);
+chk('작은 화면에서는 적어도 14px', ctx.sdRectOf(0.1, 0.5, 0.5, 0.5, 400, 200), [0.1, 0.465, 0.4, 0.07]);
+chk('쪽 끝에서는 쪽 안으로', ctx.sdRectOf(0.1, 0.999, 0.5, 0.999, 1000, 750), [0.1, 0.968, 0.4, 0.032]);
+chk('너무 짧으면 칠하지 않는다', ctx.sdRectOf(0.1, 0.1, 0.105, 0.4, 1000, 750), null);
+const sa = ctx.blank(), sb = ctx.blank();
+sa.hl.s1 = { k: 'sd:1:5', c: 'y', r: [0.1, 0.1, 0.3, 0.04], u: T };
+sb.hl.s1 = { k: 'sd:1:5', c: 'y', r: [0.1, 0.1, 0.3, 0.04], m: '외울 것', u: T + 3 };
+sb.hl.s2 = { k: 'sd:2:9', del: 1, u: T + 2 };
+r = ctx.mergeState(sa, sb);
+chk('슬라이드 형광펜도 늦게 고친 쪽', r.hl.s1.m, '외울 것');
+chk('슬라이드 형광펜 지움도 전달', !!r.hl.s2.del, true);
 
 console.log(bad ? '\n실패 ' + bad + '건' : '\n전부 통과');
 process.exit(bad ? 1 : 0);

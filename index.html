@@ -522,6 +522,31 @@ textarea.dmw-in{resize:vertical;min-height:2.6em}
 .sd-pin{width:56px;height:28px;border-radius:6px;border:1px solid #4a4f54;background:#2b2f33;color:#fff;text-align:center;font:inherit;font-family:var(--font-mono)}
 .sd-of{font-family:var(--font-mono);color:#aeb3b8;white-space:nowrap}
 .sd-viewer:fullscreen{height:100vh;aspect-ratio:auto}
+/* 슬라이드 형광펜 — 쪽(sd-page) 위 층(sd-hl)에 비율(%)로 놓은 네모. 평소엔 칠한 곳만 눌리고 나머지는 아래의 넘김 단추로 지나간다.
+   슬라이드 바탕은 늘 흰색이라 테마와 상관없이 같은 색을 곱하기(multiply)로 얹는다 — 글자가 진하게 그대로 보인다 */
+.sd-page{position:relative;z-index:2;flex:none;pointer-events:none}
+.sd-hl{position:absolute;inset:0}
+.sd-pen .sd-hl{pointer-events:auto;cursor:crosshair;touch-action:none}
+.sd-pen .sd-nav{display:none}
+.sd-mk{position:absolute;pointer-events:auto;cursor:pointer;border-radius:2px;mix-blend-mode:multiply}
+.sd-mk.hl-y{background:rgba(255,212,0,.5)} .sd-mk.hl-g{background:rgba(52,199,110,.38)} .sd-mk.hl-r{background:rgba(255,92,128,.38)}
+.sd-pen .sd-mk{pointer-events:none}
+.sd-mk.sd-draft{outline:1px dashed rgba(0,0,0,.45)}
+.sd-hide .sd-mk:not(.show):not(.sd-draft){mix-blend-mode:normal}
+.sd-hide .sd-mk.hl-y:not(.show):not(.sd-draft){background:#F2C400}
+.sd-hide .sd-mk.hl-g:not(.show):not(.sd-draft){background:#3FB873}
+.sd-hide .sd-mk.hl-r:not(.show):not(.sd-draft){background:#F0668A}
+.sd-mk[data-m]::after{content:"✎";position:absolute;top:-8px;right:-7px;padding:0 3px;border-radius:99px;font-size:10px;line-height:1.5;color:#fff;background:var(--accent);mix-blend-mode:normal}
+.sd-tools{display:flex;align-items:center;gap:4px;flex:none}
+.sd-bb.sd-tx{padding:0 9px;font-size:calc(12.5px * var(--fs));white-space:nowrap}
+.sd-bb[aria-pressed="true"]{background:rgba(255,255,255,.2);color:#fff}
+.sd-pc{display:none;gap:3px}
+.sd-pen .sd-pc{display:flex}
+.sd-pc button{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center}
+.sd-pc button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #fff}
+.sd-hlp{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:12px 0 0}
+.sd-hlp .chip{cursor:pointer;font-family:var(--font-mono)}
+@media (max-width:600px){ .sd-name{display:none} .sd-tools{margin-right:auto} .sd-bar{gap:6px;padding:0 6px} }
 /* 확대 보기 — 화면 가득, 그림은 transform 으로 움직인다 */
 body.dmz-open{overflow:hidden}
 .dmz{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;background:#111418;color:#fff}
@@ -3822,7 +3847,8 @@ document.addEventListener("keydown", function(e){
    본문을 문자열 하나로 볼 때 블록(글머리·문단·셀·소제목)이 바뀌는 자리와 <br> 에는 "\n" 을 넣는다 —
    블록을 걸쳐 칠한 글자가 모아보기에서 붙어 보이지 않게. 배지(2013·워드)·메모 표시는 본문 글자로 치지 않는다.
    칠한 곳은 서로 겹치지 않게 둔다. 겹치게 칠하면 둘을 합친다.
-   지운 것은 del 로 남긴다. 병합은 합집합이라 그냥 지우면 다른 기기에 남은 것이 되살아난다. */
+   지운 것은 del 로 남긴다. 병합은 합집합이라 그냥 지우면 다른 기기에 남은 것이 되살아난다.
+   강의 슬라이드에 칠한 것도 여기에 함께 둔다 — k = "sd:자료 id:쪽", q 대신 r(쪽 위의 네모). 「슬라이드 형광펜」 */
 var HL_COLORS = [ { id:"y", name:"중요" }, { id:"g", name:"헷갈림" }, { id:"r", name:"꼭 암기" } ];
 var HL_CTX = 24;                                        /* 앞뒤로 기억하는 글자 수 */
 var HL_BLOCK = "li,p,td,th,h2,h4,h5,.n-tip,.n-cap";
@@ -3839,7 +3865,7 @@ function hlLive(){
 function hlOf(key){
   return hlLive().filter(function(h){ return h.k === key; }).sort(function(a, b){ return (a.o||0) - (b.o||0); });
 }
-function hlEdOf(k){ return String(k).indexOf("13:") === 0 ? "2013" : "2020"; }
+function hlEdOf(k){ k = String(k); return k.indexOf("sd:") === 0 ? "sd" : k.indexOf("13:") === 0 ? "2013" : "2020"; }
 function hlCounts(ed){
   var m = {};
   hlLive().forEach(function(h){ if(hlEdOf(h.k) === ed) m[h.k] = (m[h.k]||0) + 1; });
@@ -3957,6 +3983,7 @@ function hlOnly(root){
 }
 function hlAfterRender(){
   hlHideUi();
+  if(view.name === "sdq"){ sdHlAfter(); return; }
   if(view.name !== "note") return;
   var root = $(".note-doc");
   if(!root) return;
@@ -4036,12 +4063,18 @@ function hlBarEl(){
   });
   return el;
 }
+/* 전체 화면(슬라이드)일 때는 그 요소 안에 고정(fixed)으로 둔다 — 바깥에 두면 보이지 않는다. 아래가 모자라면 위로 */
 function hlPlace(el, rect){
+  var fs = document.fullscreenElement || document.body;
+  if(el.parentNode !== fs) fs.appendChild(el);
+  el.style.position = fs === document.body ? "" : "fixed";
   el.hidden = false;
-  var sx = window.scrollX, sy = window.scrollY, vw = document.documentElement.clientWidth, w = el.offsetWidth;
+  var fx = fs !== document.body, sx = fx ? 0 : window.scrollX, sy = fx ? 0 : window.scrollY,
+      vw = document.documentElement.clientWidth, vh = window.innerHeight, w = el.offsetWidth, hh = el.offsetHeight;
   var x = Math.max(sx + 8, Math.min(rect.left + rect.width / 2 - w / 2 + sx, sx + vw - w - 8));
+  var y = rect.bottom + 10 + hh > vh && rect.top - 10 - hh > 0 ? rect.top - 10 - hh : rect.bottom + 10;
   el.style.left = x + "px";
-  el.style.top = (rect.bottom + sy + 10) + "px";
+  el.style.top = (y + sy) + "px";
 }
 function hlHideUi(){
   var b = document.getElementById("hlBar"), p = document.getElementById("hlPop");
@@ -4527,7 +4560,7 @@ function viewSdHome(){
   SD.items.forEach(function(x){
     h += '<div class="card nh-card"><div class="nh-head"><span class="nh-rom">'+sdNo(x)+'</span><span class="nh-title">'+esc(x.title)+'</span>'+
       (sdDone(x.id) ? '<span class="sd-ok">✓ 읽음</span>' : '')+'</div>'+
-      '<p class="note">'+sdMeta(x)+(x.toc ? ' · 목차로 쪽 이동' : '')+(x.rel ? ' · '+x.rel.map(function(c){ return ROMAN[c]; }).join(" · ")+'과목과 함께' : '')+'</p>'+
+      '<p class="note">'+sdMeta(x)+sdHlNote(x)+(x.toc ? ' · 목차로 쪽 이동' : '')+(x.rel ? ' · '+x.rel.map(function(c){ return ROMAN[c]; }).join(" · ")+'과목과 함께' : '')+'</p>'+
       '<div class="btn-row sd-acts"><button class="btn btn-primary btn-sm" data-go="sdq" data-id="'+esc(x.id)+'">슬라이드 보기</button>'+
       (x.ch && x.ch <= 5 ? '<button class="btn btn-sm" data-go="vdq" data-id="'+x.ch+'-1">강의 영상</button>' : '')+'</div></div>';
   });
@@ -4540,16 +4573,22 @@ function sdTop(it){
   var done = sdDone(it.id);
   return '<div class="note-crumb"><button data-go="slides">강의 슬라이드</button><span>›</span><span>'+(it.ch ? ROMAN[it.ch]+'과목' : '참고 자료')+'</span></div>'+
     '<div class="page-head" style="margin-bottom:14px"><div><h1 class="page-title">'+esc(it.title)+'</h1>'+
-    '<p class="page-desc">'+sdMeta(it)+'</p></div>'+
+    '<p class="page-desc">'+sdMeta(it)+sdHlNote(it)+'</p></div>'+
     '<button class="btn'+(done ? ' btn-primary' : '')+'" data-act="sddone">'+(done ? '✓ 읽음' : '읽음 표시')+'</button></div>';
 }
 /* 로컬 — 한 쪽을 무대(sd-stage)에 꽉 차게 그리고 아래 막대에서 넘긴다. 드라이브 — 미리보기 iframe(스크롤) */
 function sdViewer(it){
-  if(sdLocal(it)) return '<div class="sd-viewer sd-pdf" data-drive="'+esc(it.drive)+'" data-mode="local">'+
-    '<div class="sd-stage"><canvas aria-label="'+esc(it.title)+' 슬라이드"></canvas><div class="sd-msg">슬라이드를 여는 중…</div>'+
+  if(sdLocal(it)) return '<div class="sd-viewer sd-pdf'+(sdPen ? ' sd-pen' : '')+(S.settings.hlHide ? ' sd-hide' : '')+'" data-drive="'+esc(it.drive)+'" data-mode="local">'+
+    '<div class="sd-stage"><div class="sd-page"><canvas aria-label="'+esc(it.title)+' 슬라이드"></canvas><div class="sd-hl"></div></div>'+
+    '<div class="sd-msg">슬라이드를 여는 중…</div>'+
     '<button class="sd-nav sd-prev" data-act="sdprev" aria-label="이전 쪽">‹</button>'+
     '<button class="sd-nav sd-next" data-act="sdnext" aria-label="다음 쪽">›</button></div>'+
     '<div class="sd-bar"><span class="sd-name" title="'+esc(it.file)+'">'+esc(it.file)+'</span>'+
+    '<span class="sd-tools"><button class="sd-bb sd-tx" data-act="sdpen" aria-pressed="'+sdPen+'" title="켜고 슬라이드 위를 끌어 칠합니다 (Esc 로 끔)">✎ 형광펜</button>'+
+    '<span class="sd-pc">'+HL_COLORS.map(function(c){
+      return '<button type="button" data-act="sdpenc" data-c="'+c.id+'" aria-pressed="'+(sdPenC === c.id)+'" title="'+esc(c.name)+'"><i class="hl-sw hl-'+c.id+'"></i></button>';
+    }).join("")+'</span>'+
+    '<button class="sd-bb sd-tx" data-act="hlhide" aria-pressed="'+!!S.settings.hlHide+'" title="칠한 곳을 덮고, 누르면 보입니다">가리기</button></span>'+
     '<span class="sd-pg"><button class="sd-bb" data-act="sdprev" aria-label="이전 쪽">‹</button>'+
     '<input class="sd-pin" type="number" min="1" max="'+it.pages+'" value="'+(view.p || 1)+'" aria-label="쪽 번호">'+
     '<span class="sd-of">/ '+it.pages+'</span><button class="sd-bb" data-act="sdnext" aria-label="다음 쪽">›</button></span>'+
@@ -4564,13 +4603,16 @@ function sdLocalNote(it){
     '<button class="btn btn-sm" data-act="vdpick">폴더 다시 고르기</button></div>';
   if(vdDir && !vdDirOk) return '<div class="vd-local">이 PC 의 강의 폴더가 연결돼 있습니다. 한 장씩 넘겨 보려면 '+
     '<button class="btn btn-sm btn-primary" data-act="vdperm">로컬 열기 켜기</button></div>';
-  if(!vdDir) return '<div class="vd-local">한 장씩 넘겨 보고 목차로 쪽을 옮기려면 이 PC 의 「2. DAP 영상 강의」 폴더를 연결하세요. '+
+  if(!vdDir) return '<div class="vd-local">한 장씩 넘겨 보고 목차로 쪽을 옮기거나 형광펜으로 칠하려면 이 PC 의 「2. DAP 영상 강의」 폴더를 연결하세요. '+
     '<button class="btn btn-sm" data-act="vdpick">강의 폴더 연결</button></div>';
   return "";
 }
 function sdBot(it){
   var loc = sdLocal(it);
-  var h = (loc ? '' : sdLocalNote(it)) + '<div class="vd-links">'+
+  var hp = sdHlPages(it.id), hps = Object.keys(hp).map(Number).sort(function(a, b){ return a - b; });
+  var h = (loc ? '' : sdLocalNote(it)) + (hps.length ? '<div class="sd-hlp"><span class="note">칠한 쪽</span>'+hps.map(function(p){
+      return '<button class="chip" data-act="sdpage" data-id="'+esc(it.id)+'" data-p="'+p+'" title="형광펜 '+hp[p]+'개">'+p+'</button>';
+    }).join("")+'</div>' : '') + '<div class="vd-links">'+
     (loc ? '' : '<button class="btn btn-sm" data-act="sdfull">⛶ 전체 화면</button>')+
     '<a class="btn btn-sm" href="'+vdUrl(it.drive)+'" target="_blank" rel="noopener">드라이브에서 열기 ↗</a>'+
     sdChs(it).map(function(c){
@@ -4578,7 +4620,8 @@ function sdBot(it){
         '<button class="btn btn-sm" data-go="note" data-ed="2020" data-ch="'+c+'" data-c="1" data-s="1">'+ROMAN[c]+'과목 이론 보기</button>'+
         '<button class="btn btn-sm" data-go="chapter" data-ch="'+c+'">'+ROMAN[c]+'과목 문제 풀기</button>';
     }).join("")+'</div>'+
-    (loc ? '<p class="note vd-hint">← → 키 · 마우스 휠 · 좌우로 밀기 · 화면 양옆을 눌러 넘깁니다. 자료마다 마지막으로 본 쪽을 이 기기에 기억합니다.</p>' :
+    (loc ? '<p class="note vd-hint">← → 키 · 마우스 휠 · 좌우로 밀기 · 화면 양옆을 눌러 넘깁니다. 자료마다 마지막으로 본 쪽을 이 기기에 기억합니다. '+
+      '[✎ 형광펜]을 켜고 슬라이드 위를 끌면 칠해집니다 — 옆으로 그으면 한 줄, 비스듬히 끌면 네모. 칠한 곳을 누르면 색·메모를 고칩니다.</p>' :
     '<p class="note vd-hint">보이지 않으면 이 브라우저에서 PDF 를 올린 구글 계정으로 로그인했는지 확인하세요. '+
     '사파리처럼 다른 사이트 쿠키를 막는 브라우저에서는 [드라이브에서 열기]로 보면 됩니다.</p>');
   var all = SD.items, k = all.indexOf(it), pv = all[k-1], nx = all[k+1];
@@ -4683,6 +4726,7 @@ function sdShow(){
   [].forEach.call(box.querySelectorAll('[data-act="sdprev"]'), function(b){ b.disabled = p <= 1; });
   [].forEach.call(box.querySelectorAll('[data-act="sdnext"]'), function(b){ b.disabled = p >= n; });
   var stage = box.querySelector(".sd-stage"), cv = box.querySelector("canvas"), msg = box.querySelector(".sd-msg"), seq = ++sdSeq;
+  sdDrawStop();
   sdDoc.pdf.getPage(p).then(function(pg){
     if(seq !== sdSeq) return;
     var v1 = pg.getViewport({ scale:1 }), pad = 12,
@@ -4698,6 +4742,8 @@ function sdShow(){
       cv.width = off.width; cv.height = off.height;
       cv.style.width = Math.floor(vp.width / dpr) + "px"; cv.style.height = Math.floor(vp.height / dpr) + "px";
       cv.getContext("2d").drawImage(off, 0, 0);
+      cv.setAttribute("data-p", p);
+      sdHlPaint(box);
       if(msg) msg.hidden = true;
     }, function(){});
   });
@@ -4730,11 +4776,12 @@ function sdWire(box){
   }, { passive:false });
   st.addEventListener("touchstart", function(e){ sdTouchX = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive:true });
   st.addEventListener("touchend", function(e){
-    if(sdTouchX === null) return;
+    if(sdTouchX === null || sdPen){ sdTouchX = null; return; }
     var dx = e.changedTouches[0].clientX - sdTouchX;
     sdTouchX = null;
     if(Math.abs(dx) > 50) sdStep(dx < 0 ? 1 : -1);
   }, { passive:true });
+  sdHlWire(box);
 }
 function sdFull(){
   var el = $(".sd-viewer");
@@ -4750,6 +4797,125 @@ function sdRefit(){
 }
 window.addEventListener("resize", sdRefit);
 document.addEventListener("fullscreenchange", sdRefit);
+document.addEventListener("fullscreenchange", hlHideUi);
+
+/* ---- 슬라이드 형광펜 ----
+   형광펜 기록(S.hl)을 내용정리와 함께 쓴다 — 동기화 병합·전체 초기화·지움 표시가 그대로 통한다.
+   k = "sd:자료 id:쪽", 칠한 글자(q) 대신 r = [왼, 위, 너비, 높이] (쪽 크기에 대한 비율 0~1). 1~3과목은 이미지형 PDF 라
+   글자를 고를 수 없어서 쪽 위에 네모를 칠한다. 로컬(pdf.js) 뷰어에서만 된다 — 드라이브 미리보기 위에는 올릴 수 없다.
+   [✎ 형광펜]을 켜면 쪽 위를 끌어 칠한다(넘김 단추·밀기는 잠시 꺼진다). 옆으로 그으면 한 줄 굵기, 비스듬히 끌면 끈 만큼의 네모.
+   켠 채로 칠한 곳을 톡 누르거나, 끈 상태에서 칠한 곳을 누르면 색·메모를 고치는 창(hlOpen)이 뜬다.
+   [가리기]는 내용정리와 같은 설정(S.settings.hlHide)이다 — 칠한 곳을 진하게 덮고, 누르면 보인다. 형광펜 켜짐·고른 색은 저장하지 않는다(새로고침하면 꺼지고 노랑으로) */
+var SD_LINE = 0.032;                                    /* 옆으로 그었을 때의 굵기 (쪽 높이에 대한 비율) */
+var sdPen = false, sdPenC = "y", sdDraw = null;
+function sdHlKey(id, p){ return "sd:" + id + ":" + p; }
+/* 자료의 쪽마다 칠한 개수 { 쪽: 개수 } */
+function sdHlPages(id){
+  var m = {}, pre = sdHlKey(id, "");
+  hlLive().forEach(function(h){
+    if(String(h.k).indexOf(pre) !== 0) return;
+    var p = +h.k.slice(pre.length);
+    if(p > 0) m[p] = (m[p]||0) + 1;
+  });
+  return m;
+}
+function sdHlNote(it){
+  var hp = sdHlPages(it.id), n = 0;
+  for(var p in hp) n += hp[p];
+  return n ? ' · 형광펜 ' + n + '개' : '';
+}
+/* 끈 자리(비율) → 칠할 네모 [왼, 위, 너비, 높이]. w·h = 쪽의 화면 크기(px). 너무 짧으면 null.
+   거의 옆으로만 그었으면 그은 줄을 가운데로 한 줄 굵기(SD_LINE, 적어도 14px)로 */
+function sdRectOf(x0, y0, x1, y1, w, h){
+  var l = Math.min(x0, x1), t = Math.min(y0, y1), rw = Math.abs(x1 - x0), rh = Math.abs(y1 - y0);
+  if(rw * w < 8) return null;
+  if(rh * h < 14){
+    rh = Math.min(1, Math.max(14 / h, SD_LINE));
+    t = Math.min(Math.max(0, (y0 + y1) / 2 - rh / 2), 1 - rh);
+  }
+  return [l, t, rw, rh].map(function(v){ return Math.round(v * 1e4) / 1e4; });
+}
+/* 지금 그려져 있는 쪽(canvas 의 data-p)의 칠한 곳을 층에 놓는다 */
+function sdHlPaint(box){
+  box = box || sdBox();
+  var layer = box && box.querySelector(".sd-hl");
+  if(!layer) return;
+  var p = +box.querySelector("canvas").getAttribute("data-p");
+  layer.innerHTML = p ? hlOf(sdHlKey(view.id, p)).map(function(h){
+    var r = h.r || [0, 0, 0, 0];
+    return '<div class="sd-mk hl-'+esc(h.c)+'" data-act="hlmark" data-hl="'+esc(h.id)+'"'+(h.m ? ' data-m="1" title="'+esc(h.m)+'"' : '')+
+      ' style="left:'+r[0]*100+'%;top:'+r[1]*100+'%;width:'+r[2]*100+'%;height:'+r[3]*100+'%"></div>';
+  }).join("") : "";
+}
+/* 다시 그린 뒤(render · sdPatch) — 막대 단추 상태와 칠한 곳을 맞춘다 */
+function sdHlAfter(){
+  var box = sdBox();
+  if(!box) return;
+  box.classList.toggle("sd-pen", sdPen);
+  box.classList.toggle("sd-hide", !!S.settings.hlHide);
+  [].forEach.call(box.querySelectorAll('[data-act="sdpen"]'), function(b){ b.setAttribute("aria-pressed", sdPen); });
+  [].forEach.call(box.querySelectorAll('[data-act="hlhide"]'), function(b){ b.setAttribute("aria-pressed", !!S.settings.hlHide); });
+  [].forEach.call(box.querySelectorAll('[data-act="sdpenc"]'), function(b){ b.setAttribute("aria-pressed", b.getAttribute("data-c") === sdPenC); });
+  sdHlPaint(box);
+}
+function sdDrawStop(){
+  if(sdDraw){ sdDraw.el.remove(); sdDraw = null; }
+}
+function sdPt(layer, e){
+  var b = layer.getBoundingClientRect();
+  return { x:Math.min(1, Math.max(0, (e.clientX - b.left) / b.width)), y:Math.min(1, Math.max(0, (e.clientY - b.top) / b.height)), b:b };
+}
+/* 누른 자리에 있는 칠한 곳 (위에 놓인 것부터) */
+function sdHit(layer, x, y){
+  var ms = [].slice.call(layer.querySelectorAll(".sd-mk:not(.sd-draft)")).reverse();
+  for(var i = 0; i < ms.length; i++){
+    var r = ms[i].getBoundingClientRect();
+    if(x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return ms[i];
+  }
+  return null;
+}
+function sdHlWire(box){
+  var layer = box.querySelector(".sd-hl");
+  if(!layer) return;
+  layer.addEventListener("pointerdown", function(e){
+    var p = +box.querySelector("canvas").getAttribute("data-p");
+    if(!sdPen || !p || e.button > 0) return;
+    e.preventDefault();
+    sdDrawStop();
+    hlHideUi();
+    var a = sdPt(layer, e), el = document.createElement("div");
+    el.className = "sd-mk sd-draft hl-" + sdPenC;
+    layer.appendChild(el);
+    sdDraw = { x:a.x, y:a.y, cx:e.clientX, cy:e.clientY, p:p, el:el, id:e.pointerId };
+    try{ layer.setPointerCapture(e.pointerId); }catch(er){}
+  });
+  layer.addEventListener("pointermove", function(e){
+    if(!sdDraw || e.pointerId !== sdDraw.id) return;
+    var a = sdPt(layer, e), r = sdRectOf(sdDraw.x, sdDraw.y, a.x, a.y, a.b.width, a.b.height), st = sdDraw.el.style;
+    st.display = r ? "" : "none";
+    if(r){ st.left = r[0]*100+"%"; st.top = r[1]*100+"%"; st.width = r[2]*100+"%"; st.height = r[3]*100+"%"; }
+  });
+  var up = function(e){
+    if(!sdDraw || e.pointerId !== sdDraw.id) return;
+    var d = sdDraw;
+    sdDrawStop();
+    if(e.type === "pointercancel" || view.name !== "sdq") return;
+    /* 거의 움직이지 않았으면 누른 것 — 칠한 곳이면 고치는 창 */
+    if(Math.abs(e.clientX - d.cx) < 6 && Math.abs(e.clientY - d.cy) < 6){
+      var hit = sdHit(layer, e.clientX, e.clientY);
+      if(hit) hlOpen(hit.getAttribute("data-hl"), hit.getBoundingClientRect());
+      return;
+    }
+    var a = sdPt(layer, e), r = sdRectOf(d.x, d.y, a.x, a.y, a.b.width, a.b.height);
+    if(!r) return;
+    var now = Date.now();
+    S.hl[hlNewId()] = { k:sdHlKey(view.id, d.p), c:sdPenC, r:r, m:"", t:now, u:now };
+    save();
+    hlRerender();
+  };
+  layer.addEventListener("pointerup", up);
+  layer.addEventListener("pointercancel", up);
+}
 document.addEventListener("change", function(e){
   if(e.target.classList && e.target.classList.contains("sd-pin")) sdGo(Math.round(+e.target.value) || 1);
 });
@@ -4917,6 +5083,8 @@ document.addEventListener("click", function(ev){
       else if(view.name !== "sdq" || view.id !== oid) go("sdq", { id:oid });
       break;
     }
+    case "sdpen": sdPen = !sdPen; sdDrawStop(); hlAfterRender(); break;
+    case "sdpenc": sdPenC = t.getAttribute("data-c") || "y"; sdPen = true; hlAfterRender(); break;
     case "sdprev": sdStep(-1); break;
     case "sdnext": sdStep(1); break;
     case "vdtoggle": {
@@ -4959,8 +5127,8 @@ document.addEventListener("click", function(ev){
       var hsl = window.getSelection();
       if(hsl && !hsl.isCollapsed) break;             /* 칠한 곳 위에서 글자를 고르는 중 */
       var hid = t.getAttribute("data-hl");
-      if(S.settings.hlHide && t.tagName === "MARK"){
-        $$('mark[data-hl="'+hid+'"]').forEach(function(el){ el.classList.toggle("show"); });
+      if(S.settings.hlHide && (t.tagName === "MARK" || t.classList.contains("sd-mk"))){
+        $$('mark[data-hl="'+hid+'"], .sd-mk[data-hl="'+hid+'"]').forEach(function(el){ el.classList.toggle("show"); });
         break;
       }
       hlOpen(hid, t.getBoundingClientRect());
@@ -5836,6 +6004,7 @@ document.addEventListener("keydown", function(e){
     var sk = e.key, sn = sdDoc.pdf.numPages;
     if(sk==="ArrowLeft" || sk==="PageUp"){ e.preventDefault(); sdStep(-1); return; }
     if(sk==="ArrowRight" || sk==="PageDown"){ e.preventDefault(); sdStep(1); return; }
+    if(sk==="Escape" && sdPen){ sdPen = false; sdDrawStop(); sdHlAfter(); return; }
     if(sk==="Home"){ e.preventDefault(); sdGo(1); return; }
     if(sk==="End"){ e.preventDefault(); sdGo(sn); return; }
   }
