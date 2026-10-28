@@ -612,6 +612,7 @@ body.dmz-open{overflow:hidden}
 .n-ul li{margin:3px 0}
 .n-ul > li::marker{color:var(--accent)}
 .n-ul .n-ul > li::marker{color:var(--muted)}
+.n-ul > li.n-li0{list-style:none;margin:0}
 /* 원본 강조 색 — 원본은 빨강(#FF0000)·파랑(#0000FF). 초록은 원본에 없고 원고 편집에서 더한다. 다크 모드에서는 같은 계열의 밝은 색 */
 .note-doc{--n-red:#D9100B; --n-blue:#1A3FD6; --n-green:#16803A}
 :root[data-theme="dark"] .note-doc{--n-red:#FF6B5E; --n-blue:#7FA2FF; --n-green:#5CCB83}
@@ -2982,9 +2983,15 @@ function noteList(lines){
     if(m) items.push({ ind:m[1].length, t:m[2] });
     else if(items.length) items[items.length-1].t += "\n" + L.trim();   /* 들여쓴 다음 줄 */
   });
+  /* 맨 윗단계 = 목록에서 가장 얕은 들여쓰기. 첫 항목이 그보다 깊으면(뒤에 더 얕은 항목이 있으면)
+     글머리 없는 칸(n-li0) 안에서 한 단계 들여 시작한다 — 첫 항목을 맨 윗단계로 보면 뒤의 얕은 항목과 단계가 뭉개진다 */
+  var base = Math.min.apply(null, items.map(function(it){ return it.ind; }));
   var h = "", st = [];
   items.forEach(function(it){
-    if(!st.length || it.ind > st[st.length-1]){ h += '<ul class="n-ul">'; st.push(it.ind); }
+    if(!st.length || it.ind > st[st.length-1]){
+      if(!st.length && it.ind > base){ h += '<ul class="n-ul"><li class="n-li0">'; st.push(base); }
+      h += '<ul class="n-ul">'; st.push(it.ind);
+    }
     else {
       while(st.length > 1 && it.ind < st[st.length-1]){ h += '</li></ul>'; st.pop(); }
       h += '</li>';
