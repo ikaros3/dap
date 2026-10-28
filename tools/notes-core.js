@@ -67,12 +67,12 @@
       /* 강조 표기 짝 — 한 줄(표는 한 칸) 안에서 닫혀야 화면에서 태그가 엇갈리지 않는다 */
       (/^[|‖] /.test(line) ? line.slice(2, -2).split(' | ') : [line]).forEach(function (part) {
         var odd = ((part.match(/\*\*/g) || []).length % 2) ? ['**'] : [];
-        ['r', 'b', 'u'].forEach(function (t) {
+        ['r', 'b', 'g', 'u'].forEach(function (t) {
           if ((part.split('{' + t + '}').length) !== (part.split('{/' + t + '}').length)) odd.push('{' + t + '}');
         });
         if (odd.length) errs.push(at + ' 강조 표기 짝이 안 맞는다 (' + odd.join(' ') + '): ' + part.slice(0, 40));
       });
-      ['r', 'b', 'u'].forEach(function (k) { stat[k] = (stat[k] || 0) + (line.split('{' + k + '}').length - 1); });
+      ['r', 'b', 'g', 'u'].forEach(function (k) { stat[k] = (stat[k] || 0) + (line.split('{' + k + '}').length - 1); });
     });
 
     /* 다듬기 · 점검: 앞뒤 빈 줄을 걷고, 표의 칸 수가 행마다 같은지 본다 */

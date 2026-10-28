@@ -1,23 +1,28 @@
 /* 내용정리 원고의 글자 강조 표기 — 원본 hwpx 의 강조를 그대로 옮긴다.
-     **굵게**   {r}빨강{/r}   {b}파랑{/b}   {u}밑줄{/u}     (겹쳐 쓸 수 있다)
-   parse()  : 표기가 든 문자열 → [{ c:글자, f:"B r b u" 중 켜진 것 }]
+     **굵게**   {r}빨강{/r}   {b}파랑{/b}   {g}초록{/g}   {u}밑줄{/u}     (겹쳐 쓸 수 있다. 초록은 원본에 없고 앱의 원고 편집에서 쓴다)
+   parse()  : 표기가 든 문자열 → [{ c:글자, f:"r b g B u" 중 켜진 것, i:원래 문자열에서 그 글자의 자리 }]
    format() : 그 배열 → 표기 문자열. 같은 모양이 이어지면 하나로 묶고, 앞뒤 공백은 표기 밖에 둔다.
               감싸는 순서는 색 → 굵게 → 밑줄로 일정하다 — 화면의 noteInline 이 이 순서를 기대하지 않지만
-              원고를 사람이 읽기 쉽게 하려는 것이다. */
-const TAG = /\*\*|\{\/?[rbu]\}/g;
+              원고를 사람이 읽기 쉽게 하려는 것이다.
+   Node(tools/notes-draft.js)와 브라우저(앱의 원고 편집 도구 막대 · window.DAP_NOTES_FMT)가 함께 쓴다. */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.DAP_NOTES_FMT = factory();
+})(this, function () {
+const TAG = /\*\*|\{\/?[rbgu]\}/g;
 
 function parse(s) {
-  const out = [], on = { B: 0, r: 0, b: 0, u: 0 };
+  const out = [], on = { B: 0, r: 0, b: 0, g: 0, u: 0 };
   let last = 0, m;
-  const push = t => { for (const c of t) out.push({ c, f: (on.r ? 'r' : '') + (on.b ? 'b' : '') + (on.B ? 'B' : '') + (on.u ? 'u' : '') }); };
+  const push = (t, at) => { for (const c of t) { out.push({ c, f: (on.r ? 'r' : '') + (on.b ? 'b' : '') + (on.g ? 'g' : '') + (on.B ? 'B' : '') + (on.u ? 'u' : ''), i: at }); at += c.length; } };
   TAG.lastIndex = 0;
   while ((m = TAG.exec(s))) {
-    push(s.slice(last, m.index));
+    push(s.slice(last, m.index), last);
     last = TAG.lastIndex;
     if (m[0] === '**') on.B ^= 1;
     else on[m[0].replace(/[{}\/]/g, '')] = m[0][1] === '/' ? 0 : 1;
   }
-  push(s.slice(last));
+  push(s.slice(last), last);
   return out;
 }
 
@@ -46,6 +51,7 @@ function format(chars) {
         if (fl.includes('B')) w = '**' + w + '**';
         if (fl.includes('r')) w = '{r}' + w + '{/r}';
         if (fl.includes('b')) w = '{b}' + w + '{/b}';
+        if (fl.includes('g')) w = '{g}' + w + '{/g}';
       }
       out += lead + w + trail;
     }
@@ -57,4 +63,5 @@ function format(chars) {
 const plain = s => String(s).replace(TAG, '');
 const canon = s => format(parse(s));
 
-module.exports = { parse, format, plain, canon, TAG };
+return { parse, format, plain, canon, TAG };
+});

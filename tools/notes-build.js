@@ -18,7 +18,7 @@
 //   [표 III-1-1] …  [그림 …] …  [정리] …   표·그림 제목
 //   [[img:III-01]]     그림 — data/notes/img/III-01.(jpg|png)
 //   > 암기 : …         암기 상자
-//   **굵게**  {r}빨강{/r}  {b}파랑{/b}  {u}밑줄{/u}   원본의 강조 그대로 (tools/notes-fmt.js, 줄마다 짝이 맞아야 한다)
+//   **굵게**  {r}빨강{/r}  {b}파랑{/b}  {g}초록{/g}  {u}밑줄{/u}   원본의 강조 그대로(초록은 앱의 원고 편집에서 더한 것) (tools/notes-fmt.js, 줄마다 짝이 맞아야 한다)
 //   {2013}             2013 Edition 에만 있는 내용 표시
 //   {w}                2013 판에서 워드 요약(data_source 의 .doc)으로 보탠 내용 표시
 // 그림은 tools/notes-draft.js 로 꺼내고 tools/notes-img.ps1 로 바꾼다.
@@ -57,7 +57,7 @@ const { book, errs, stat } = core.build(fs.readFileSync(path.join(__dirname, 'no
 const nSec = book.chapters.reduce((a, c) => a + c.sections.length, 0);
 const nItem = book.chapters.reduce((a, c) => a + c.sections.reduce((b, s) => b + s.items.length, 0), 0);
 console.log('과목 ' + ch + ' ' + book.title + ' : ' + book.chapters.length + '장 ' + nSec + '절 ' + nItem + '항 · 본문 ' +
-  stat.lines + '줄 · 표 ' + stat.tables + ' · 그림 ' + stat.images + ' · 2013 표시 ' + stat.e2013 + ' · 워드 표시 ' + stat.w + ' · 강조 빨강 ' + (stat.r||0) + ' 파랑 ' + (stat.b||0) + ' 밑줄 ' + (stat.u||0));
+  stat.lines + '줄 · 표 ' + stat.tables + ' · 그림 ' + stat.images + ' · 2013 표시 ' + stat.e2013 + ' · 워드 표시 ' + stat.w + ' · 강조 빨강 ' + (stat.r||0) + ' 파랑 ' + (stat.b||0) + ' 초록 ' + (stat.g||0) + ' 밑줄 ' + (stat.u||0));
 if (errs.length) { errs.forEach(e => console.log('  ✗ ' + e)); process.exit(1); }
 
 if (write) {

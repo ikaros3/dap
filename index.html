@@ -612,13 +612,14 @@ body.dmz-open{overflow:hidden}
 .n-ul li{margin:3px 0}
 .n-ul > li::marker{color:var(--accent)}
 .n-ul .n-ul > li::marker{color:var(--muted)}
-/* 원본 강조 색 — 원본은 빨강(#FF0000)·파랑(#0000FF). 다크 모드에서는 같은 계열의 밝은 색 */
-.note-doc{--n-red:#D9100B; --n-blue:#1A3FD6}
-:root[data-theme="dark"] .note-doc{--n-red:#FF6B5E; --n-blue:#7FA2FF}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .note-doc{--n-red:#FF6B5E; --n-blue:#7FA2FF}}
+/* 원본 강조 색 — 원본은 빨강(#FF0000)·파랑(#0000FF). 초록은 원본에 없고 원고 편집에서 더한다. 다크 모드에서는 같은 계열의 밝은 색 */
+.note-doc{--n-red:#D9100B; --n-blue:#1A3FD6; --n-green:#16803A}
+:root[data-theme="dark"] .note-doc{--n-red:#FF6B5E; --n-blue:#7FA2FF; --n-green:#5CCB83}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .note-doc{--n-red:#FF6B5E; --n-blue:#7FA2FF; --n-green:#5CCB83}}
 .note-doc strong{font-weight:700}
 .n-red{color:var(--n-red)}
 .n-blue{color:var(--n-blue)}
+.n-green{color:var(--n-green)}
 .n-u{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
 /* 그림·표는 가운데. 제목줄([표 …] [그림 …])도 함께 가운데 둔다 */
 .n-cap{font-size:calc(12.5px * var(--fs));color:var(--muted);font-weight:600;margin:16px 0 5px;text-align:center}
@@ -650,7 +651,18 @@ mark.n-hit{background:var(--key-soft);color:inherit;border-radius:2px;padding:0 
 .ned-title{font-weight:650;font-size:calc(14.5px * var(--fs));min-width:0;flex:1 1 260px}
 .ned-title small{display:block;font-weight:400;color:var(--muted);font-family:var(--font-mono);font-size:calc(11.5px * var(--fs))}
 .ned-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px}
-.ned-ta{width:100%;height:100%;resize:none;font-family:var(--font-mono);font-size:calc(13px * var(--fs));line-height:1.6;padding:12px 14px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);tab-size:2}
+.ned-ed{display:flex;flex-direction:column;gap:6px;min-height:0}
+.ned-tools{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.ned-tools button{min-width:36px;height:34px;padding:0 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink-2);font-size:calc(14px * var(--fs));user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.ned-tools button:hover{border-color:var(--accent);color:var(--ink)}
+.ned-tools button:last-child{font-size:calc(12.5px * var(--fs))}
+.ned-tools i{width:1px;height:20px;background:var(--line);margin:0 4px}
+.ned-tools .nt-r,.ned-tools .nt-b,.ned-tools .nt-g{font-weight:700}
+.ned-tools .nt-r{color:var(--n-red)} .ned-tools .nt-b{color:var(--n-blue)} .ned-tools .nt-g{color:var(--n-green)}
+.ned{--n-red:#D9100B; --n-blue:#1A3FD6; --n-green:#16803A}
+:root[data-theme="dark"] .ned{--n-red:#FF6B5E; --n-blue:#7FA2FF; --n-green:#5CCB83}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .ned{--n-red:#FF6B5E; --n-blue:#7FA2FF; --n-green:#5CCB83}}
+.ned-ta{flex:1;min-height:0;width:100%;resize:none;font-family:var(--font-mono);font-size:calc(13px * var(--fs));line-height:1.6;padding:12px 14px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);tab-size:2}
 .ned-pv{overflow:auto;min-height:0}
 .ned-foot{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--line);background:var(--surface);flex-wrap:wrap}
 .ned-foot input{flex:1 1 240px;min-width:0;padding:7px 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font-size:calc(13px * var(--fs))}
@@ -2950,13 +2962,14 @@ function noteReadCount(ch, ed){
    **굵게**  {2013}(2013 Edition 에만 있는 내용)  #### / ##### 소제목  - 글머리(두 칸마다 한 단계)
    ‖ 머리 | 셀 |  / | 셀 | 셀 | 표 (¶ 셀 안 줄바꿈, << 왼쪽 칸과 병합, ^^ 위 칸과 병합)
    [표 …] [그림 …] [정리] 제목줄,  [[img:키]] 그림,  > 암기 상자 */
-/* 원본 강조 그대로: **굵게** {r}빨강{/r} {b}파랑{/b} {u}밑줄{/u} — 원고에서는 늘 색 ⊃ 굵게 ⊃ 밑줄로
+/* 원본 강조 그대로: **굵게** {r}빨강{/r} {b}파랑{/b} {u}밑줄{/u} (+ 원고 편집에서 더하는 {g}초록{/g}) — 원고에서는 늘 색 ⊃ 굵게 ⊃ 밑줄로
    통째로 감싸므로(tools/notes-fmt.js) 표기마다 따로 바꿔도 태그가 엇갈리지 않는다 */
-var NOTE_TAG = /\*\*|\{\/?[rbu]\}|\{2013\}|\{w\}/g;
+var NOTE_TAG = /\*\*|\{\/?[rbgu]\}|\{2013\}|\{w\}/g;
 function noteInline(s){
   return esc(s)
     .replace(/\{r\}([\s\S]*?)\{\/r\}/g, '<span class="n-red">$1</span>')
     .replace(/\{b\}([\s\S]*?)\{\/b\}/g, '<span class="n-blue">$1</span>')
+    .replace(/\{g\}([\s\S]*?)\{\/g\}/g, '<span class="n-green">$1</span>')
     .replace(/\{u\}([\s\S]*?)\{\/u\}/g, '<u class="n-u">$1</u>')
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\{2013\}/g, '<span class="n-2013" title="2013 Edition 에만 있는 내용">2013</span>')
@@ -3326,12 +3339,17 @@ function nedLineOf(lines, text){
 }
 
 function nedCore(ok){
-  if(window.DAP_NOTES_CORE) return ok();
-  var el = document.createElement("script");
-  el.src = "tools/notes-core.js"; el.charset = "UTF-8";
-  el.onload = function(){ if(window.DAP_NOTES_CORE) ok(); };
-  el.onerror = function(){ toast("원고 변환 모듈을 불러오지 못했습니다 · tools/notes-core.js"); };
-  document.head.appendChild(el);
+  /* 변환(notes-core)과 강조 표기(notes-fmt — 도구 막대의 굵게·색·밑줄) */
+  var need = [["DAP_NOTES_CORE", "tools/notes-core.js"], ["DAP_NOTES_FMT", "tools/notes-fmt.js"]].filter(function(x){ return !window[x[0]]; });
+  if(!need.length) return ok();
+  var left = need.length;
+  need.forEach(function(x){
+    var el = document.createElement("script");
+    el.src = x[1]; el.charset = "UTF-8";
+    el.onload = function(){ if(window[x[0]] && !--left) ok(); };
+    el.onerror = function(){ toast("원고 편집 모듈을 불러오지 못했습니다 · " + x[1]); };
+    document.head.appendChild(el);
+  });
 }
 function nedOpen(no){
   if(ned || !adminOn()) return;
@@ -3381,7 +3399,16 @@ function nedShow(){
   el.innerHTML = '<div class="ned-bar"><div class="ned-title">'+esc(E.title)+' · '+ROMAN[ned.ch]+'. '+esc(b.title)+' › '+ned.c+'장 '+ned.s+'절 › '+
       (it ? ned.no+'. '+esc(it.title) : '절 머리말')+'<small>'+esc(ned.mdPath)+'</small></div>'+
       '<button class="btn btn-sm" data-ned="close">닫기</button></div>'+
-    '<div class="ned-body"><textarea class="ned-ta" id="nedTa" spellcheck="false" aria-label="원고"></textarea>'+
+    '<div class="ned-body"><div class="ned-ed"><div class="ned-tools" role="toolbar" aria-label="편집 도구">'+
+        '<button data-ned="out" title="내어쓰기 — 선택한 줄을 한 단계 위로 (Shift+Tab)">⇤</button>'+
+        '<button data-ned="in" title="들여쓰기 — 선택한 줄을 한 단계 아래로 (Tab)">⇥</button><i></i>'+
+        '<button data-ned="B" title="굵게 (Ctrl+B)"><b>B</b></button>'+
+        '<button data-ned="u" title="밑줄 (Ctrl+U)"><u>U</u></button>'+
+        '<button data-ned="r" title="빨강" class="nt-r">가</button>'+
+        '<button data-ned="b" title="파랑" class="nt-b">가</button>'+
+        '<button data-ned="g" title="초록" class="nt-g">가</button><i></i>'+
+        '<button data-ned="clear" title="선택한 글자의 굵게·색·밑줄을 모두 지움">서식 지우기</button></div>'+
+      '<textarea class="ned-ta" id="nedTa" spellcheck="false" aria-label="원고"></textarea></div>'+
       '<div class="ned-pv"><article class="note-doc" id="nedPv"></article></div></div>'+
     '<div class="ned-foot"><div class="ned-msg" id="nedMsg"></div>'+
       '<input type="text" id="nedWhy" placeholder="고친 까닭 (커밋 메시지에 붙습니다 · 비워도 됨)" autocomplete="off">'+
@@ -3390,22 +3417,119 @@ function nedShow(){
   document.body.appendChild(el);
   var t = null, ta = $("#nedTa");
   ta.addEventListener("input", function(){ clearTimeout(t); t = setTimeout(nedCheck, 250); });
-  /* Tab 은 두 칸 들여쓰기(글머리 한 단계) */
+  /* Tab / Shift+Tab = 들여쓰기·내어쓰기, Ctrl+B 굵게, Ctrl+U 밑줄 */
   ta.addEventListener("keydown", function(e){
-    if(e.key !== "Tab" || e.ctrlKey || e.altKey || e.metaKey) return;
-    e.preventDefault();
-    var a = ta.selectionStart, v = ta.value, ls = v.lastIndexOf("\n", a - 1) + 1;
-    if(e.shiftKey){ if(v.slice(ls, ls + 2) === "  "){ ta.value = v.slice(0, ls) + v.slice(ls + 2); ta.setSelectionRange(Math.max(ls, a - 2), Math.max(ls, a - 2)); } }
-    else{ ta.value = v.slice(0, ls) + "  " + v.slice(ls); ta.setSelectionRange(a + 2, a + 2); }
-    nedCheck();
+    if(e.key === "Tab" && !e.ctrlKey && !e.altKey && !e.metaKey){ e.preventDefault(); nedIndent(e.shiftKey ? -1 : 1); return; }
+    if((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && /^[bBuU]$/.test(e.key)){ e.preventDefault(); nedFmt(/b/i.test(e.key) ? "B" : "u"); }
   });
+  /* 폰에서는 단추를 누르는 순간 입력칸의 선택이 풀릴 수 있다 — 마지막 선택을 늘 기억해 두고 단추는 그것에 적용한다 */
+  var keep = function(){ if(document.activeElement === ta && ned) ned.sel = [ta.selectionStart, ta.selectionEnd]; };
+  document.addEventListener("selectionchange", keep); ned.keep = keep;
+  ta.addEventListener("select", keep); ta.addEventListener("keyup", keep); ta.addEventListener("pointerup", keep);
+  ta.addEventListener("selectionchange", keep);   /* 요즘 Chrome 은 입력칸의 선택 변화를 document 가 아니라 입력칸에 알린다 */
+  ta.addEventListener("blur", function(){ if(ned) ned.sel = [ta.selectionStart, ta.selectionEnd]; });
+  /* 도구 막대를 눌러도 입력칸의 포커스·선택이 그대로 */
+  el.querySelector(".ned-tools").addEventListener("mousedown", function(e){ e.preventDefault(); });
   el.addEventListener("click", function(e){
     var b = e.target.closest("[data-ned]"), k = b && b.getAttribute("data-ned");
     if(k === "close") nedClose();
     else if(k === "save") nedSave();
+    else if(k === "in" || k === "out") nedIndent(k === "in" ? 1 : -1);
+    else if(k === "B" || k === "u" || k === "r" || k === "b" || k === "g" || k === "clear") nedFmt(k);
     else if(k === "reset" && ned && ned.orig !== undefined && ta.value !== ned.orig && confirm("고친 내용을 버리고 받아 온 원고로 되돌릴까요?")){ ta.value = ned.orig; nedCheck(); }
   });
   nedSync();
+}
+/* ---- 도구 막대 ---- */
+/* 입력칸은 포커스를 잃어도 선택 자리를 지닌다. 그래도 폰에서 단추를 누르다 선택이 접혔으면 마지막으로 기억한 선택을 쓴다 */
+function nedSelOf(ta){
+  var a = ta.selectionStart, b = ta.selectionEnd;
+  return a === b && document.activeElement !== ta && ned.sel && ned.sel[0] !== ned.sel[1] ? ned.sel : [a, b];
+}
+/* [a,b) 를 품는 줄들의 [처음, 끝). 선택이 줄바꿈 바로 뒤에서 끝나면 그 다음 줄은 넣지 않는다 */
+function nedLines(v, a, b){
+  var ls = v.lastIndexOf("\n", a - 1) + 1, le = v.indexOf("\n", b > a && v[b - 1] === "\n" ? b - 1 : b);
+  return [ls, le < 0 ? v.length : le];
+}
+/* 입력칸의 [a,b) 를 text 로 바꾸고 [s,e) 를 선택한다. execCommand 로 넣어야 Ctrl+Z 로 되돌릴 수 있다 */
+function nedReplace(ta, a, b, text, s, e){
+  ta.focus();
+  ta.setSelectionRange(a, b);
+  var done = false;
+  try{ done = document.execCommand("insertText", false, text); }catch(x){}
+  if(!done) ta.setRangeText(text, a, b, "end");
+  ta.setSelectionRange(s, e);
+  ned.sel = [s, e];
+  nedCheck();
+}
+/* 들여쓰기(+1)·내어쓰기(-1) — 선택한 줄마다 두 칸. 제목·표·그림·암기 상자 줄은 들여쓰면 깨지므로 건너뛴다 */
+function nedIndent(dir){
+  var ta = $("#nedTa");
+  if(!ned || !ta || ta.readOnly) return;
+  var sel = nedSelOf(ta), v = ta.value, r = nedLines(v, sel[0], sel[1]);
+  var lines = v.slice(r[0], r[1]).split("\n");
+  var out = lines.map(function(L){
+    if(!L.trim() || /^(#|[|‖] |\[\[img:|> )/.test(L)) return L;
+    return dir > 0 ? "  " + L : L.replace(/^ {1,2}/, "");
+  });
+  var t = out.join("\n");
+  if(t === lines.join("\n")) return;
+  if(sel[0] === sel[1]){ var at = Math.max(r[0], sel[0] + out[0].length - lines[0].length); nedReplace(ta, r[0], r[1], t, at, at); }
+  else nedReplace(ta, r[0], r[1], t, r[0], r[0] + t.length);
+}
+/* 한 줄에서 서식을 칠할 수 있는 토막 [처음, 끝) — 글머리·소제목 기호는 빼고, 표는 칸마다(표기는 칸 안에서 닫혀야 한다) */
+function nedUnits(L){
+  if(/^\[\[img:/.test(L.trim())) return [];
+  if(/^[|‖] /.test(L)){
+    var end = L.replace(/\s+$/, "").length, out = [], s = 2;
+    if(L.slice(end - 2, end) === " |") end -= 2;
+    while(s <= end){
+      var j = L.indexOf(" | ", s);
+      if(j < 0 || j >= end) j = end;
+      if(!/^\s*(<<|\^\^)?\s*$/.test(L.slice(s, j))) out.push([s, j]);
+      s = j + 3;
+    }
+    return out;
+  }
+  return [[/^(\s*- |#{4,5} |### \d+\.\s*|> |\s*)/.exec(L)[0].length, L.length]];
+}
+/* 굵게(B)·밑줄(u)·빨강(r)·파랑(b)·초록(g)·지우기(clear). 글자마다 모양을 매겨(notes-fmt) 바꾼 뒤 다시 표기로 쓴다 —
+   선택이 이미 모두 그 모양이면 풀고, 아니면 입힌다. 색은 하나만(다른 색 위에 입히면 바뀜) */
+function nedFmt(k){
+  var F = window.DAP_NOTES_FMT, ta = $("#nedTa");
+  if(!ned || !ta || ta.readOnly || !F) return;
+  var sel = nedSelOf(ta), a = sel[0], b = sel[1];
+  if(a === b){ toast("서식을 바꿀 글자를 먼저 선택하세요"); return; }
+  var v = ta.value, r = nedLines(v, a, b), off = r[0], parts = [];
+  v.slice(r[0], r[1]).split("\n").forEach(function(L){
+    nedUnits(L).forEach(function(u){
+      var s = off + u[0], e = off + u[1];
+      if(e <= a || s >= b) return;
+      var ch = F.parse(v.slice(s, e));
+      ch.forEach(function(c){ c.sel = s + c.i >= a && s + c.i < b; });
+      parts.push({ s:s, e:e, ch:ch });
+    });
+    off += L.length + 1;
+  });
+  var picked = [];
+  parts.forEach(function(p){ p.ch.forEach(function(c){ if(c.sel && /\S/.test(c.c)) picked.push(c); }); });
+  if(!picked.length){ toast("서식을 바꿀 글자가 없습니다"); return; }
+  var all = k !== "clear" && picked.every(function(c){ return c.f.indexOf(k) >= 0; });
+  parts.forEach(function(p){ p.ch.forEach(function(c){
+    if(!c.sel) return;
+    var f = k === "clear" ? "" : all ? c.f.replace(k, "") : (/[rbg]/.test(k) ? c.f.replace(/[rbg]/g, "") : c.f.replace(k, "")) + k;
+    c.f = ["r", "b", "g", "B", "u"].filter(function(x){ return f.indexOf(x) >= 0; }).join("");
+  }); });
+  var out = "", pos = r[0], ns = -1, ne = -1;
+  parts.forEach(function(p){
+    out += v.slice(pos, p.s);
+    var nt = F.format(p.ch), np = F.parse(nt), st = r[0] + out.length;
+    p.ch.forEach(function(c, i){ if(!c.sel) return; var at = st + np[i].i; if(ns < 0) ns = at; ne = at + c.c.length; });
+    out += nt; pos = p.e;
+  });
+  out += v.slice(pos, r[1]);
+  if(out === v.slice(r[0], r[1])) return;
+  nedReplace(ta, r[0], r[1], out, ns, ne);
 }
 function nedMsg(m, bad){ var el = $("#nedMsg"); if(el){ el.textContent = m || ""; el.className = "ned-msg" + (bad ? " bad" : ""); } }
 function nedSync(){
@@ -3451,6 +3575,7 @@ function nedCheck(){
 function nedClose(force){
   if(!ned || (ned.busy && !force)) return;
   if(!force && ned.dirty && !confirm("고친 내용을 저장하지 않고 닫을까요?")) return;
+  if(ned.keep) document.removeEventListener("selectionchange", ned.keep);
   ned = null;
   var el = $("#ned"); if(el) el.remove();
 }
