@@ -1254,7 +1254,8 @@ function blank(){
                       hlHide:false, hlOnly:false,      /* 형광펜 가리기 · 형광만 보기 */
                       dmHide:false,                     /* 실기 — 모범 답안 먼저 가리기 */
                       vdLast:"",                        /* 동영상 강의 — 마지막으로 연 강의 id ([이어 보기]) */
-                      vdRate:1 } };                     /* 동영상 강의 — 재생 속도(로컬 재생) */
+                      vdRate:1,                         /* 동영상 강의 — 재생 속도(로컬 재생) */
+                      sdTint:true } };                  /* 강의 슬라이드 — 흑백이 된 원래 빨강·파랑 글자를 원래 색으로 */
 }
 function normalize(o){
   var b = blank();
@@ -5041,7 +5042,8 @@ function sdViewer(it){
     '<span class="sd-pc">'+HL_COLORS.map(function(c){
       return '<button type="button" data-act="sdpenc" data-c="'+c.id+'" aria-pressed="'+(sdPenC === c.id)+'" title="'+esc(c.name)+'"><i class="hl-sw hl-'+c.id+'"></i></button>';
     }).join("")+'</span>'+
-    '<button class="sd-bb sd-tx" data-act="hlhide" aria-pressed="'+!!S.settings.hlHide+'" title="칠한 곳을 덮고, 누르면 보입니다">가리기</button></span>'+
+    '<button class="sd-bb sd-tx" data-act="hlhide" aria-pressed="'+!!S.settings.hlHide+'" title="칠한 곳을 덮고, 누르면 보입니다">가리기</button>'+
+    (it.tint ? '<button class="sd-bb sd-tx" data-act="sdtint" aria-pressed="'+!!S.settings.sdTint+'" title="흑백 자료에서 회색이 된 원래 빨강·파랑 글자를 원래 색으로 보입니다">원래 색</button>' : '')+'</span>'+
     '<span class="sd-pg"><button class="sd-bb" data-act="sdprev" aria-label="이전 쪽">‹</button>'+
     '<input class="sd-pin" type="number" min="1" max="'+it.pages+'" value="'+(view.p || 1)+'" aria-label="쪽 번호">'+
     '<span class="sd-of">/ '+it.pages+'</span><button class="sd-bb" data-act="sdnext" aria-label="다음 쪽">›</button></span>'+
@@ -5132,6 +5134,29 @@ function sdLib(){
   });
   return sdLibP;
 }
+/* 원래 색 되살리기 — 강의자료 PDF 는 빨강·파랑 글자가 회색으로 바뀌어 있다. 자료의 tint(data/slides/slides.js)에 적힌 회색으로
+   칠하려 하면 원래 색(SD_TINT)으로 바꿔 그리도록 pdf.js 에 넘기는 canvas 를 감싼다. paint = 채움·선 색 모두(1~3과목, 글자가 윤곽 도형),
+   text = 글자(fillText)를 그릴 때만(4·5과목 — 같은 회색을 도형에도 써서). pdf.js 는 색을 "#rrggbb" 소문자로 넣는다 */
+var SD_TINT = { r:"#e02424", b:"#1f3fd8" };
+function sdTintCtx(ctx, tint){
+  if(!tint) return ctx;
+  var P = Object.getPrototypeOf(ctx), ft = ctx.fillText;
+  function to(map, v){ return map && typeof v === "string" && SD_TINT[map[v.toLowerCase()]] || ""; }
+  if(tint.paint) ["fillStyle", "strokeStyle"].forEach(function(k){
+    var d = Object.getOwnPropertyDescriptor(P, k);
+    if(d) Object.defineProperty(ctx, k, { configurable:true,
+      get:function(){ return d.get.call(this); },
+      set:function(v){ d.set.call(this, to(tint.paint, v) || v); } });
+  });
+  if(tint.text) ctx.fillText = function(){
+    var s = this.fillStyle, c = to(tint.text, s);
+    if(!c) return ft.apply(this, arguments);
+    this.fillStyle = c;
+    ft.apply(this, arguments);
+    this.fillStyle = s;
+  };
+  return ctx;
+}
 function sdBox(){ return $('.sd-viewer[data-mode="local"]'); }
 /* 그린 뒤 로컬 뷰어에 PDF 를 물린다. 같은 자료를 이미 읽어 두었으면 그대로 쓴다. 파일이 없으면 그 자료만 드라이브 미리보기로 */
 function sdAttach(){
@@ -5188,7 +5213,8 @@ function sdShow(){
     if(sdDrawing) sdDrawing.cancel();
     var off = document.createElement("canvas");
     off.width = Math.floor(vp.width); off.height = Math.floor(vp.height);
-    var task = sdDrawing = pg.render({ canvasContext:off.getContext("2d"), viewport:vp });
+    var it = sdFind(view.id), tint = S.settings.sdTint && it && it.tint;
+    var task = sdDrawing = pg.render({ canvasContext:sdTintCtx(off.getContext("2d"), tint), viewport:vp });
     task.promise.then(function(){
       if(sdDrawing === task) sdDrawing = null;
       if(seq !== sdSeq || !cv.isConnected) return;
@@ -5538,6 +5564,11 @@ document.addEventListener("click", function(ev){
     }
     case "sdpen": sdPen = !sdPen; sdDrawStop(); hlAfterRender(); break;
     case "sdpenc": sdPenC = t.getAttribute("data-c") || "y"; sdPen = true; hlAfterRender(); break;
+    case "sdtint":
+      S.settings.sdTint = !S.settings.sdTint; save();
+      [].forEach.call(document.querySelectorAll('[data-act="sdtint"]'), function(b){ b.setAttribute("aria-pressed", !!S.settings.sdTint); });
+      sdShow();
+      break;
     case "sdprev": sdStep(-1); break;
     case "sdnext": sdStep(1); break;
     case "vdtoggle": {

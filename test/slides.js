@@ -39,6 +39,18 @@ SD.items.forEach(it => {
   if (!(it.mb > 0)) fail(w + '크기 없음');
   if (!DRIVE.test(it.drive || '')) fail(w + '드라이브 id 가 이상하다: ' + it.drive);
   if (!/^[^/]+\.pdf$/.test(it.file || '')) fail(w + '로컬 파일 이름(file)이 「파일.pdf」 꼴이 아니다: ' + it.file);
+  if (it.tint) {
+    const ks = Object.keys(it.tint);
+    if (!ks.length || ks.some(k => k !== 'paint' && k !== 'text')) fail(w + 'tint 는 paint · text 만 쓴다: ' + JSON.stringify(it.tint));
+    ks.forEach(k => {
+      const m = it.tint[k] || {};
+      if (!Object.keys(m).length) fail(w + 'tint.' + k + ' 가 비었다');
+      Object.keys(m).forEach(c => {
+        if (!/^#[0-9a-f]{6}$/.test(c)) fail(w + 'tint.' + k + ' 의 색이 「#rrggbb」 소문자가 아니다: ' + c);
+        if (m[c] !== 'r' && m[c] !== 'b') fail(w + 'tint.' + k + ' 「' + c + '」 의 원래 색이 r · b 가 아니다: ' + m[c]);
+      });
+    });
+  }
   if (drives[it.drive]) fail(w + '드라이브 id 가 ' + drives[it.drive] + ' 와 겹친다');
   drives[it.drive] = it.id;
   /* 목차 — 장·절 모두 제목과 1 ~ pages 쪽, 장 안의 절은 장 쪽부터 오름차순, 장끼리도 오름차순 */
@@ -86,5 +98,36 @@ SD.items.forEach(it => {
 ctx.location.hash = '#/slides';
 if ((ctx.viewFromHash() || {}).name !== 'slides') fail('#/slides 가 개요로 열리지 않는다');
 
-console.log(bad ? '실패 ' + bad + '건' : '자료 ' + SD.items.length + '개 이상 없음' + checked);
+/* 원래 색 되살리기 — pdf.js 가 넣는 색만 빨강·파랑으로 바뀌고, 다른 색·다른 자료는 그대로인가.
+   canvas 대신 fillStyle·strokeStyle 을 prototype 접근자로 가진 가짜 context 로 본다(브라우저와 같은 꼴) */
+const tctx = {};
+vm.createContext(tctx);
+vm.runInContext(src.match(/var SD_TINT = \{[^}]+\};/)[0].replace('var ', 'this.') + '\n' + grab('sdTintCtx'), tctx);
+function Ctx() { this.log = []; this._f = '#000000'; this._s = '#000000'; }
+Object.defineProperty(Ctx.prototype, 'fillStyle', { get() { return this._f; }, set(v) { this._f = v; } });
+Object.defineProperty(Ctx.prototype, 'strokeStyle', { get() { return this._s; }, set(v) { this._s = v; } });
+Ctx.prototype.fillText = function (t) { this.log.push(t + ':' + this._f); };
+const RED = tctx.SD_TINT.r, BLUE = tctx.SD_TINT.b;
+{
+  const c = tctx.sdTintCtx(new Ctx(), { paint: { '#6b6b6b': 'r', '#333333': 'b' } });
+  c.fillStyle = '#6b6b6b'; if (c.fillStyle !== RED) fail('paint — 채움 회색이 빨강이 되지 않는다');
+  c.strokeStyle = '#6B6B6B'; if (c.strokeStyle !== RED) fail('paint — 선 회색(대문자)이 빨강이 되지 않는다');
+  c.fillStyle = '#333333'; if (c.fillStyle !== BLUE) fail('paint — 채움 회색이 파랑이 되지 않는다');
+  c.fillStyle = '#5d5d5d'; if (c.fillStyle !== '#5d5d5d') fail('paint — 다른 회색까지 바뀐다');
+}
+{
+  const c = tctx.sdTintCtx(new Ctx(), { text: { '#363636': 'r', '#121212': 'b' } });
+  c.fillStyle = '#363636'; if (c.fillStyle !== '#363636') fail('text — 도형 채움색까지 바뀐다');
+  c.fillText('가'); c.fillStyle = '#121212'; c.fillText('나'); c.fillStyle = '#000000'; c.fillText('다');
+  if (c.log.join() !== '가:' + RED + ',나:' + BLUE + ',다:#000000') fail('text — 글자색이 맞게 바뀌지 않는다: ' + c.log.join());
+  c.fillStyle = '#363636'; c.fillText('라');
+  if (c.fillStyle !== '#363636') fail('text — 글자를 그린 뒤 채움색이 돌아오지 않는다');
+}
+{
+  const n = new Ctx();
+  if (tctx.sdTintCtx(n, null) !== n || Object.getOwnPropertyNames(n).indexOf('fillStyle') >= 0 || n.hasOwnProperty('fillText'))
+    fail('tint 가 없는 자료의 context 를 건드린다');
+}
+
+console.log(bad ? '실패 ' + bad + '건' : '자료 ' + SD.items.length + '개 이상 없음' + checked + ' · 원래 색');
 process.exit(bad ? 1 : 0);
