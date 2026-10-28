@@ -640,6 +640,27 @@ body.dmz-open{overflow:hidden}
 .n-flash{animation:nflash 1.8s ease}
 @keyframes nflash{0%,40%{background:var(--key-soft)}100%{background:transparent}}
 mark.n-hit{background:var(--key-soft);color:inherit;border-radius:2px;padding:0 1px}
+/* 원고 편집(관리자) — 단추 글자는 ::before 로 그려 형광펜 자리 계산(본문 글자)에 끼지 않게 한다 */
+.n-edit{margin-left:auto;align-self:center;flex:none;padding:3px 9px;border:1px solid var(--line);border-radius:7px;color:var(--muted);font-size:calc(12px * var(--fs));font-weight:500;line-height:1.4}
+.n-edit::before{content:"✎ 고치기"}
+.n-edit:hover{color:var(--accent);border-color:var(--accent)}
+.n-edit-intro{float:right;margin:0 0 6px 10px}
+.ned{position:fixed;inset:0;z-index:320;display:flex;flex-direction:column;background:var(--bg)}
+.ned-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--surface);flex-wrap:wrap}
+.ned-title{font-weight:650;font-size:calc(14.5px * var(--fs));min-width:0;flex:1 1 260px}
+.ned-title small{display:block;font-weight:400;color:var(--muted);font-family:var(--font-mono);font-size:calc(11.5px * var(--fs))}
+.ned-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:12px 16px}
+.ned-ta{width:100%;height:100%;resize:none;font-family:var(--font-mono);font-size:calc(13px * var(--fs));line-height:1.6;padding:12px 14px;border:1px solid var(--line-strong);border-radius:var(--radius);background:var(--surface);color:var(--ink);tab-size:2}
+.ned-pv{overflow:auto;min-height:0}
+.ned-foot{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--line);background:var(--surface);flex-wrap:wrap}
+.ned-foot input{flex:1 1 240px;min-width:0;padding:7px 10px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font-size:calc(13px * var(--fs))}
+.ned-msg{flex:1 1 100%;font-size:calc(12.5px * var(--fs));color:var(--muted);white-space:pre-wrap;max-height:7.5em;overflow:auto}
+.ned-msg.bad{color:var(--bad)}
+.ned-msg:empty{display:none}
+@media (max-width:900px){
+  .ned-body{grid-template-columns:1fr;grid-template-rows:minmax(220px,1fr) minmax(160px,.8fr);padding:10px 16px}
+  .ned-bar,.ned-foot{padding:8px 16px}
+}
 .note-pager{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
 .note-pager button{text-align:left;padding:12px 15px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);display:flex;flex-direction:column;gap:2px;min-width:0}
 .note-pager button:hover{border-color:var(--accent)}
@@ -2366,6 +2387,9 @@ function viewSettings(){
   /* ── 진도 동기화 ── */
   h += viewSyncCard();
 
+  /* ── 원고 편집 (관리자) ── */
+  h += viewAdminCard();
+
   /* ── 잠긴 문제은행 ── */
   h += viewLockCard();
 
@@ -2864,7 +2888,8 @@ function nk(ed, ch){ return (ed || curEd()) + "/" + ch; }
 var NOTE_FILES = {}, NOTES = {}, NOTE_WAIT = {}, NOTE_FAIL = {}, NOTE_OPEN = {};
 ((window.DAP_MANIFEST && window.DAP_MANIFEST.notes) || []).forEach(function(n){ if(n && n.ch && n.file) NOTE_FILES[nk(n.ed || "2020", n.ch)] = n.file; });
 /* 2013 판 데이터 파일은 머리에 ed:"2013" 이 있다. 없으면 2020 판이다 */
-window.DAP_NOTES = { add: function(b){ if(b && b.ch && b.chapters) NOTES[nk(b.ed || "2020", b.ch)] = b; } };
+/* 이 기기에서 방금 원고를 고쳐 올렸으면 Pages 가 따라올 때까지 그 빌드를 쓴다(원고 편집 · nedLocalGet) */
+window.DAP_NOTES = { add: function(b){ if(b && b.ch && b.chapters){ var k = nk(b.ed || "2020", b.ch); NOTES[k] = nedLocalGet(k) || b; } } };
 function hasNotes(ch, ed){ return !!NOTE_FILES[nk(ed, ch)]; }
 function noteBook(ch, ed){ return NOTES[nk(ed, ch)]; }
 function noteSubjects(){
@@ -3107,12 +3132,14 @@ function viewNotesHome(){
   return h + '</div>';
 }
 
-/* 절 본문 — 절 화면과 형광펜 모아보기(칠한 자리가 아직 있는지 보려고)가 함께 쓴다 */
-function noteDocHtml(Sx, b, E){
+/* 절 본문 — 절 화면과 형광펜 모아보기(칠한 자리가 아직 있는지 보려고)가 함께 쓴다.
+   edit 이면 머리말·항마다 [✎ 고치기](원고 편집, 관리자 토큰이 있는 기기에서만) */
+function noteDocHtml(Sx, b, E, edit){
   var H = { n:0 }, doc = "";
-  if(Sx.intro) doc += '<div class="note-intro">' + noteHtml(Sx.intro, b, H) + '</div>';
+  var eb = function(no){ return edit ? '<button class="n-edit'+(no ? '' : ' n-edit-intro')+'" data-act="nedit" data-no="'+no+'" title="이 '+(no ? '항' : '머리말')+'의 원고를 고칩니다"></button>' : ''; };
+  if(Sx.intro) doc += '<div class="note-intro">' + eb(0) + noteHtml(Sx.intro, b, H) + '</div>';
   Sx.items.forEach(function(it){
-    doc += '<section class="n-item" id="na-'+it.no+'"><h2 class="n-h3"><span class="n-no">'+it.no+'.</span><span>'+noteInline(it.title)+'</span></h2>'+
+    doc += '<section class="n-item" id="na-'+it.no+'"><h2 class="n-h3"><span class="n-no">'+it.no+'.</span><span>'+noteInline(it.title)+'</span>'+eb(it.no)+'</h2>'+
       (it.body ? noteHtml(it.body, b, H) : '<p class="n-empty">'+(E.id === "2013" ? '가이드' : '요약본')+'에 이 항의 본문이 없습니다.</p>') + '</section>';
   });
   return doc;
@@ -3146,7 +3173,7 @@ function viewNote(){
           (x.lv === 3 ? x.item + '. ' : '') + esc(x.t) + '</button>';
       }).join("") + '</nav>';
   }
-  var doc = noteDocHtml(Sx, b, E);
+  var doc = noteDocHtml(Sx, b, E, adminOn());
   h += '<details class="note-toc-m"><summary>이 절의 목차 · '+Sx.items.length+'항</summary>'+toc()+'</details>';
   h += '<div class="note-layout"><article class="note-doc">'+doc+'</article>'+toc()+'</div>';
 
@@ -3182,6 +3209,300 @@ function viewNote(){
     '</div>';
   return h;
 }
+
+/* ═══════════ 원고 편집 (관리자) ═══════════
+   절 화면의 [✎ 고치기] → 그 항(### 한 개, 또는 절 머리말)의 원고(tools/notes-src/…md)를 GitHub 에서 받아 고치고,
+   tools/notes-core.js(빌드 도구와 같은 코드)로 다시 빌드해 원고와 data/notes/…js 를 한 커밋으로 올린다.
+   - 관리자 = 이 저장소에 쓸 수 있는 토큰을 넣은 기기. 쓰기 권한은 GitHub 가 막으므로 앱이 따로 지키지 않는다.
+     토큰은 진도 동기화(gist)와 다른 키에 둔다 — 진도 파일로 새어 나가지 않고, gist 토큰에 저장소 권한을 주지 않아도 된다
+   - 장·절·항의 구조(# ## ### 줄)는 바꾸지 못한다. 항 제목·본문·서식만. 구조는 PC 에서 원고를 고쳐 빌드한다
+   - 그림은 이미 있는 것만 쓸 수 있다(크기를 이 기기에 읽힌 데이터에서 가져온다). 새 그림은 PC 에서
+   - 받아 온 뒤 main 이 움직였으면: 이 원고가 그대로일 때만 새 main 위에 다시 올린다. 바뀌었으면 덮어쓰지 않는다
+   - 올린 뒤 Pages 가 새 파일을 내주기까지 몇 분 걸린다. 그동안 이 기기에서는 새로 빌드한 것을 NED_LOCAL 에 두고 쓴다 */
+var ADMIN_KEY = "dap750:admin", ADMIN_REPO = "ikaros3/dap", ADMIN_BRANCH = "main";
+var NED_LOCAL = "dap750:nedLocal", NED_KEEP = 15 * 60000;
+var admin = (function(){ try{ var o = JSON.parse(localStorage.getItem(ADMIN_KEY) || "{}"); return { token:o.token||"", login:o.login||"" }; }catch(e){ return { token:"", login:"" }; } })();
+var adminMsg = "", ned = null, nedTap = null;
+function saveAdmin(){ try{ localStorage.setItem(ADMIN_KEY, JSON.stringify(admin)); }catch(e){} }
+function adminOn(){ return !!admin.token; }
+function adminReq(method, path, body, ok, err, token){
+  var x = new XMLHttpRequest();
+  /* GET 은 브라우저가 60초 동안 캐시한다 — 방금 올린 뒤 다시 열면 옛 판을 받으므로 매번 주소를 바꾼다 */
+  x.open(method, "https://api.github.com/repos/" + ADMIN_REPO + path + (method === "GET" ? (path.indexOf("?") < 0 ? "?" : "&") + "_=" + Date.now() : ""), true);
+  x.setRequestHeader("Accept", "application/vnd.github+json");
+  x.setRequestHeader("Authorization", "Bearer " + (token || admin.token));
+  if(body) x.setRequestHeader("Content-Type", "application/json");
+  x.onload = function(){
+    var st = x.status;
+    if(st >= 200 && st < 300){
+      var j = null;
+      try{ j = JSON.parse(x.responseText || "{}"); }catch(e){ err("응답을 해석하지 못했습니다", st); return; }
+      ok(j);
+    }
+    else if(st === 401) err("토큰이 거부되었습니다 (401) · 만료되었거나 잘못 넣었습니다", st);
+    else if(st === 403) err("권한이 없습니다 (403) · 토큰에 " + ADMIN_REPO + " 의 Contents 쓰기 권한이 있는지 확인하세요", st);
+    else if(st === 404) err("저장소나 파일을 찾을 수 없습니다 (404) · 토큰이 " + ADMIN_REPO + " 를 볼 수 있는지 확인하세요", st);
+    else if(st === 409 || st === 422) err("저장소가 그사이 바뀌었습니다 (" + st + ")", st);
+    else err("GitHub 오류 " + st, st);
+  };
+  x.onerror = function(){ err("네트워크에 연결하지 못했습니다", 0); };
+  x.send(body ? JSON.stringify(body) : null);
+}
+function b64utf8(s){
+  var bin = atob(String(s).replace(/\s/g, "")), u = new Uint8Array(bin.length);
+  for(var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return new TextDecoder("utf-8").decode(u);
+}
+/* 올린 뒤 Pages 가 따라오기 전까지 이 기기에서 쓸 새 빌드. DAP_NOTES.add 가 옛 파일 대신 이것을 넣는다 */
+function nedLocalAll(){ try{ return JSON.parse(localStorage.getItem(NED_LOCAL)) || {}; }catch(e){ return {}; } }
+function nedLocalGet(k){ var o = nedLocalAll()[k]; return o && Date.now() - o.t < NED_KEEP ? o.book : null; }
+function nedLocalPut(k, book){
+  var o = nedLocalAll();
+  Object.keys(o).forEach(function(x){ if(Date.now() - o[x].t >= NED_KEEP) delete o[x]; });
+  o[k] = { t:Date.now(), book:book };
+  try{ localStorage.setItem(NED_LOCAL, JSON.stringify(o)); }catch(e){}
+}
+
+/* 설정 화면의 카드 */
+function viewAdminCard(){
+  var h = '<div class="card pad" style="margin-bottom:16px">'+
+    '<h3 style="font-size:calc(14.5px * var(--fs));margin-bottom:4px">원고 편집 (관리자) '+
+      (adminOn() ? '<span class="chip chip-ok">켜짐</span>' : '<span class="chip">꺼짐</span>')+'</h3>'+
+    '<p class="note" style="margin-bottom:12px">켜 두면 2020·2013 Edition 절 화면의 항마다 [✎ 고치기]가 생깁니다. 고친 원고는 다시 빌드되어 저장소 <span class="mono">'+ADMIN_REPO+'</span> 에 바로 커밋됩니다.</p>';
+  if(adminOn()){
+    h += (admin.login ? '<p class="note">GitHub 계정: <span class="mono">'+esc(admin.login)+'</span></p>' : '')+
+      '<p class="note" id="adminMsg" style="margin-top:6px;min-height:1.2em">'+esc(adminMsg)+'</p>'+
+      '<div class="btn-row" style="margin-top:12px"><button class="btn" data-act="adminunlink">끄기 (토큰 지우기)</button></div>'+
+      '<p class="note" style="margin-top:12px">PC 에서 원고를 고치기 전에는 <span class="mono">git pull</span> 로 앱에서 올린 커밋을 먼저 받으세요.</p>';
+  }else{
+    h += '<label class="field">GitHub 토큰 (이 저장소의 Contents 읽기·쓰기)'+
+        '<input type="password" id="adminTok" placeholder="github_pat_..." autocomplete="off" spellcheck="false"></label>'+
+      '<p class="note" id="adminMsg" style="margin-top:8px;min-height:1.2em">'+esc(adminMsg)+'</p>'+
+      '<div class="btn-row" style="margin-top:12px"><button class="btn btn-primary" data-act="adminlink">켜기</button></div>'+
+      '<p class="note" style="margin-top:12px"><strong>토큰 만들기</strong> — <span class="mono">github.com/settings/personal-access-tokens</span> 에서 fine-grained 토큰을 만들고, Repository access 는 <span class="mono">'+ADMIN_REPO+'</span> 하나만, Permissions 는 <span class="mono">Contents: Read and write</span> 하나만 주세요. 진도 동기화의 gist 토큰과는 따로 만듭니다.</p>'+
+      '<p class="note" style="margin-top:6px">토큰은 이 브라우저에만 저장됩니다. 토큰이 없는 기기·사람에게는 고치기 단추가 보이지 않고, 억지로 보내도 GitHub 가 받지 않습니다. 공용 PC 에서는 켜지 마세요.</p>';
+  }
+  return h + '</div>';
+}
+function adminLink(){
+  var tok = (($("#adminTok") || {}).value || "").trim();
+  var msg = function(m){ adminMsg = m; var el = $("#adminMsg"); if(el) el.textContent = m; };
+  if(!tok){ msg("토큰을 넣으세요"); return; }
+  msg("확인하는 중…");
+  adminReq("GET", "", null, function(j){
+    if(!(j.permissions && j.permissions.push)){ msg("이 토큰의 계정은 " + ADMIN_REPO + " 에 쓸 수 없습니다"); return; }
+    admin = { token:tok, login:(j.owner && j.owner.login) || "" };
+    saveAdmin(); adminMsg = "";
+    render(); toast("원고 편집을 켰습니다 · 쓰기 권한은 첫 저장 때 확인됩니다");
+  }, function(m){ msg("실패: " + m); }, tok);
+}
+function adminUnlink(){
+  if(ned) return;
+  if(!confirm("이 브라우저에 저장된 원고 편집 토큰을 지웁니다.")) return;
+  admin = { token:"", login:"" }; saveAdmin();
+  render(); toast("원고 편집을 껐습니다");
+}
+
+/* 본문에서 마지막으로 누른 줄 — [✎ 고치기]를 열면 입력칸의 커서를 그 줄에 둔다 */
+document.addEventListener("pointerdown", function(e){
+  var doc = view.name === "note" && e.target.closest && e.target.closest(".note-doc");
+  if(!doc || doc !== $(".note-doc") || e.target.closest(".n-edit")) return;
+  var blk = e.target.closest("li,p,td,th,h4,h5,.n-tip,.n-cap,h2"), sec = e.target.closest(".n-item");
+  if(!blk) return;
+  var c = blk.cloneNode(true);
+  [].forEach.call(c.querySelectorAll("ul,ol," + HL_SKIP), function(x){ x.remove(); });
+  nedTap = { no: sec ? +sec.id.slice(3) : 0, text: c.textContent };
+}, true);
+/* 누른 줄의 글자로 원고 줄을 찾는다. 표기(**, {r} …)와 글머리·표 기호, 공백을 빼고 비교 */
+function nedLineOf(lines, text){
+  var plain = function(s){ return String(s).replace(NOTE_TAG, "").replace(/^#+ |^\s*- |^[|‖] |^> /, "").replace(/ \| |¶|<<|\^\^|\s+/g, ""); };
+  var key = String(text || "").replace(/\s+/g, "");
+  for(var n = 16; n >= 6; n -= 5){
+    var k = key.slice(0, n);
+    if(!k) return -1;
+    for(var i = 0; i < lines.length; i++) if(plain(lines[i]).indexOf(k) >= 0) return i;
+  }
+  return -1;
+}
+
+function nedCore(ok){
+  if(window.DAP_NOTES_CORE) return ok();
+  var el = document.createElement("script");
+  el.src = "tools/notes-core.js"; el.charset = "UTF-8";
+  el.onload = function(){ if(window.DAP_NOTES_CORE) ok(); };
+  el.onerror = function(){ toast("원고 변환 모듈을 불러오지 못했습니다 · tools/notes-core.js"); };
+  document.head.appendChild(el);
+}
+function nedOpen(no){
+  if(ned || !adminOn()) return;
+  var ch = view.ch, c = view.c, s = view.s, ed = curEd(), book = noteBook(ch, ed);
+  if(!book) return;
+  var tap = nedTap && nedTap.no === no ? nedTap.text : "";
+  nedCore(function(){
+    var core = window.DAP_NOTES_CORE, mdPath = "tools/notes-src/" + core.srcRel(ch, ed);
+    ned = { ch:ch, c:c, s:s, no:no, ed:ed, mdPath:mdPath, jsPath:"data/notes/" + core.outRel(ch, ed), images:book.images || {}, busy:true };
+    nedShow();
+    nedMsg("GitHub 에서 원고를 받는 중…");
+    var fail = function(m){ if(!ned) return; ned.busy = false; nedMsg("원고를 받지 못했습니다 · " + m, true); nedSync(); };
+    adminReq("GET", "/git/ref/heads/" + ADMIN_BRANCH, null, function(rf){
+      adminReq("GET", "/contents/" + mdPath + "?ref=" + rf.object.sha, null, function(f){
+        if(!ned) return;
+        var text = b64utf8(f.content).replace(/\r/g, ""), r = core.itemRange(text, c, s, no);
+        if(!r){ fail("원고에서 " + c + "장 " + s + "절 " + (no ? no + "항" : "머리말") + "을 찾지 못했습니다"); return; }
+        var lines = text.split("\n");
+        ned.head = rf.object.sha; ned.mdSha = f.sha; ned.text = text; ned.range = r;
+        ned.orig = lines.slice(r.from, r.to).join("\n");
+        ned.busy = false;
+        var ta = $("#nedTa");
+        ta.value = ned.orig;
+        nedMsg("");
+        nedCheck();
+        var at = tap ? nedLineOf(lines.slice(r.from, r.to), tap) : -1;
+        nedCaret(ta, at < 0 ? 0 : at);
+      }, fail);
+    }, fail);
+  });
+}
+/* 커서를 n째 줄 앞에 두고 그 줄이 입력칸 위쪽 1/3 쯤에 오게 스크롤한다. 줄이 접혀 보이므로 높이는 앞부분만 넣어 잰다 */
+function nedCaret(ta, n){
+  var v = ta.value, pos = v.split("\n").slice(0, n).join("\n").length + (n ? 1 : 0);
+  ta.focus();
+  ta.value = v.slice(0, pos); ta.scrollTop = 1e9;
+  var y = ta.scrollTop ? ta.scrollTop + ta.clientHeight : 0;
+  ta.value = v;
+  ta.setSelectionRange(pos, pos);
+  ta.scrollTop = Math.max(0, y - ta.clientHeight / 3);
+}
+function nedShow(){
+  var E = noteEd(ned.ed), b = noteBook(ned.ch, ned.ed), here = noteFind(ned.ch, ned.c, ned.s, ned.ed);
+  var it = ned.no && here ? here.S.items.filter(function(x){ return x.no === ned.no; })[0] : null;
+  var el = document.createElement("div");
+  el.className = "ned"; el.id = "ned";
+  el.innerHTML = '<div class="ned-bar"><div class="ned-title">'+esc(E.title)+' · '+ROMAN[ned.ch]+'. '+esc(b.title)+' › '+ned.c+'장 '+ned.s+'절 › '+
+      (it ? ned.no+'. '+esc(it.title) : '절 머리말')+'<small>'+esc(ned.mdPath)+'</small></div>'+
+      '<button class="btn btn-sm" data-ned="close">닫기</button></div>'+
+    '<div class="ned-body"><textarea class="ned-ta" id="nedTa" spellcheck="false" aria-label="원고"></textarea>'+
+      '<div class="ned-pv"><article class="note-doc" id="nedPv"></article></div></div>'+
+    '<div class="ned-foot"><div class="ned-msg" id="nedMsg"></div>'+
+      '<input type="text" id="nedWhy" placeholder="고친 까닭 (커밋 메시지에 붙습니다 · 비워도 됨)" autocomplete="off">'+
+      '<button class="btn" data-ned="reset">되돌리기</button>'+
+      '<button class="btn btn-primary" data-ned="save" title="Ctrl+S">저장 · 커밋</button></div>';
+  document.body.appendChild(el);
+  var t = null, ta = $("#nedTa");
+  ta.addEventListener("input", function(){ clearTimeout(t); t = setTimeout(nedCheck, 250); });
+  /* Tab 은 두 칸 들여쓰기(글머리 한 단계) */
+  ta.addEventListener("keydown", function(e){
+    if(e.key !== "Tab" || e.ctrlKey || e.altKey || e.metaKey) return;
+    e.preventDefault();
+    var a = ta.selectionStart, v = ta.value, ls = v.lastIndexOf("\n", a - 1) + 1;
+    if(e.shiftKey){ if(v.slice(ls, ls + 2) === "  "){ ta.value = v.slice(0, ls) + v.slice(ls + 2); ta.setSelectionRange(Math.max(ls, a - 2), Math.max(ls, a - 2)); } }
+    else{ ta.value = v.slice(0, ls) + "  " + v.slice(ls); ta.setSelectionRange(a + 2, a + 2); }
+    nedCheck();
+  });
+  el.addEventListener("click", function(e){
+    var b = e.target.closest("[data-ned]"), k = b && b.getAttribute("data-ned");
+    if(k === "close") nedClose();
+    else if(k === "save") nedSave();
+    else if(k === "reset" && ned && ned.orig !== undefined && ta.value !== ned.orig && confirm("고친 내용을 버리고 받아 온 원고로 되돌릴까요?")){ ta.value = ned.orig; nedCheck(); }
+  });
+  nedSync();
+}
+function nedMsg(m, bad){ var el = $("#nedMsg"); if(el){ el.textContent = m || ""; el.className = "ned-msg" + (bad ? " bad" : ""); } }
+function nedSync(){
+  var sv = $('[data-ned="save"]'), ta = $("#nedTa");
+  if(ta) ta.readOnly = !ned || ned.busy || ned.text === undefined;
+  if(sv) sv.disabled = !ned || ned.busy || !ned.dirty || !ned.ok;
+}
+/* 입력칸 → 원고 전체에 끼워 다시 빌드. 구조(# ## ###)를 건드렸거나 빌드 오류가 있으면 저장하지 않는다 */
+function nedCheck(){
+  if(!ned || ned.text === undefined) return null;
+  var core = window.DAP_NOTES_CORE, val = $("#nedTa").value.replace(/\r/g, ""), errs = [], m;
+  var lines = val.split("\n");
+  lines.forEach(function(L, i){
+    if(!/^#{1,3} /.test(L)) return;
+    if(i === 0 && ned.no && (m = /^### (\d+)\.\s*\S/.exec(L)) && +m[1] === ned.no) return;
+    errs.push((i + 1) + "째 줄: 장·절·항 제목(# ## ###)은 여기서 더하거나 바꿀 수 없습니다 — " + L.slice(0, 30));
+  });
+  if(ned.no && !/^### (\d+)\.\s*\S/.test(lines[0] || "")) errs.unshift("첫 줄은 항 제목이어야 합니다 — ### " + ned.no + ". 제목");
+  var text = core.splice(ned.text, ned.range, val), r = null;
+  if(!errs.length){
+    var imgs = ned.images;
+    r = core.build(text, { ch:ned.ch, ed:ned.ed, img:function(k){ return imgs[k] || null; } });
+    errs = r.errs.map(function(e){ return /그림 파일 없음/.test(e) ? e + " (새 그림은 PC 에서 더합니다)" : e; });
+  }
+  ned.dirty = val !== ned.orig;
+  ned.ok = !errs.length;
+  ned.built = r && !errs.length ? { text:text, book:r.book } : null;
+  var pv = $("#nedPv");
+  if(r && !errs.length){
+    var C = r.book.chapters.filter(function(x){ return x.no === ned.c; })[0];
+    var Sx = C && C.sections.filter(function(x){ return x.no === ned.s; })[0];
+    var it = Sx && (ned.no ? Sx.items.filter(function(x){ return x.no === ned.no; })[0] : { body:Sx.intro });
+    var H = { n:0 };
+    pv.innerHTML = !it ? '' : ned.no
+      ? '<section class="n-item"><h2 class="n-h3"><span class="n-no">'+it.no+'.</span><span>'+noteInline(it.title)+'</span></h2>'+
+          (it.body ? noteHtml(it.body, r.book, H) : '<p class="n-empty">본문이 없습니다.</p>')+'</section>'
+      : (it.body ? '<div class="note-intro">' + noteHtml(it.body, r.book, H) + '</div>' : '<p class="n-empty">머리말이 없습니다.</p>');
+  }
+  nedMsg(errs.length ? errs.slice(0, 6).join("\n") + (errs.length > 6 ? "\n… 외 " + (errs.length - 6) + "건" : "") : "", !!errs.length);
+  nedSync();
+  return ned.built;
+}
+function nedClose(force){
+  if(!ned || (ned.busy && !force)) return;
+  if(!force && ned.dirty && !confirm("고친 내용을 저장하지 않고 닫을까요?")) return;
+  ned = null;
+  var el = $("#ned"); if(el) el.remove();
+}
+/* 원고와 빌드 결과를 한 커밋으로. ref 를 force 없이 옮기므로 그사이 main 이 움직였으면 422 로 거절된다 */
+function nedCommit(head, files, message, ok, err){
+  adminReq("GET", "/git/commits/" + head, null, function(cm){
+    adminReq("POST", "/git/trees", { base_tree:cm.tree.sha, tree:files.map(function(f){ return { path:f.path, mode:"100644", type:"blob", content:f.content }; }) }, function(tr){
+      adminReq("POST", "/git/commits", { message:message, tree:tr.sha, parents:[head] }, function(nc){
+        adminReq("PATCH", "/git/refs/heads/" + ADMIN_BRANCH, { sha:nc.sha, force:false }, function(){ ok(nc.sha); }, err);
+      }, err);
+    }, err);
+  }, err);
+}
+function nedSave(){
+  if(!ned || ned.busy || !ned.dirty) return;
+  var built = nedCheck();
+  if(!built) return;
+  var core = window.DAP_NOTES_CORE, x = ned, E = noteEd(x.ed), b = built.book;
+  var C = b.chapters.filter(function(c){ return c.no === x.c; })[0], Sx = C.sections.filter(function(s){ return s.no === x.s; })[0];
+  var it = x.no ? Sx.items.filter(function(i){ return i.no === x.no; })[0] : null;
+  var why = ($("#nedWhy").value || "").trim();
+  var msg = E.title + " " + ROMAN[x.ch] + ". " + b.title + " · " + x.c + "장 " + x.s + "절 " + (it ? x.no + ". " + it.title.replace(NOTE_TAG, "") : "머리말") +
+            " 원고를 고침" + (why ? " — " + why : "") + "\n\n앱의 원고 편집(설정 › 원고 편집)으로 고치고 tools/notes-core.js 로 다시 빌드함";
+  var files = [{ path:x.mdPath, content:built.text }, { path:x.jsPath, content:core.fileText(b) }];
+  x.busy = true; nedSync(); nedMsg("커밋하는 중…");
+  var fail = function(m){ if(ned !== x) return; x.busy = false; nedMsg("저장하지 못했습니다 · " + m, true); nedSync(); };
+  var done = function(sha){
+    var k = nk(x.ed, x.ch);
+    NOTES[k] = b; nedLocalPut(k, b);
+    nedClose(true);
+    render();
+    toast("커밋했습니다 (" + sha.slice(0, 7) + ") · 다른 기기에는 몇 분 뒤 보입니다");
+  };
+  (function attempt(head, again){
+    nedCommit(head, files, msg, done, function(m, st){
+      if((st !== 409 && st !== 422) || again) return fail(m);
+      /* main 이 움직였다 — 이 원고가 그대로면 새 main 위에 다시 올린다 */
+      adminReq("GET", "/git/ref/heads/" + ADMIN_BRANCH, null, function(rf){
+        adminReq("GET", "/contents/" + x.mdPath + "?ref=" + rf.object.sha, null, function(f){
+          if(f.sha !== x.mdSha) return fail("받아 온 뒤 다른 곳에서 이 원고가 바뀌었습니다. 고친 글을 복사해 두고 닫았다가 다시 여세요");
+          attempt(rf.object.sha, true);
+        }, fail);
+      }, fail);
+    });
+  })(x.head, false);
+}
+document.addEventListener("keydown", function(e){
+  if(!ned) return;
+  if(e.key === "Escape"){ e.preventDefault(); e.stopPropagation(); nedClose(); }
+  else if((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")){ e.preventDefault(); nedSave(); }
+}, true);
+window.addEventListener("beforeunload", function(e){ if(ned && ned.dirty){ e.preventDefault(); e.returnValue = ""; } });
 
 function viewNoteSearch(){
   var E = noteEd(), subs = noteSubjects().map(function(c){ return c.id; }).filter(function(ch){ return hasNotes(ch); });
@@ -5303,6 +5624,9 @@ document.addEventListener("click", function(ev){
     case "forgetpw":   forgetPw(t.getAttribute("data-id")); break;
     case "syncnow":    syncNow(false); break;
     case "synclink":   syncLink(); break;
+    case "adminlink":  adminLink(); break;
+    case "adminunlink": adminUnlink(); break;
+    case "nedit":      nedOpen(+t.getAttribute("data-no")); break;
     case "syncunlink": syncUnlink(); break;
     case "import": { var fi = $("#fileIn"); if(fi){ fi.value=""; fi.click(); } break; }
     case "wipe":

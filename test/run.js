@@ -21,6 +21,7 @@ const SUITES = [
   ['올리는 중 변경',           'test/sync-upload-window.js'],
   ['받아오는 중 변경',         'test/sync-read-window.js'],
   ['내용정리',                 'test/notes.js'],
+  ['내용정리 변환·원고 범위',  'test/notes-core.js'],
   ['형광펜',                   'test/highlight.js'],
   ['실기',                     'test/dm.js'],
   ['동영상 강의',              'test/video.js'],
