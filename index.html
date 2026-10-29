@@ -506,6 +506,13 @@ textarea.dmw-in{resize:vertical;min-height:2.6em}
 .sd-viewer.sd-pdf{display:flex;flex-direction:column;background:#26292c;border-color:#26292c}
 .sd-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y}
 .sd-stage canvas{display:block;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.45)}
+/* 확대 — 쪽이 무대보다 커지면 sd-scroll 을 스크롤하거나 끌어서 옮긴다(margin:auto 라 작을 때는 가운데, 클 때는 처음부터 스크롤된다) */
+.sd-scroll{position:absolute;inset:0;display:flex;overflow:auto;padding:12px;touch-action:pan-y}
+.sd-zoom .sd-scroll{touch-action:pan-x pan-y;cursor:grab}
+.sd-zoom .sd-scroll.sd-grab{cursor:grabbing}
+.sd-zoom .sd-nav{display:none}
+.sd-zm{display:flex;align-items:center;gap:2px;flex:none}
+.sd-bb.sd-zp{min-width:48px;padding:0 4px;font-size:calc(12px * var(--fs));font-family:var(--font-mono)}
 .sd-msg{position:absolute;color:#c9cdd1;font-size:calc(13px * var(--fs))}
 .sd-nav{position:absolute;top:0;bottom:0;width:14%;min-width:44px;display:flex;align-items:center;font-size:44px;color:#fff;opacity:0;transition:opacity .15s}
 .sd-prev{left:0;justify-content:flex-start;padding-left:14px;background:linear-gradient(90deg,rgba(0,0,0,.28),transparent)}
@@ -524,7 +531,7 @@ textarea.dmw-in{resize:vertical;min-height:2.6em}
 .sd-viewer:fullscreen{height:100vh;aspect-ratio:auto}
 /* 슬라이드 형광펜 — 쪽(sd-page) 위 층(sd-hl)에 비율(%)로 놓은 네모. 평소엔 칠한 곳만 눌리고 나머지는 아래의 넘김 단추로 지나간다.
    슬라이드 바탕은 늘 흰색이라 테마와 상관없이 같은 색을 곱하기(multiply)로 얹는다 — 글자가 진하게 그대로 보인다 */
-.sd-page{position:relative;z-index:2;flex:none;pointer-events:none}
+.sd-page{position:relative;z-index:2;flex:none;margin:auto;pointer-events:none}
 .sd-hl{position:absolute;inset:0}
 .sd-pen .sd-hl{pointer-events:auto;cursor:crosshair;touch-action:none}
 .sd-pen .sd-nav{display:none}
@@ -5033,7 +5040,7 @@ function sdTop(it){
 /* 로컬 — 한 쪽을 무대(sd-stage)에 꽉 차게 그리고 아래 막대에서 넘긴다. 드라이브 — 미리보기 iframe(스크롤) */
 function sdViewer(it){
   if(sdLocal(it)) return '<div class="sd-viewer sd-pdf'+(sdPen ? ' sd-pen' : '')+(S.settings.hlHide ? ' sd-hide' : '')+'" data-drive="'+esc(it.drive)+'" data-mode="local">'+
-    '<div class="sd-stage"><div class="sd-page"><canvas aria-label="'+esc(it.title)+' 슬라이드"></canvas><div class="sd-hl"></div></div>'+
+    '<div class="sd-stage"><div class="sd-scroll"><div class="sd-page"><canvas aria-label="'+esc(it.title)+' 슬라이드"></canvas><div class="sd-hl"></div></div></div>'+
     '<div class="sd-msg">슬라이드를 여는 중…</div>'+
     '<button class="sd-nav sd-prev" data-act="sdprev" aria-label="이전 쪽">‹</button>'+
     '<button class="sd-nav sd-next" data-act="sdnext" aria-label="다음 쪽">›</button></div>'+
@@ -5047,6 +5054,9 @@ function sdViewer(it){
     '<span class="sd-pg"><button class="sd-bb" data-act="sdprev" aria-label="이전 쪽">‹</button>'+
     '<input class="sd-pin" type="number" min="1" max="'+it.pages+'" value="'+(view.p || 1)+'" aria-label="쪽 번호">'+
     '<span class="sd-of">/ '+it.pages+'</span><button class="sd-bb" data-act="sdnext" aria-label="다음 쪽">›</button></span>'+
+    '<span class="sd-zm"><button class="sd-bb" data-act="sdzout" title="축소 (-)" aria-label="축소">−</button>'+
+    '<button class="sd-bb sd-zp" data-act="sdzfit" title="화면에 맞춤 (0)">'+sdZoomTxt()+'</button>'+
+    '<button class="sd-bb" data-act="sdzin" title="확대 (+) · Ctrl+휠로도 됩니다" aria-label="확대">+</button></span>'+
     '<button class="sd-bb sd-fs" data-act="sdfull" title="전체 화면" aria-label="전체 화면">⛶</button></div></div>';
   return '<div class="sd-viewer" data-drive="'+esc(it.drive)+'" data-mode="drive"><iframe src="'+vdUrl(it.drive, true)+'" title="'+esc(it.title)+'" '+
     'allow="fullscreen" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
@@ -5076,6 +5086,7 @@ function sdBot(it){
         '<button class="btn btn-sm" data-go="chapter" data-ch="'+c+'">'+ROMAN[c]+'과목 문제 풀기</button>';
     }).join("")+'</div>'+
     (loc ? '<p class="note vd-hint">← → 키 · 마우스 휠 · 좌우로 밀기 · 화면 양옆을 눌러 넘깁니다. 자료마다 마지막으로 본 쪽을 이 기기에 기억합니다. '+
+      '[+]·[−] · + − 키 · Ctrl+휠로 확대·축소하고, 확대한 쪽은 끌거나 휠로 옮깁니다([맞춤]·0 키로 되돌림). '+
       '[✎ 형광펜]을 켜고 슬라이드 위를 끌면 칠해집니다 — 옆으로 그으면 한 줄, 비스듬히 끌면 네모. 칠한 곳을 누르면 색·메모를 고칩니다.</p>' :
     '<p class="note vd-hint">보이지 않으면 이 브라우저에서 PDF 를 올린 구글 계정으로 로그인했는지 확인하세요. '+
     '사파리처럼 다른 사이트 쿠키를 막는 브라우저에서는 [드라이브에서 열기]로 보면 됩니다.</p>');
@@ -5112,6 +5123,12 @@ function sdPatch(m){
 var PDFJS = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/";
 var SD_POS = "dap750:sdpos", SD_LIBFAIL = false;
 var sdLibP = null, sdDoc = null, sdLoading = "", sdSeq = 0, sdDrawing = null, sdWheelAt = 0, sdTouchX = null, sdResizeT = 0;
+/* 확대 — sdZoom 은 무대에 맞춘 크기의 몇 배인가(1 = 맞춤). 쪽을 넘겨도 그대로 두고, 다른 자료를 열면 맞춤으로 돌아간다(저장하지 않는다).
+   확대하면 휠·밀기는 쪽 넘김 대신 스크롤이 되고, 마우스로 끌어 옮긴다. Ctrl+휠(터치패드 오므리기)은 가리킨 자리를 두고 확대·축소.
+   canvas 는 SD_PX 픽셀까지만 그린다 — 크게 확대해도 메모리가 넘치지 않게(넘으면 조금 흐려진다) */
+var SD_ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4], SD_PX = 16e6;
+var sdZoom = 1, sdZoomAt = null, sdZoomWheelAt = 0;
+function sdZoomTxt(){ return sdZoom === 1 ? "맞춤" : Math.round(sdZoom * 100) + "%"; }
 function sdPosAll(){ try{ return JSON.parse(localStorage.getItem(SD_POS)) || {}; }catch(e){ return {}; } }
 function sdPosSet(id, p){
   var o = sdPosAll();
@@ -5167,6 +5184,7 @@ function sdAttach(){
   if(sdLoading === it.id) return;
   if(sdDoc){ sdDoc.pdf.destroy(); sdDoc = null; }
   sdLoading = it.id;
+  sdZoom = 1; sdZoomAt = null;
   var want = it.id;
   vdFileOf(it).then(function(f){ return f.arrayBuffer(); }).then(function(buf){
     return sdLib().then(function(lib){
@@ -5203,13 +5221,29 @@ function sdShow(){
   box.querySelector(".sd-of").textContent = "/ " + n;
   [].forEach.call(box.querySelectorAll('[data-act="sdprev"]'), function(b){ b.disabled = p <= 1; });
   [].forEach.call(box.querySelectorAll('[data-act="sdnext"]'), function(b){ b.disabled = p >= n; });
-  var stage = box.querySelector(".sd-stage"), cv = box.querySelector("canvas"), msg = box.querySelector(".sd-msg"), seq = ++sdSeq;
+  box.classList.toggle("sd-zoom", sdZoom > 1);
+  var zp = box.querySelector(".sd-zp");
+  if(zp) zp.textContent = sdZoomTxt();
+  box.querySelector('[data-act="sdzout"]').disabled = sdZoom <= SD_ZOOMS[0];
+  box.querySelector('[data-act="sdzin"]').disabled = sdZoom >= SD_ZOOMS[SD_ZOOMS.length - 1];
+  var stage = box.querySelector(".sd-stage"), sc = box.querySelector(".sd-scroll"), cv = box.querySelector("canvas"),
+      msg = box.querySelector(".sd-msg"), seq = ++sdSeq;
   sdDrawStop();
   sdDoc.pdf.getPage(p).then(function(pg){
     if(seq !== sdSeq) return;
     var v1 = pg.getViewport({ scale:1 }), pad = 12,
-        s = Math.max(0.05, Math.min((stage.clientWidth - pad*2) / v1.width, (stage.clientHeight - pad*2) / v1.height)),
-        dpr = window.devicePixelRatio || 1, vp = pg.getViewport({ scale:s * dpr });
+        s = Math.max(0.05, Math.min((stage.clientWidth - pad*2) / v1.width, (stage.clientHeight - pad*2) / v1.height)) * sdZoom,
+        cw = Math.floor(v1.width * s), ch = Math.floor(v1.height * s),
+        r = Math.min(s * (window.devicePixelRatio || 1), Math.sqrt(SD_PX / (v1.width * v1.height))), vp = pg.getViewport({ scale:r });
+    /* 같은 쪽을 확대·축소할 때는 지금 그림을 먼저 늘려 놓고 가리킨 자리가 그대로 있게 스크롤한 뒤, 선명하게 다시 그린다 */
+    var at = sdZoomAt;
+    sdZoomAt = null;
+    if(at && +cv.getAttribute("data-p") === p){
+      cv.style.width = cw + "px"; cv.style.height = ch + "px";
+      var b = sc.getBoundingClientRect(), pb = cv.getBoundingClientRect();
+      sc.scrollLeft += pb.left + at.fx * pb.width - (b.left + at.x);
+      sc.scrollTop += pb.top + at.fy * pb.height - (b.top + at.y);
+    }
     if(sdDrawing) sdDrawing.cancel();
     var off = document.createElement("canvas");
     off.width = Math.floor(vp.width); off.height = Math.floor(vp.height);
@@ -5218,10 +5252,12 @@ function sdShow(){
     task.promise.then(function(){
       if(sdDrawing === task) sdDrawing = null;
       if(seq !== sdSeq || !cv.isConnected) return;
+      var turned = +cv.getAttribute("data-p") !== p;
       cv.width = off.width; cv.height = off.height;
-      cv.style.width = Math.floor(vp.width / dpr) + "px"; cv.style.height = Math.floor(vp.height / dpr) + "px";
+      cv.style.width = cw + "px"; cv.style.height = ch + "px";
       cv.getContext("2d").drawImage(off, 0, 0);
       cv.setAttribute("data-p", p);
+      if(turned){ sc.scrollTop = 0; sc.scrollLeft = (sc.scrollWidth - sc.clientWidth) / 2; }   /* 새 쪽은 위 가운데부터 */
       sdHlPaint(box);
       if(msg) msg.hidden = true;
     }, function(){});
@@ -5240,13 +5276,35 @@ function sdStep(d){
   var p = (view.p || 1) + d;
   if(p >= 1 && p <= sdDoc.pdf.numPages) sdGo(p);
 }
-/* 무대의 휠·밀기. 휠은 한 번 돌릴 때 한 쪽만 넘기도록 잠깐 쉰다 */
+/* 배율을 한 칸(d) 옮긴다. cx·cy = 그대로 둘 화면 위 자리(없으면 무대 가운데) */
+function sdZoomStep(d, cx, cy){
+  var i = SD_ZOOMS.indexOf(sdZoom);
+  sdZoomSet(SD_ZOOMS[Math.min(SD_ZOOMS.length - 1, Math.max(0, (i < 0 ? 2 : i) + d))], cx, cy);
+}
+function sdZoomSet(z, cx, cy){
+  var box = sdBox();
+  if(!box || z === sdZoom || !sdDoc || sdDoc.id !== view.id) return;
+  var sc = box.querySelector(".sd-scroll"), b = sc.getBoundingClientRect(), pb = box.querySelector("canvas").getBoundingClientRect();
+  if(cx == null){ cx = b.left + sc.clientWidth / 2; cy = b.top + sc.clientHeight / 2; }
+  sdZoomAt = pb.width ? { fx:(cx - pb.left) / pb.width, fy:(cy - pb.top) / pb.height, x:cx - b.left, y:cy - b.top } : null;
+  sdZoom = z;
+  sdShow();
+}
+/* 무대의 휠·밀기. 휠은 한 번 돌릴 때 한 쪽만 넘기도록 잠깐 쉰다. 확대 중에는 휠·밀기가 스크롤이고, 마우스로 끌어 옮긴다 */
 function sdWire(box){
   if(box.getAttribute("data-wired")) return;
   box.setAttribute("data-wired", "1");
   var st = box.querySelector(".sd-stage");
   st.addEventListener("wheel", function(e){
-    if(e.ctrlKey || Math.abs(e.deltaY) < 4) return;
+    if(e.ctrlKey){
+      e.preventDefault();
+      var zt = Date.now();
+      if(zt - sdZoomWheelAt < 120 || !e.deltaY) return;
+      sdZoomWheelAt = zt;
+      sdZoomStep(e.deltaY < 0 ? 1 : -1, e.clientX, e.clientY);
+      return;
+    }
+    if(sdZoom > 1 || Math.abs(e.deltaY) < 4) return;
     e.preventDefault();
     var now = Date.now();
     if(now - sdWheelAt < 350) return;
@@ -5255,11 +5313,27 @@ function sdWire(box){
   }, { passive:false });
   st.addEventListener("touchstart", function(e){ sdTouchX = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive:true });
   st.addEventListener("touchend", function(e){
-    if(sdTouchX === null || sdPen){ sdTouchX = null; return; }
+    if(sdTouchX === null || sdPen || sdZoom > 1){ sdTouchX = null; return; }
     var dx = e.changedTouches[0].clientX - sdTouchX;
     sdTouchX = null;
     if(Math.abs(dx) > 50) sdStep(dx < 0 ? 1 : -1);
   }, { passive:true });
+  var sc = box.querySelector(".sd-scroll"), grab = null;
+  sc.addEventListener("pointerdown", function(e){
+    if(sdZoom <= 1 || sdPen || e.pointerType !== "mouse" || e.button > 0 || e.target.closest(".sd-mk")) return;
+    e.preventDefault();
+    grab = { x:e.clientX, y:e.clientY, l:sc.scrollLeft, t:sc.scrollTop, id:e.pointerId };
+    sc.classList.add("sd-grab");
+    try{ sc.setPointerCapture(e.pointerId); }catch(er){}
+  });
+  sc.addEventListener("pointermove", function(e){
+    if(!grab || e.pointerId !== grab.id) return;
+    sc.scrollLeft = grab.l - (e.clientX - grab.x);
+    sc.scrollTop = grab.t - (e.clientY - grab.y);
+  });
+  var drop = function(e){ if(grab && e.pointerId === grab.id){ grab = null; sc.classList.remove("sd-grab"); } };
+  sc.addEventListener("pointerup", drop);
+  sc.addEventListener("pointercancel", drop);
   sdHlWire(box);
 }
 function sdFull(){
@@ -5569,6 +5643,9 @@ document.addEventListener("click", function(ev){
       [].forEach.call(document.querySelectorAll('[data-act="sdtint"]'), function(b){ b.setAttribute("aria-pressed", !!S.settings.sdTint); });
       sdShow();
       break;
+    case "sdzin": sdZoomStep(1); break;
+    case "sdzout": sdZoomStep(-1); break;
+    case "sdzfit": sdZoomSet(1); break;
     case "sdprev": sdStep(-1); break;
     case "sdnext": sdStep(1); break;
     case "vdtoggle": {
@@ -6486,7 +6563,7 @@ document.addEventListener("keydown", function(e){
     if(dt){ e.preventDefault(); go("dmq", { id:dt.id }); }
     return;
   }
-  /* 강의 슬라이드(한 장씩 보기) — ← → · PageUp/Down 으로 쪽 넘김, Home/End 처음·끝 */
+  /* 강의 슬라이드(한 장씩 보기) — ← → · PageUp/Down 으로 쪽 넘김, Home/End 처음·끝, + − 0 확대·축소·맞춤 */
   if(view.name==="sdq" && sdDoc && sdDoc.id===view.id && sdBox() && !e.altKey && !e.ctrlKey && !e.metaKey){
     var sk = e.key, sn = sdDoc.pdf.numPages;
     if(sk==="ArrowLeft" || sk==="PageUp"){ e.preventDefault(); sdStep(-1); return; }
@@ -6494,6 +6571,9 @@ document.addEventListener("keydown", function(e){
     if(sk==="Escape" && sdPen){ sdPen = false; sdDrawStop(); sdHlAfter(); return; }
     if(sk==="Home"){ e.preventDefault(); sdGo(1); return; }
     if(sk==="End"){ e.preventDefault(); sdGo(sn); return; }
+    if(sk==="+" || sk==="="){ e.preventDefault(); sdZoomStep(1); return; }
+    if(sk==="-"){ e.preventDefault(); sdZoomStep(-1); return; }
+    if(sk==="0"){ e.preventDefault(); sdZoomSet(1); return; }
   }
   /* 내용정리 절 화면 — 좌우 화살표로 이전·다음 절 */
   if(view.name==="note" && (e.key==="ArrowLeft" || e.key==="ArrowRight") && !e.altKey && !e.ctrlKey && !e.metaKey){
