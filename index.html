@@ -5086,7 +5086,7 @@ function sdBot(it){
         '<button class="btn btn-sm" data-go="chapter" data-ch="'+c+'">'+ROMAN[c]+'과목 문제 풀기</button>';
     }).join("")+'</div>'+
     (loc ? '<p class="note vd-hint">← → 키 · 마우스 휠 · 좌우로 밀기 · 화면 양옆을 눌러 넘깁니다. 자료마다 마지막으로 본 쪽을 이 기기에 기억합니다. '+
-      '[+]·[−] · + − 키 · Ctrl+휠로 확대·축소하고, 확대한 쪽은 끌거나 휠로 옮깁니다([맞춤]·0 키로 되돌림). '+
+      '[+]·[−] · + − 키 · Ctrl+휠 · 두 손가락으로 확대·축소하고, 확대한 쪽은 끌거나 휠로 옮깁니다([맞춤]·0 키로 되돌림). '+
       '[✎ 형광펜]을 켜고 슬라이드 위를 끌면 칠해집니다 — 옆으로 그으면 한 줄, 비스듬히 끌면 네모. 칠한 곳을 누르면 색·메모를 고칩니다.</p>' :
     '<p class="note vd-hint">보이지 않으면 이 브라우저에서 PDF 를 올린 구글 계정으로 로그인했는지 확인하세요. '+
     '사파리처럼 다른 사이트 쿠키를 막는 브라우저에서는 [드라이브에서 열기]로 보면 됩니다.</p>');
@@ -5125,10 +5125,25 @@ var SD_POS = "dap750:sdpos", SD_LIBFAIL = false;
 var sdLibP = null, sdDoc = null, sdLoading = "", sdSeq = 0, sdDrawing = null, sdWheelAt = 0, sdTouchX = null, sdResizeT = 0;
 /* 확대 — sdZoom 은 무대에 맞춘 크기의 몇 배인가(1 = 맞춤). 쪽을 넘겨도 그대로 두고, 다른 자료를 열면 맞춤으로 돌아간다(저장하지 않는다).
    확대하면 휠·밀기는 쪽 넘김 대신 스크롤이 되고, 마우스로 끌어 옮긴다. Ctrl+휠(터치패드 오므리기)은 가리킨 자리를 두고 확대·축소.
+   터치 화면은 두 손가락으로 벌리고 오므린다 — 그동안은 지금 그림을 늘려 보이고, 손을 떼면 그 배율로 다시 그린다(단계 없이 SD_ZOOMS 의 처음~끝).
    canvas 는 SD_PX 픽셀까지만 그린다 — 크게 확대해도 메모리가 넘치지 않게(넘으면 조금 흐려진다) */
 var SD_ZOOMS = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3, 4], SD_PX = 16e6;
-var sdZoom = 1, sdZoomAt = null, sdZoomWheelAt = 0;
+var sdZoom = 1, sdZoomAt = null, sdZoomWheelAt = 0, sdFit = null;
 function sdZoomTxt(){ return sdZoom === 1 ? "맞춤" : Math.round(sdZoom * 100) + "%"; }
+/* 배율에 따른 막대 단추·무대 상태 */
+function sdZoomUi(box){
+  box.classList.toggle("sd-zoom", sdZoom > 1);
+  var zp = box.querySelector(".sd-zp");
+  if(zp) zp.textContent = sdZoomTxt();
+  box.querySelector('[data-act="sdzout"]').disabled = sdZoom <= SD_ZOOMS[0];
+  box.querySelector('[data-act="sdzin"]').disabled = sdZoom >= SD_ZOOMS[SD_ZOOMS.length - 1];
+}
+/* 쪽 안의 자리(비율 fx·fy)가 화면 위 x·y 에 오도록 스크롤한다 */
+function sdAnchor(sc, cv, fx, fy, x, y){
+  var pb = cv.getBoundingClientRect();
+  sc.scrollLeft += pb.left + fx * pb.width - x;
+  sc.scrollTop += pb.top + fy * pb.height - y;
+}
 function sdPosAll(){ try{ return JSON.parse(localStorage.getItem(SD_POS)) || {}; }catch(e){ return {}; } }
 function sdPosSet(id, p){
   var o = sdPosAll();
@@ -5221,28 +5236,23 @@ function sdShow(){
   box.querySelector(".sd-of").textContent = "/ " + n;
   [].forEach.call(box.querySelectorAll('[data-act="sdprev"]'), function(b){ b.disabled = p <= 1; });
   [].forEach.call(box.querySelectorAll('[data-act="sdnext"]'), function(b){ b.disabled = p >= n; });
-  box.classList.toggle("sd-zoom", sdZoom > 1);
-  var zp = box.querySelector(".sd-zp");
-  if(zp) zp.textContent = sdZoomTxt();
-  box.querySelector('[data-act="sdzout"]').disabled = sdZoom <= SD_ZOOMS[0];
-  box.querySelector('[data-act="sdzin"]').disabled = sdZoom >= SD_ZOOMS[SD_ZOOMS.length - 1];
+  sdZoomUi(box);
   var stage = box.querySelector(".sd-stage"), sc = box.querySelector(".sd-scroll"), cv = box.querySelector("canvas"),
       msg = box.querySelector(".sd-msg"), seq = ++sdSeq;
   sdDrawStop();
   sdDoc.pdf.getPage(p).then(function(pg){
     if(seq !== sdSeq) return;
     var v1 = pg.getViewport({ scale:1 }), pad = 12,
-        s = Math.max(0.05, Math.min((stage.clientWidth - pad*2) / v1.width, (stage.clientHeight - pad*2) / v1.height)) * sdZoom,
+        fit = Math.max(0.05, Math.min((stage.clientWidth - pad*2) / v1.width, (stage.clientHeight - pad*2) / v1.height)), s = fit * sdZoom,
         cw = Math.floor(v1.width * s), ch = Math.floor(v1.height * s),
         r = Math.min(s * (window.devicePixelRatio || 1), Math.sqrt(SD_PX / (v1.width * v1.height))), vp = pg.getViewport({ scale:r });
+    sdFit = { w:v1.width * fit, h:v1.height * fit };
     /* 같은 쪽을 확대·축소할 때는 지금 그림을 먼저 늘려 놓고 가리킨 자리가 그대로 있게 스크롤한 뒤, 선명하게 다시 그린다 */
     var at = sdZoomAt;
     sdZoomAt = null;
     if(at && +cv.getAttribute("data-p") === p){
       cv.style.width = cw + "px"; cv.style.height = ch + "px";
-      var b = sc.getBoundingClientRect(), pb = cv.getBoundingClientRect();
-      sc.scrollLeft += pb.left + at.fx * pb.width - (b.left + at.x);
-      sc.scrollTop += pb.top + at.fy * pb.height - (b.top + at.y);
+      sdAnchor(sc, cv, at.fx, at.fy, at.x, at.y);
     }
     if(sdDrawing) sdDrawing.cancel();
     var off = document.createElement("canvas");
@@ -5276,19 +5286,34 @@ function sdStep(d){
   var p = (view.p || 1) + d;
   if(p >= 1 && p <= sdDoc.pdf.numPages) sdGo(p);
 }
-/* 배율을 한 칸(d) 옮긴다. cx·cy = 그대로 둘 화면 위 자리(없으면 무대 가운데) */
+/* 배율을 한 칸(d) 옮긴다. cx·cy = 그대로 둘 화면 위 자리(없으면 무대 가운데).
+   두 손가락으로 맞춘 배율은 단계 사이일 수 있다 — 그 위·아래의 가장 가까운 단계로 */
 function sdZoomStep(d, cx, cy){
-  var i = SD_ZOOMS.indexOf(sdZoom);
-  sdZoomSet(SD_ZOOMS[Math.min(SD_ZOOMS.length - 1, Math.max(0, (i < 0 ? 2 : i) + d))], cx, cy);
+  var z = d > 0 ? SD_ZOOMS.filter(function(v){ return v > sdZoom + 1e-3; })[0]
+                : SD_ZOOMS.filter(function(v){ return v < sdZoom - 1e-3; }).pop();
+  if(z) sdZoomSet(z, cx, cy);
 }
 function sdZoomSet(z, cx, cy){
   var box = sdBox();
   if(!box || z === sdZoom || !sdDoc || sdDoc.id !== view.id) return;
   var sc = box.querySelector(".sd-scroll"), b = sc.getBoundingClientRect(), pb = box.querySelector("canvas").getBoundingClientRect();
   if(cx == null){ cx = b.left + sc.clientWidth / 2; cy = b.top + sc.clientHeight / 2; }
-  sdZoomAt = pb.width ? { fx:(cx - pb.left) / pb.width, fy:(cy - pb.top) / pb.height, x:cx - b.left, y:cy - b.top } : null;
+  sdZoomAt = pb.width ? { fx:(cx - pb.left) / pb.width, fy:(cy - pb.top) / pb.height, x:cx, y:cy } : null;
   sdZoom = z;
   sdShow();
+}
+/* 두 손가락 — 벌린 만큼 배율을 바꾸고, 처음 손가락 사이에 있던 자리를 손가락 사이에 붙여 둔다(옮기기도 함께 된다).
+   그리는 중인 쪽은 멈추고 지금 그림만 늘려 보인다. 손을 떼면(맞춤 가까이면 맞춤으로) 다시 그린다 */
+function sdPinchAt(t){
+  return { x:(t[0].clientX + t[1].clientX) / 2, y:(t[0].clientY + t[1].clientY) / 2,
+           d:Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) };
+}
+function sdPinchTo(box, pin, z, m){
+  var sc = box.querySelector(".sd-scroll"), cv = box.querySelector("canvas");
+  sdZoom = z;
+  sdZoomUi(box);
+  cv.style.width = Math.floor(sdFit.w * z) + "px"; cv.style.height = Math.floor(sdFit.h * z) + "px";
+  sdAnchor(sc, cv, pin.fx, pin.fy, m.x, m.y);
 }
 /* 무대의 휠·밀기. 휠은 한 번 돌릴 때 한 쪽만 넘기도록 잠깐 쉰다. 확대 중에는 휠·밀기가 스크롤이고, 마우스로 끌어 옮긴다 */
 function sdWire(box){
@@ -5311,7 +5336,32 @@ function sdWire(box){
     sdWheelAt = now;
     sdStep(e.deltaY > 0 ? 1 : -1);
   }, { passive:false });
-  st.addEventListener("touchstart", function(e){ sdTouchX = e.touches.length === 1 ? e.touches[0].clientX : null; }, { passive:true });
+  var pin = null;
+  st.addEventListener("touchstart", function(e){
+    sdTouchX = e.touches.length === 1 ? e.touches[0].clientX : null;
+    var cv = box.querySelector("canvas");
+    if(e.touches.length !== 2 || sdPen || !sdFit || !sdDoc || sdDoc.id !== view.id || !cv.getAttribute("data-p")) return;
+    var m = sdPinchAt(e.touches), pb = cv.getBoundingClientRect();
+    if(!m.d || !pb.width) return;
+    sdSeq++;
+    if(sdDrawing){ sdDrawing.cancel(); sdDrawing = null; }
+    pin = { z:sdZoom, d:m.d, fx:(m.x - pb.left) / pb.width, fy:(m.y - pb.top) / pb.height, m:m };
+  }, { passive:true });
+  st.addEventListener("touchmove", function(e){
+    if(!pin || e.touches.length !== 2) return;
+    if(e.cancelable) e.preventDefault();
+    var m = pin.m = sdPinchAt(e.touches);
+    sdPinchTo(box, pin, Math.min(SD_ZOOMS[SD_ZOOMS.length - 1], Math.max(SD_ZOOMS[0], pin.z * m.d / pin.d)), m);
+  }, { passive:false });
+  var pinEnd = function(e){
+    if(!pin || e.touches.length >= 2) return;
+    var p0 = pin;
+    pin = null;
+    if(Math.abs(sdZoom - 1) < 0.06) sdPinchTo(box, p0, 1, p0.m);
+    sdShow();
+  };
+  st.addEventListener("touchend", pinEnd);
+  st.addEventListener("touchcancel", pinEnd);
   st.addEventListener("touchend", function(e){
     if(sdTouchX === null || sdPen || sdZoom > 1){ sdTouchX = null; return; }
     var dx = e.changedTouches[0].clientX - sdTouchX;
